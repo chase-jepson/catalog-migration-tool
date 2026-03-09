@@ -22,15 +22,15 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Data Transformation
 
-- [ ] **XFRM-01**: Tool normalizes source categories to Treez category taxonomy
-- [ ] **XFRM-02**: Tool standardizes weight/unit values (g, mg, oz, each) to Treez-expected formats
-- [ ] **XFRM-03**: Tool normalizes classification values (Indica, Sativa, Hybrid, I/S, S/I, CBD)
+- [x] **XFRM-01**: Tool normalizes source categories to Treez category taxonomy
+- [x] **XFRM-02**: Tool standardizes weight/unit values (g, mg, oz, each) to Treez-expected formats
+- [x] **XFRM-03**: Tool normalizes classification values (Indica, Sativa, Hybrid, I/S, S/I, CBD)
 
 ### Validation
 
 - [x] **VAL-01**: Tool validates each row against Treez import schema and shows specific error messages
 - [x] **VAL-02**: Errors are grouped by type with affected row counts
-- [ ] **VAL-03**: User can fix errors inline per-row in the review UI
+- [x] **VAL-03**: User can fix errors inline per-row in the review UI
 
 ### Import
 
@@ -104,12 +104,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FILE-04 | Phase 2 | Complete |
 | MAP-01 | Phase 2 | Complete |
 | MAP-02 | Phase 2 | Complete |
-| XFRM-01 | Phase 3 | Pending |
-| XFRM-02 | Phase 3 | Pending |
-| XFRM-03 | Phase 3 | Pending |
+| XFRM-01 | Phase 3 | Complete |
+| XFRM-02 | Phase 3 | Complete |
+| XFRM-03 | Phase 3 | Complete |
 | VAL-01 | Phase 3 | Complete |
 | VAL-02 | Phase 3 | Complete |
-| VAL-03 | Phase 3 | Pending |
+| VAL-03 | Phase 3 | Complete |
 | IMP-01 | Phase 3 | Complete |
 | IMP-02 | Phase 3 | Pending |
 | IMP-03 | Phase 3 | Pending |
