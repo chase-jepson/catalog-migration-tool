@@ -46,12 +46,12 @@ Plans:
   3. User can manually select a POS system when auto-detection is wrong or returns "Unknown"
   4. Column mappings auto-populate from POS-specific templates and the user can override any mapping via dropdown
   5. A 10,000+ row file uploads and parses without crashing or freezing the extension
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
-- [ ] 02-03: TBD
+- [ ] 02-01-PLAN.md -- Core types, constants, file parser, POS detection, and mapping engine (TDD)
+- [ ] 02-02-PLAN.md -- Upload step UI with file drop zone, parsing, POS detection, and WizardShell integration
+- [ ] 02-03-PLAN.md -- Map step UI with grouped mappings, data preview, and human verification
 
 ### Phase 3: Transform, Validate, and Import
 **Goal**: The complete catalog migration pipeline -- uploaded data is normalized, validated, converted to Treez import CSVs, and uploaded to S3
