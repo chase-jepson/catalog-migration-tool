@@ -352,10 +352,18 @@ export function ImportStep({
               Generate the 6 import CSV files and download them as a ZIP archive.
               After downloading, you can start the import to upload files to Treez.
             </p>
+            {derivedRows.length === 0 && (
+              <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2">
+                <p className="text-sm text-amber-700">
+                  No data available. Please go back to the Review step to regenerate.
+                </p>
+              </div>
+            )}
             <button
               type="button"
               onClick={handleDownloadZip}
-              className="w-full rounded-md bg-teal-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-700"
+              disabled={derivedRows.length === 0}
+              className="w-full rounded-md bg-teal-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Generate & Download CSVs
             </button>

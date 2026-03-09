@@ -66,6 +66,28 @@ export function WizardShell({ wizardType }: WizardShellProps) {
     });
   }, []);
 
+  // ── Reset wizard when the active tab refreshes/navigates ────────────────
+  useEffect(() => {
+    const handler = (changes: { [key: string]: chrome.storage.StorageChange }) => {
+      if (changes.tabRefreshedAt) {
+        clearMigrationState();
+        setParsedFiles([]);
+        setMergedFile(null);
+        setSelectedPOS('');
+        setDetectedPOS(null);
+        setMappings([]);
+        setFixes([]);
+        setDerivedRows([]);
+        setCanProceed(false);
+        setWarningCount(0);
+        setCurrentStep(0);
+      }
+    };
+
+    chrome.storage.session.onChanged.addListener(handler);
+    return () => chrome.storage.session.onChanged.removeListener(handler);
+  }, []);
+
   // ── Debounced persistence on state changes ──────────────────────────────
   useEffect(() => {
     if (!restored) return; // Don't save during restore

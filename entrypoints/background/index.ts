@@ -34,8 +34,13 @@ export default defineBackground(() => {
   }
 
   // Listen for tab URL changes (standard navigation)
-  chrome.tabs.onUpdated.addListener(async (tabId, _info, tab) => {
+  chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     await updateSidePanelForTab(tabId, tab.url);
+
+    // Signal side panel to reset when the active tab refreshes
+    if (changeInfo.status === 'loading') {
+      chrome.storage.session.set({ tabRefreshedAt: Date.now() });
+    }
   });
 
   // Listen for SPA navigation (history.pushState / replaceState)
@@ -46,7 +51,12 @@ export default defineBackground(() => {
   // Handle getAuthToken messages via typed messaging
   onMessage('getAuthToken', async (message) => {
     const { appUrl } = message.data;
-    const tabId = message.sender.tab?.id;
+    // Side panel messages don't have sender.tab, so query the active tab
+    let tabId = message.sender.tab?.id;
+    if (!tabId) {
+      const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      tabId = activeTab?.id;
+    }
     if (!tabId) return { token: null };
 
     const token = await getValidToken(tabId, appUrl);
