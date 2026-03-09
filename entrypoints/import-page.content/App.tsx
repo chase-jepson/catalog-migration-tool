@@ -1,5 +1,3 @@
-import { sendMessage } from '../../lib/messaging';
-
 const buttonStyle: React.CSSProperties = {
   backgroundColor: '#0891b2',
   color: '#ffffff',
@@ -22,10 +20,13 @@ const containerStyle: React.CSSProperties = {
 };
 
 function handleClick(wizardType: 'catalog' | 'inventory') {
-  // Content script doesn't know its own tabId -- the background script
-  // resolves it from sender.tab.id. We pass tabId: 0 as a placeholder;
-  // the background onMessage handler uses message.sender.tab.id instead.
-  sendMessage('openSidePanel', { tabId: 0, wizardType });
+  // Use raw chrome.runtime.sendMessage to preserve user gesture context.
+  // @webext-core/messaging adds async layers that break the gesture chain,
+  // which chrome.sidePanel.open() requires.
+  chrome.runtime.sendMessage({
+    type: 'openSidePanel',
+    data: { wizardType },
+  });
 }
 
 export default function App() {

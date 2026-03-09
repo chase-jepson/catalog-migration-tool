@@ -39,15 +39,13 @@ export default defineBackground(() => {
   });
 
   // Listen for SPA navigation (history.pushState / replaceState)
-  // Treez is a SPA, so client-side routing won't trigger tabs.onUpdated URL changes
   chrome.webNavigation.onHistoryStateUpdated.addListener(async (details) => {
     await updateSidePanelForTab(details.tabId, details.url);
   });
 
-  // Handle getAuthToken messages from content script
+  // Handle getAuthToken messages via typed messaging
   onMessage('getAuthToken', async (message) => {
     const { appUrl } = message.data;
-    // Get the sender tab ID
     const tabId = message.sender.tab?.id;
     if (!tabId) return { token: null };
 
@@ -55,16 +53,19 @@ export default defineBackground(() => {
     return { token };
   });
 
-  // Handle openSidePanel messages from content script
-  onMessage('openSidePanel', async (message) => {
-    const { wizardType } = message.data;
-    const tabId = message.sender.tab?.id;
+  // Handle openSidePanel via raw chrome.runtime.onMessage.
+  // chrome.sidePanel.open() requires a user gesture — it MUST be the first
+  // call in the handler. Any await/then before it breaks the gesture chain.
+  chrome.runtime.onMessage.addListener((message, sender) => {
+    if (message.type !== 'openSidePanel') return;
+
+    const tabId = sender.tab?.id;
     if (!tabId) return;
 
-    // Store the wizard type so the side panel knows which wizard to show
-    await chrome.storage.session.set({ wizardType });
+    // Open IMMEDIATELY — must be first call to preserve gesture context
+    chrome.sidePanel.open({ tabId });
 
-    // Open the side panel for this tab
-    await chrome.sidePanel.open({ tabId });
+    // Store wizard type after (panel reads it on mount)
+    chrome.storage.session.set({ wizardType: message.data.wizardType });
   });
 });
