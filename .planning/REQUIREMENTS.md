@@ -35,8 +35,8 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Import
 
 - [x] **IMP-01**: Tool generates Treez-formatted import CSVs (brands, attributes, products, variants, attribute joins, images)
-- [ ] **IMP-02**: Tool uploads generated CSVs to S3 via presigned URLs from Treez API
-- [ ] **IMP-03**: Tool tracks upload and import progress with ETA display
+- [x] **IMP-02**: Tool uploads generated CSVs to S3 via presigned URLs from Treez API
+- [x] **IMP-03**: Tool tracks upload and import progress with ETA display
 
 ### Backend Persistence
 
@@ -111,8 +111,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | VAL-02 | Phase 3 | Complete |
 | VAL-03 | Phase 3 | Complete |
 | IMP-01 | Phase 3 | Complete |
-| IMP-02 | Phase 3 | Pending |
-| IMP-03 | Phase 3 | Pending |
+| IMP-02 | Phase 3 | Complete |
+| IMP-03 | Phase 3 | Complete |
 | BACK-01 | Phase 4 | Pending |
 | BACK-02 | Phase 4 | Pending |
 | BACK-03 | Phase 4 | Pending |

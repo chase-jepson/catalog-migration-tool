@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Extension Shell** - WXT-based Chrome extension with page detection, auth flow, and wizard scaffold
 - [x] **Phase 2: File Upload and Column Mapping** - CSV/XLSX upload with POS auto-detection and smart column mapping
-- [ ] **Phase 3: Transform, Validate, and Import** - Data normalization, row validation, Treez CSV generation, and S3 upload
+- [x] **Phase 3: Transform, Validate, and Import** - Data normalization, row validation, Treez CSV generation, and S3 upload
 - [ ] **Phase 4: Backend Persistence** - Hono + SQLite backend for migration state, file storage, and saved mappings
 - [ ] **Phase 5: Inventory Migration** - Store selection, inventory-specific transformation, and inventory import
 
@@ -66,10 +66,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 03-01-PLAN.md -- Category mapper + transformer with TDD (deriveRows, weight/classification normalization, applyFixes)
-- [ ] 03-02-PLAN.md -- Validator + CSV generator with TDD (schema validation, error grouping, 6-file CSV generation, ZIP)
-- [ ] 03-03-PLAN.md -- ReviewStep UI with transform preview, grouped errors, batch fix controls, WizardShell wiring
-- [ ] 03-04-PLAN.md -- ImportStep UI with S3 upload, adaptive polling, progress tracking, error recovery
+- [x] 03-01-PLAN.md -- Category mapper + transformer with TDD (deriveRows, weight/classification normalization, applyFixes)
+- [x] 03-02-PLAN.md -- Validator + CSV generator with TDD (schema validation, error grouping, 6-file CSV generation, ZIP)
+- [x] 03-03-PLAN.md -- ReviewStep UI with transform preview, grouped errors, batch fix controls, WizardShell wiring
+- [x] 03-04-PLAN.md -- ImportStep UI with S3 upload, adaptive polling, progress tracking, error recovery
 
 ### Phase 4: Backend Persistence
 **Goal**: Migrations persist server-side so users can resume interrupted sessions and mappings are saved for reuse
@@ -112,6 +112,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 |-------|----------------|--------|-----------|
 | 1. Extension Shell | 3/3 | Complete | 2026-03-09 |
 | 2. File Upload and Column Mapping | 3/3 | Complete | 2026-03-09 |
-| 3. Transform, Validate, and Import | 3/4 | In Progress|  |
+| 3. Transform, Validate, and Import | 4/4 | Complete | 2026-03-09 |
 | 4. Backend Persistence | 0/3 | Not started | - |
 | 5. Inventory Migration | 0/3 | Not started | - |
