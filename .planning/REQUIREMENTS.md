@@ -28,13 +28,13 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Validation
 
-- [ ] **VAL-01**: Tool validates each row against Treez import schema and shows specific error messages
-- [ ] **VAL-02**: Errors are grouped by type with affected row counts
+- [x] **VAL-01**: Tool validates each row against Treez import schema and shows specific error messages
+- [x] **VAL-02**: Errors are grouped by type with affected row counts
 - [ ] **VAL-03**: User can fix errors inline per-row in the review UI
 
 ### Import
 
-- [ ] **IMP-01**: Tool generates Treez-formatted import CSVs (brands, attributes, products, variants, attribute joins, images)
+- [x] **IMP-01**: Tool generates Treez-formatted import CSVs (brands, attributes, products, variants, attribute joins, images)
 - [ ] **IMP-02**: Tool uploads generated CSVs to S3 via presigned URLs from Treez API
 - [ ] **IMP-03**: Tool tracks upload and import progress with ETA display
 
@@ -107,10 +107,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | XFRM-01 | Phase 3 | Pending |
 | XFRM-02 | Phase 3 | Pending |
 | XFRM-03 | Phase 3 | Pending |
-| VAL-01 | Phase 3 | Pending |
-| VAL-02 | Phase 3 | Pending |
+| VAL-01 | Phase 3 | Complete |
+| VAL-02 | Phase 3 | Complete |
 | VAL-03 | Phase 3 | Pending |
-| IMP-01 | Phase 3 | Pending |
+| IMP-01 | Phase 3 | Complete |
 | IMP-02 | Phase 3 | Pending |
 | IMP-03 | Phase 3 | Pending |
 | BACK-01 | Phase 4 | Pending |
