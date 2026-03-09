@@ -1,0 +1,30 @@
+{
+  "name": "catalog-migration-tool",
+  "description": "Migrate product catalog and inventory data into Treez",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "dev:firefox": "wxt --browser firefox",
+    "build": "wxt build",
+    "build:firefox": "wxt build --browser firefox",
+    "zip": "wxt zip",
+    "zip:firefox": "wxt zip --browser firefox",
+    "postinstall": "wxt prepare",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@webext-core/messaging": "^1.4.0",
+    "@wxt-dev/module-react": "^1.1.3",
+    "tailwindcss": "^4.1.4",
+    "@tailwindcss/vite": "^4.1.4",
+    "typescript": "^5.8.3",
+    "wxt": "^0.20.18"
+  }
+}
