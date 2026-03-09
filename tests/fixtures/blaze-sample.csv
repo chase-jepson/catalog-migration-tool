@@ -1,0 +1,7 @@
+Product ID,Item,Brand,Category,Cannabis Type,Active,Genetics,Type,Custom Weight Measurement,Unit Price,Description,Available Online,Image 1,Tag,CBD %
+BLZ-001,Gelato Flower,Green Garden,Flower,Hybrid,Yes,Gelato,Hybrid,3.5g,40.00,Indoor grown gelato,Yes,gelato.jpg,premium,0.1%
+BLZ-002,Sour Diesel Pre-Roll,Roll Masters,Preroll,Sativa,Yes,Sour Diesel,Sativa,1.0g,10.00,Hand-rolled sativa,Yes,sd-pr.jpg,value,0.0%
+BLZ-003,Chocolate Bar,Canna Treats,Edible,,Yes,,,100mg,20.00,Dark chocolate THC bar,Yes,choc.jpg,edible,0.0%
+BLZ-004,Shatter,Extract Co,Extract,Indica,Yes,Purple Punch,Indica,1.0g,35.00,BHO shatter,No,shatter.jpg,extract,0.2%
+BLZ-005,Topical Cream,Relief Works,Topical,,Yes,,,200mg,30.00,Pain relief cream,Yes,cream.jpg,topical,5.0%
+BLZ-006,Jack Herer Eighth,Sunny Farms,Flower,Sativa,Yes,Jack Herer,Sativa,3.5g,38.00,Energizing sativa flower,Yes,jh.jpg,top-shelf,0.1%

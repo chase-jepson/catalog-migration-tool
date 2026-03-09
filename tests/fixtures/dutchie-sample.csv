@@ -1,0 +1,6 @@
+SKU,Product,Brand,Category,External category,Is retired,Strain,Strain Type,Product grams,Price,Alternate description,Online title,Is available online,Image URL,Tags,Flavor,Ingredients,THC content,CBD content
+DUT-001,Blue Dream Flower,Pacific Cannabis,Flower,,No,Blue Dream,Sativa,3.5,35.00,Premium sativa-dominant flower,Blue Dream 3.5g,Yes,bluedream.jpg,top-shelf,Berry,,"22.5%","0.1%"
+DUT-002,OG Kush Pre-Roll,Mountain Farms,Preroll,,No,OG Kush,Hybrid,1.0,12.00,Classic pre-roll,OG Kush 1g PR,Yes,ogkush-pr.jpg,value,,,"18.0%","0.2%"
+DUT-003,Mango Gummies,Sweet Leaf Edibles,Edible,,No,,Hybrid,,25.00,10mg THC gummies,Mango Gummies 10pk,Yes,mango-gum.jpg,,Mango,Gelatin sugar mango extract,"10mg",""
+DUT-004,Live Resin Cart,Dab Labs,Cartridge,,No,Wedding Cake,Indica,0.5,45.00,Live resin 510 cart,Wedding Cake LR Cart,Yes,wc-cart.jpg,premium,,,85.2%,0.5%
+DUT-005,CBD Tincture,Wellness Co,Tincture,,No,,CBD,,55.00,Full spectrum tincture,CBD Tincture 1000mg,Yes,cbd-tinc.jpg,,Mint,MCT oil hemp extract,2.0%,33.3mg/ml

@@ -1,0 +1,8 @@
+Product ID,Product Name,Brand,Parent Category,Sub-category (L2),Sub-category (L3),Strain Type,Net Weight,Price per Unit,Tags
+IO-001,Purple Haze Flower,Sunset Farms,Flower,Flower - General,,Sativa,3.5g,36.00,premium;top-shelf
+IO-002,Granddaddy Purple,Mountain High,Flower,Pre-Pack,,Indica,7.0g,60.00,bulk;value
+IO-003,Distillate Cartridge,Pure Vape,Cartridge,Distillate,,Hybrid,0.5g,40.00,vape;cart
+IO-004,THC Capsules,Wellness Labs,Pill,Capsule,,CBD,30ct,45.00,medical;capsule
+IO-005,Kief,Hash Masters,Extract,Kief,,Sativa,1.0g,25.00,extract;kief
+IO-006,Infused Pre-Roll,Joint Ventures,Preroll,Infused,,Hybrid,1.0g,15.00,preroll;infused
+IO-007,Bath Bomb,Body Works,Topical,Topical - General,,CBD,1ct,20.00,topical;bath

@@ -1,0 +1,6 @@
+Product Id,Product Name,Brand,Category,Product Type,Variant Type,Weight / Volume,Price,Description,Variant Id,Price Profile,Price Type
+FH-001,Northern Lights,Alpine Growers,Flower,Indica,Bulk Flower,3.5g,42.00,Classic indica strain,FH-001-V1,Default,REC
+FH-002,Pineapple Express Cart,Vape Kings,Cartridge,Sativa,510 Thread,0.5g,38.00,Sativa cartridge,FH-002-V1,Default,REC
+FH-003,Gummy Bears,Edible Earth,Edible,Hybrid,,10pk,18.00,THC gummy bears,FH-003-V1,Default,BOTH
+FH-004,Bubble Hash,Hash House,Extract,Indica,Ice Water Hash,1.0g,55.00,Traditional bubble hash,FH-004-V1,Premium,REC
+FH-005,RSO Syringe,Medical Grade,Tincture,CBD,,1.0ml,65.00,Full extract cannabis oil,FH-005-V1,Default,MED

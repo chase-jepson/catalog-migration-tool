@@ -1,0 +1,7 @@
+ID,Product Name,Brand,Primary Category,Sub Categories,Active, Strain Type,Cannabis Content,Price,Description,Menu Status Online,THC Content,CBD Content
+MW-001,Girl Scout Cookies,Cookie Farm,Flower,Pre-Pack,Yes,Hybrid,3.5g,45.00,GSC hybrid flower,Active,24.0%,0.1%
+MW-002,Tangie Cart,Citrus Vapes,Cartridge,510 Thread,Yes,Sativa,0.5g,35.00,Citrus vape cart,Active,88.0%,0.0%
+MW-003,Brownie Bites,Baked Goods Co,Edible,Baked Good,Yes,Hybrid,10mg,15.00,Chocolate brownie bites,Active,10mg,0mg
+MW-004,Live Rosin,Solventless Co,Extract,Hash Rosin,Yes,Indica,1.0g,70.00,Cold cure live rosin,Active,78.0%,0.3%
+MW-005,CBD Drops,Calm Co,Tincture,Tincture,Yes,CBD,,55.00,Full spectrum CBD drops,Inactive,2.0%,30mg/ml
+MW-006,Clone - Blue Dream,Green Genetics,Plant,Clone,Yes,Sativa,,25.00,Rooted clone,Active,,,
