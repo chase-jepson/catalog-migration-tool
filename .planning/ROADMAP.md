@@ -111,7 +111,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Extension Shell | 3/3 | Complete | 2026-03-09 |
-| 2. File Upload and Column Mapping | 1/3 | In progress | - |
+| 2. File Upload and Column Mapping | 2/3 | In Progress|  |
 | 3. Transform, Validate, and Import | 0/4 | Not started | - |
 | 4. Backend Persistence | 0/3 | Not started | - |
 | 5. Inventory Migration | 0/3 | Not started | - |
