@@ -12,7 +12,7 @@ This roadmap delivers a Chrome extension and backend service for migrating canna
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Extension Shell** - WXT-based Chrome extension with page detection, auth flow, and wizard scaffold
+- [x] **Phase 1: Extension Shell** - WXT-based Chrome extension with page detection, auth flow, and wizard scaffold
 - [ ] **Phase 2: File Upload and Column Mapping** - CSV/XLSX upload with POS auto-detection and smart column mapping
 - [ ] **Phase 3: Transform, Validate, and Import** - Data normalization, row validation, Treez CSV generation, and S3 upload
 - [ ] **Phase 4: Backend Persistence** - Hono + SQLite backend for migration state, file storage, and saved mappings
@@ -32,9 +32,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 3 plans
 
 Plans:
-- [ ] 01-01-PLAN.md -- WXT project scaffold, shared libs, test infrastructure
-- [ ] 01-02-PLAN.md -- Background script (auth + side panel) and content script (button injection)
-- [ ] 01-03-PLAN.md -- Side panel wizard UI with step navigation and human verification
+- [x] 01-01-PLAN.md -- WXT project scaffold, shared libs, test infrastructure
+- [x] 01-02-PLAN.md -- Background script (auth + side panel) and content script (button injection)
+- [x] 01-03-PLAN.md -- Side panel wizard UI with step navigation and human verification
 
 ### Phase 2: File Upload and Column Mapping
 **Goal**: Users can upload their POS export files and get intelligent column mappings that translate source fields to Treez fields
@@ -110,7 +110,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Extension Shell | 2/3 | In Progress|  |
+| 1. Extension Shell | 3/3 | Complete | 2026-03-09 |
 | 2. File Upload and Column Mapping | 0/3 | Not started | - |
 | 3. Transform, Validate, and Import | 0/4 | Not started | - |
 | 4. Backend Persistence | 0/3 | Not started | - |
