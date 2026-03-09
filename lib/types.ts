@@ -58,3 +58,103 @@ export interface PersistedMigrationState {
   currentStep: number;
   updatedAt: string;
 }
+
+// ── Phase 3: Derived Row ────────────────────────────────────────────────────
+
+import type { ProductCategory } from './constants';
+
+export interface DerivedRow {
+  excluded: boolean;
+  productId: string;
+  productName: string;
+  brand: string;
+  category: string;
+  subCategory: string;
+  status: string;
+  strain: string;
+  classification: string;
+  extractionMethod: string;
+  uom: string;
+  amount: number;
+  weightInGrams: number;
+  unitCount: string;
+  merchSize: string;
+  skuBarcode: string;
+  basePrice: string;
+  description: string;
+  menuTitle: string;
+  hideFromMenu: string;
+  totalFlowerWeight: string;
+  totalConcentrateWeight: string;
+  thc: string;
+  cbd: string;
+  tags: string;
+  effects: string;
+  flavor: string;
+  ingredients: string;
+  imageFilename: string;
+  priceTier: string;
+}
+
+// ── Phase 3: Category Resolution ────────────────────────────────────────────
+
+export interface CategoryResolution {
+  category: string;
+  subCategory: string;
+  uom: string;
+  merchSize: string;
+}
+
+// ── Phase 3: Row Fix ────────────────────────────────────────────────────────
+
+export interface RowFix {
+  rowIndex: number;
+  field: string;
+  newValue: string;
+}
+
+// ── Phase 3: Validation Types ─────────────────────────────────────────────
+
+export interface RowValidationError {
+  rowIndex: number;
+  field: string;
+  currentValue: string;
+  message: string;
+  fixType: 'dropdown' | 'text';
+  dropdownOptions?: string[];
+  severity: 'error' | 'warning';
+}
+
+export interface ValidationResult {
+  validCount: number;
+  errorCount: number;
+  warningCount: number;
+  errors: RowValidationError[];
+}
+
+export interface ErrorGroup {
+  field: string;
+  message: string;
+  severity: 'error' | 'warning';
+  fixType: 'dropdown' | 'text';
+  dropdownOptions?: string[];
+  rows: { rowIndex: number; currentValue: string }[];
+}
+
+// ── Phase 3: Output CSVs ─────────────────────────────────────────────────
+
+export interface OutputCSVs {
+  brands: string[][];
+  attributes: string[][];
+  products: string[][];
+  variants: string[][];
+  attributeJoins: string[][];
+  images: string[][];
+}
+
+// ── Phase 3: Transform Result ───────────────────────────────────────────────
+
+export interface TransformResult {
+  derivedRows: DerivedRow[];
+  categoryResolutions: Map<string, CategoryResolution>;
+}
