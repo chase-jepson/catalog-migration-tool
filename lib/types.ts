@@ -148,6 +148,52 @@ export interface ErrorGroup {
   rows: { rowIndex: number; currentValue: string }[];
 }
 
+// ── Phase 3: Import Types ─────────────────────────────────────────────────
+
+export type FileStatus = 'pending' | 'uploading' | 'processing' | 'done' | 'failed' | 'done_with_warnings';
+export type ImportObjectType = 'brands' | 'attributes' | 'products' | 'variants' | 'attributeJoins' | 'images';
+
+export interface ImportFileState {
+  key: ImportObjectType;
+  label: string;
+  status: FileStatus;
+  rowCount: number;
+  processedCount: number;
+  errorCount: number;
+  error?: string;
+}
+
+export interface DetailedImportProgress {
+  files: ImportFileState[];
+  startTime: number;
+  currentFileIndex: number;
+  completed: boolean;
+  cancelled: boolean;
+}
+
+export interface ImportJob {
+  id: string;
+  name: string;
+  status: string;
+  finishedAt: string | null;
+  totalRows: number | null;
+  countProcessed: number;
+  countError: number;
+}
+
+export const OUTPUT_FILE_ORDER: ImportObjectType[] = [
+  'brands', 'attributes', 'products', 'variants', 'attributeJoins', 'images',
+];
+
+export const OUTPUT_FILE_LABELS: Record<ImportObjectType, string> = {
+  brands: 'Brands',
+  attributes: 'Attributes',
+  products: 'Products',
+  variants: 'Variants',
+  attributeJoins: 'Attribute Joins',
+  images: 'Images',
+};
+
 // ── Phase 3: Output CSVs ─────────────────────────────────────────────────
 
 export interface OutputCSVs {

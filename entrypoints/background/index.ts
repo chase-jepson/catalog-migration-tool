@@ -53,6 +53,72 @@ export default defineBackground(() => {
     return { token };
   });
 
+  // Handle getPresignedUrl -- fetch presigned S3 upload URL from Treez file-management API
+  onMessage('getPresignedUrl', async (message) => {
+    const { apiBaseUrl, token, params } = message.data;
+    const res = await fetch(`${apiBaseUrl}/file/v1/presignedUrl`, {
+      method: 'POST',
+      credentials: 'omit',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        ...params,
+        contentType: 'text/csv',
+        checksumAlgorithm: 'SHA256',
+      }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Presigned URL request failed (${res.status}): ${text}`);
+    }
+
+    return res.json();
+  });
+
+  // Handle uploadToS3 -- PUT CSV content to presigned S3 URL (bypasses CORS)
+  onMessage('uploadToS3', async (message) => {
+    const { presignedUrl, csvContent } = message.data;
+    try {
+      const res = await fetch(presignedUrl, {
+        method: 'PUT',
+        credentials: 'omit',
+        headers: { 'Content-Type': 'text/csv' },
+        body: csvContent,
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        return { ok: false, error: `S3 upload failed (${res.status}): ${text}` };
+      }
+
+      return { ok: true };
+    } catch (err) {
+      return {
+        ok: false,
+        error: err instanceof Error ? err.message : 'S3 upload failed',
+      };
+    }
+  });
+
+  // Handle fetchImportReport -- GET import job statuses from Treez API
+  onMessage('fetchImportReport', async (message) => {
+    const { apiBaseUrl, token } = message.data;
+    const res = await fetch(`${apiBaseUrl}/import/v1/report`, {
+      credentials: 'omit',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!res.ok) {
+      throw new Error(`Import report request failed (${res.status})`);
+    }
+
+    const body = await res.json();
+    return body.data;
+  });
+
   // Handle openSidePanel via raw chrome.runtime.onMessage.
   // chrome.sidePanel.open() requires a user gesture — it MUST be the first
   // call in the handler. Any await/then before it breaks the gesture chain.
