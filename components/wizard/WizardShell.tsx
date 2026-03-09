@@ -4,6 +4,7 @@ import { StepIndicator } from './StepIndicator';
 import { StepPlaceholder } from './StepPlaceholder';
 import { UploadStep } from '../upload/UploadStep';
 import { MappingStep } from '../mapping/MappingStep';
+import { ReviewStep } from '../review/ReviewStep';
 import { mergeFiles } from '../../lib/parser';
 import { applyPOSDefaults } from '../../lib/mapping-engine';
 import {
@@ -13,6 +14,8 @@ import {
 import type {
   ParsedFile,
   FieldMapping,
+  DerivedRow,
+  RowFix,
   POSDetectionResult,
 } from '../../lib/types';
 
@@ -29,7 +32,10 @@ export function WizardShell({ wizardType }: WizardShellProps) {
     null,
   );
   const [mappings, setMappings] = useState<FieldMapping[]>([]);
+  const [fixes, setFixes] = useState<RowFix[]>([]);
+  const [derivedRows, setDerivedRows] = useState<DerivedRow[]>([]);
   const [canProceed, setCanProceed] = useState(false);
+  const [warningCount, setWarningCount] = useState(0);
   const [restored, setRestored] = useState(false);
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -45,6 +51,7 @@ export function WizardShell({ wizardType }: WizardShellProps) {
         setParsedFiles(saved.parsedFiles);
         setSelectedPOS(saved.selectedPOS);
         setMappings(saved.mappings);
+        setFixes(saved.fixes ?? []);
         setCurrentStep(saved.currentStep);
         if (saved.parsedFiles.length > 0) {
           setMergedFile(mergeFiles(saved.parsedFiles));
@@ -68,6 +75,7 @@ export function WizardShell({ wizardType }: WizardShellProps) {
         mergedHeaders: mergedFile?.headers ?? [],
         selectedPOS,
         mappings,
+        fixes,
         currentStep,
         updatedAt: new Date().toISOString(),
       });
@@ -76,7 +84,7 @@ export function WizardShell({ wizardType }: WizardShellProps) {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [parsedFiles, mergedFile, selectedPOS, mappings, currentStep, restored]);
+  }, [parsedFiles, mergedFile, selectedPOS, mappings, fixes, currentStep, restored]);
 
   // ── Re-merge when files change ──────────────────────────────────────────
   const handleParsedFilesChange = useCallback((files: ParsedFile[]) => {
@@ -101,6 +109,14 @@ export function WizardShell({ wizardType }: WizardShellProps) {
     },
     [mappings],
   );
+
+  // ── Next button label ─────────────────────────────────────────────────
+  const nextButtonLabel = (() => {
+    if (currentStep === 2 && warningCount > 0 && canProceed) {
+      return `Import with ${warningCount} warning${warningCount !== 1 ? 's' : ''}`;
+    }
+    return 'Next';
+  })();
 
   // ── Render step content ─────────────────────────────────────────────────
   const renderStep = () => {
@@ -128,6 +144,18 @@ export function WizardShell({ wizardType }: WizardShellProps) {
           />
         ) : (
           <StepPlaceholder stepName={STEP_LABELS[currentStep]} />
+        );
+      case 2:
+        return (
+          <ReviewStep
+            parsedFiles={parsedFiles}
+            mappings={mappings}
+            onCanProceed={setCanProceed}
+            onDerivedRowsChange={setDerivedRows}
+            onFixesChange={setFixes}
+            onWarningCountChange={setWarningCount}
+            fixes={fixes}
+          />
         );
       default:
         return <StepPlaceholder stepName={STEP_LABELS[currentStep]} />;
@@ -165,7 +193,7 @@ export function WizardShell({ wizardType }: WizardShellProps) {
           onClick={() => setCurrentStep((s) => s + 1)}
           className="rounded-md bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          Next
+          {nextButtonLabel}
         </button>
       </div>
     </div>

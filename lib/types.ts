@@ -50,13 +50,20 @@ export interface POSDetectionResult {
 
 // ── Persisted Migration State ───────────────────────────────────────────────
 
+export interface ImportProgress {
+  status: 'idle' | 'uploading' | 'complete' | 'error';
+  message?: string;
+}
+
 export interface PersistedMigrationState {
   parsedFiles: ParsedFile[];
   mergedHeaders: string[];
   selectedPOS: string;
   mappings: FieldMapping[];
+  fixes: RowFix[];
   currentStep: number;
   updatedAt: string;
+  importProgress?: ImportProgress;
 }
 
 // ── Phase 3: Derived Row ────────────────────────────────────────────────────
