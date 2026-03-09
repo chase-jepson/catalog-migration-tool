@@ -63,13 +63,13 @@ Plans:
   3. Errors are grouped by type with affected row counts so the user can prioritize fixes
   4. User can fix validation errors inline in the review UI and re-validate
   5. Tool generates the full set of Treez import CSVs (brands, attributes, products, variants, attribute joins, images) and uploads them to S3 with progress and ETA display
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 03-01: TBD
-- [ ] 03-02: TBD
-- [ ] 03-03: TBD
-- [ ] 03-04: TBD
+- [ ] 03-01-PLAN.md -- Category mapper + transformer with TDD (deriveRows, weight/classification normalization, applyFixes)
+- [ ] 03-02-PLAN.md -- Validator + CSV generator with TDD (schema validation, error grouping, 6-file CSV generation, ZIP)
+- [ ] 03-03-PLAN.md -- ReviewStep UI with transform preview, grouped errors, batch fix controls, WizardShell wiring
+- [ ] 03-04-PLAN.md -- ImportStep UI with S3 upload, adaptive polling, progress tracking, error recovery
 
 ### Phase 4: Backend Persistence
 **Goal**: Migrations persist server-side so users can resume interrupted sessions and mappings are saved for reuse
