@@ -52,8 +52,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Extension Infrastructure
 
-- [ ] **EXT-01**: Chrome extension injects "Migrate Products" button on Treez Catalog module pages
-- [ ] **EXT-02**: Extension authenticates using Treez session tokens (no separate login)
+- [x] **EXT-01**: Chrome extension injects "Migrate Products" button on Treez Catalog module pages
+- [x] **EXT-02**: Extension authenticates using Treez session tokens (no separate login)
 - [x] **EXT-03**: Extension works across Treez environments (production, sandbox, dev)
 
 ## v2 Requirements
@@ -95,8 +95,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| EXT-01 | Phase 1 | Pending |
-| EXT-02 | Phase 1 | Pending |
+| EXT-01 | Phase 1 | Complete |
+| EXT-02 | Phase 1 | Complete |
 | EXT-03 | Phase 1 | Complete |
 | FILE-01 | Phase 2 | Pending |
 | FILE-02 | Phase 2 | Pending |

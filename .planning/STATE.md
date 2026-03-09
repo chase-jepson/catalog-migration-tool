@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-01-PLAN.md
-last_updated: "2026-03-09T16:54:42Z"
-last_activity: 2026-03-09 -- Plan 01-01 executed (WXT project init)
+stopped_at: Completed 01-02-PLAN.md
+last_updated: "2026-03-09T17:00:25Z"
+last_activity: 2026-03-09 -- Plan 01-02 executed (background + content scripts)
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
-  percent: 7
+  completed_plans: 2
+  percent: 13
 ---
 
 # Project State
@@ -26,28 +26,28 @@ See: .planning/PROJECT.md (updated 2026-03-09)
 ## Current Position
 
 Phase: 1 of 5 (Extension Shell)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: Executing
-Last activity: 2026-03-09 -- Plan 01-01 executed (WXT project init)
+Last activity: 2026-03-09 -- Plan 01-02 executed (background + content scripts)
 
-Progress: [█░░░░░░░░░] 7%
+Progress: [██░░░░░░░░] 13%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 3min
-- Total execution time: 0.05 hours
+- Total plans completed: 2
+- Average duration: 3.5min
+- Total execution time: 0.12 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-extension-shell | 1 | 3min | 3min |
+| 01-extension-shell | 2 | 7min | 3.5min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (3min)
-- Trend: -
+- Last 5 plans: 01-01 (3min), 01-02 (4min)
+- Trend: stable
 
 *Updated after each plan completion*
 
@@ -64,6 +64,9 @@ Recent decisions affecting current work:
 - [01-01]: Manually scaffolded WXT project (init CLI requires interactive terminal)
 - [01-01]: Chrome-only extensionApi -- no browser polyfill needed
 - [01-01]: Manifest hook deletes side_panel entry for programmatic per-tab control
+- [01-02]: Content script sends tabId: 0 placeholder; background resolves from sender.tab.id
+- [01-02]: Inline styles for injected buttons (Tailwind unavailable in content script)
+- [01-02]: Dual navigation listeners (tabs.onUpdated + webNavigation.onHistoryStateUpdated) for SPA
 
 ### Pending Todos
 
@@ -77,6 +80,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T16:54:42Z
-Stopped at: Completed 01-01-PLAN.md
-Resume file: .planning/phases/01-extension-shell/01-02-PLAN.md
+Last session: 2026-03-09T17:00:25Z
+Stopped at: Completed 01-02-PLAN.md
+Resume file: .planning/phases/01-extension-shell/01-03-PLAN.md

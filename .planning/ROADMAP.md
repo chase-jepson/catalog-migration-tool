@@ -110,7 +110,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Extension Shell | 0/3 | Not started | - |
+| 1. Extension Shell | 2/3 | In Progress|  |
 | 2. File Upload and Column Mapping | 0/3 | Not started | - |
 | 3. Transform, Validate, and Import | 0/4 | Not started | - |
 | 4. Backend Persistence | 0/3 | Not started | - |
