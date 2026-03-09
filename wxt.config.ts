@@ -8,7 +8,7 @@ export default defineConfig({
     name: 'Catalog Migration Tool',
     description: 'Migrate product catalog and inventory data into Treez',
     action: {},
-    permissions: ['storage', 'activeTab', 'tabs', 'sidePanel', 'scripting', 'webNavigation'],
+    permissions: ['storage', 'unlimitedStorage', 'activeTab', 'tabs', 'sidePanel', 'scripting', 'webNavigation'],
     host_permissions: [
       'https://app.treez.io/*',
       'https://app.sandbox.treez.io/*',
