@@ -13,7 +13,7 @@ This roadmap delivers a Chrome extension and backend service for migrating canna
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Extension Shell** - WXT-based Chrome extension with page detection, auth flow, and wizard scaffold
-- [ ] **Phase 2: File Upload and Column Mapping** - CSV/XLSX upload with POS auto-detection and smart column mapping
+- [x] **Phase 2: File Upload and Column Mapping** - CSV/XLSX upload with POS auto-detection and smart column mapping
 - [ ] **Phase 3: Transform, Validate, and Import** - Data normalization, row validation, Treez CSV generation, and S3 upload
 - [ ] **Phase 4: Backend Persistence** - Hono + SQLite backend for migration state, file storage, and saved mappings
 - [ ] **Phase 5: Inventory Migration** - Store selection, inventory-specific transformation, and inventory import
@@ -50,8 +50,8 @@ Plans:
 
 Plans:
 - [x] 02-01-PLAN.md -- Core types, constants, file parser, POS detection, and mapping engine (TDD)
-- [ ] 02-02-PLAN.md -- Upload step UI with file drop zone, parsing, POS detection, and WizardShell integration
-- [ ] 02-03-PLAN.md -- Map step UI with grouped mappings, data preview, and human verification
+- [x] 02-02-PLAN.md -- Upload step UI with file drop zone, parsing, POS detection, and WizardShell integration
+- [x] 02-03-PLAN.md -- Map step UI with grouped mappings, data preview, and human verification
 
 ### Phase 3: Transform, Validate, and Import
 **Goal**: The complete catalog migration pipeline -- uploaded data is normalized, validated, converted to Treez import CSVs, and uploaded to S3
@@ -111,7 +111,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Extension Shell | 3/3 | Complete | 2026-03-09 |
-| 2. File Upload and Column Mapping | 2/3 | In Progress|  |
+| 2. File Upload and Column Mapping | 3/3 | Complete | 2026-03-09 |
 | 3. Transform, Validate, and Import | 0/4 | Not started | - |
 | 4. Backend Persistence | 0/3 | Not started | - |
 | 5. Inventory Migration | 0/3 | Not started | - |

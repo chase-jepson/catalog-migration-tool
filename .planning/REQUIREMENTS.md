@@ -17,7 +17,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Column Mapping
 
 - [x] **MAP-01**: Tool auto-maps source columns to Treez fields using POS-specific templates
-- [ ] **MAP-02**: User can manually override any column mapping via dropdown
+- [x] **MAP-02**: User can manually override any column mapping via dropdown
 - [ ] **MAP-03**: Column mappings are saved per org/POS combo and reused on subsequent uploads
 
 ### Data Transformation
@@ -103,7 +103,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FILE-03 | Phase 2 | Complete |
 | FILE-04 | Phase 2 | Complete |
 | MAP-01 | Phase 2 | Complete |
-| MAP-02 | Phase 2 | Pending |
+| MAP-02 | Phase 2 | Complete |
 | XFRM-01 | Phase 3 | Pending |
 | XFRM-02 | Phase 3 | Pending |
 | XFRM-03 | Phase 3 | Pending |
