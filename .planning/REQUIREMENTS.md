@@ -9,14 +9,14 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### File Handling
 
-- [ ] **FILE-01**: User can upload CSV or XLSX files via drag-and-drop or file picker
-- [ ] **FILE-02**: Tool auto-detects POS system from file column headers (Dutchie, Blaze, Flowhub, IndicaOnline, Meadow, Cova)
-- [ ] **FILE-03**: User can manually select POS system if auto-detection fails
-- [ ] **FILE-04**: Tool handles large files (10k+ rows) without crashing or freezing
+- [x] **FILE-01**: User can upload CSV or XLSX files via drag-and-drop or file picker
+- [x] **FILE-02**: Tool auto-detects POS system from file column headers (Dutchie, Blaze, Flowhub, IndicaOnline, Meadow, Cova)
+- [x] **FILE-03**: User can manually select POS system if auto-detection fails
+- [x] **FILE-04**: Tool handles large files (10k+ rows) without crashing or freezing
 
 ### Column Mapping
 
-- [ ] **MAP-01**: Tool auto-maps source columns to Treez fields using POS-specific templates
+- [x] **MAP-01**: Tool auto-maps source columns to Treez fields using POS-specific templates
 - [ ] **MAP-02**: User can manually override any column mapping via dropdown
 - [ ] **MAP-03**: Column mappings are saved per org/POS combo and reused on subsequent uploads
 
@@ -98,11 +98,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EXT-01 | Phase 1 | Complete |
 | EXT-02 | Phase 1 | Complete |
 | EXT-03 | Phase 1 | Complete |
-| FILE-01 | Phase 2 | Pending |
-| FILE-02 | Phase 2 | Pending |
-| FILE-03 | Phase 2 | Pending |
-| FILE-04 | Phase 2 | Pending |
-| MAP-01 | Phase 2 | Pending |
+| FILE-01 | Phase 2 | Complete |
+| FILE-02 | Phase 2 | Complete |
+| FILE-03 | Phase 2 | Complete |
+| FILE-04 | Phase 2 | Complete |
+| MAP-01 | Phase 2 | Complete |
 | MAP-02 | Phase 2 | Pending |
 | XFRM-01 | Phase 3 | Pending |
 | XFRM-02 | Phase 3 | Pending |

@@ -49,7 +49,7 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02-01-PLAN.md -- Core types, constants, file parser, POS detection, and mapping engine (TDD)
+- [x] 02-01-PLAN.md -- Core types, constants, file parser, POS detection, and mapping engine (TDD)
 - [ ] 02-02-PLAN.md -- Upload step UI with file drop zone, parsing, POS detection, and WizardShell integration
 - [ ] 02-03-PLAN.md -- Map step UI with grouped mappings, data preview, and human verification
 
@@ -111,7 +111,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Extension Shell | 3/3 | Complete | 2026-03-09 |
-| 2. File Upload and Column Mapping | 0/3 | Not started | - |
+| 2. File Upload and Column Mapping | 1/3 | In progress | - |
 | 3. Transform, Validate, and Import | 0/4 | Not started | - |
 | 4. Backend Persistence | 0/3 | Not started | - |
 | 5. Inventory Migration | 0/3 | Not started | - |
