@@ -29,12 +29,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Extension reads the Treez session token and the user does not need to log in separately
   3. Extension works on production, sandbox, and dev Treez environments without reconfiguration
   4. Wizard UI shell renders with step navigation (steps are empty placeholders at this point)
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
-- [ ] 01-03: TBD
+- [ ] 01-01-PLAN.md -- WXT project scaffold, shared libs, test infrastructure
+- [ ] 01-02-PLAN.md -- Background script (auth + side panel) and content script (button injection)
+- [ ] 01-03-PLAN.md -- Side panel wizard UI with step navigation and human verification
 
 ### Phase 2: File Upload and Column Mapping
 **Goal**: Users can upload their POS export files and get intelligent column mappings that translate source fields to Treez fields
