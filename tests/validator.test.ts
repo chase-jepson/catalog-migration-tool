@@ -29,7 +29,7 @@ function makeRow(overrides: Partial<DerivedRow> = {}): DerivedRow {
     totalFlowerWeight: '3.5',
     totalConcentrateWeight: '',
     thc: '20.00',
-    cbd: '',
+    cbd: '5.00',
     tags: '',
     effects: '',
     flavor: '',
