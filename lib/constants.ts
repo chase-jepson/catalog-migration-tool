@@ -55,12 +55,12 @@ export const MAPPING_FIELDS: MappingFieldDef[] = [
   // Cannabis Details
   { key: 'strain', label: 'Strain', description: 'Strain name', group: 'Cannabis Details' },
   { key: 'classification', label: 'Classification', description: 'Sativa, Indica, Hybrid, etc.', group: 'Cannabis Details' },
-  { key: 'weight', label: 'Weight / Amount', description: 'Product weight (e.g. 0.5g, 500mg)', group: 'Cannabis Details' },
+  { key: 'weight', label: 'Weight / Amount', description: 'Product weight (e.g. 0.5g, 500mg)', group: 'Cannabis Details', required: true },
   { key: 'thc', label: 'THC Content', description: 'Manufactured Goods - THC Content (mg)', group: 'Cannabis Details' },
   { key: 'cbd', label: 'CBD Content', description: 'CBD value (%, mg, or mg/g)', group: 'Cannabis Details' },
 
   // Pricing
-  { key: 'basePrice', label: 'Price', description: 'Product price', group: 'Pricing' },
+  { key: 'basePrice', label: 'Price', description: 'Product price', group: 'Pricing', required: true },
   { key: 'priceTier', label: 'Price Tier', description: 'Price profile / tier name', hidden: true, group: 'Pricing' },
   { key: 'priceType', label: 'Price Type', description: 'Price type (MED, REC, BOTH)', hidden: true, group: 'Pricing' },
 
