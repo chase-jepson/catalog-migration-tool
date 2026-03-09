@@ -3,6 +3,7 @@ import { STEP_LABELS } from '../../lib/constants';
 import { StepIndicator } from './StepIndicator';
 import { StepPlaceholder } from './StepPlaceholder';
 import { UploadStep } from '../upload/UploadStep';
+import { MappingStep } from '../mapping/MappingStep';
 import { mergeFiles } from '../../lib/parser';
 import { applyPOSDefaults } from '../../lib/mapping-engine';
 import {
@@ -88,10 +89,18 @@ export function WizardShell({ wizardType }: WizardShellProps) {
   }, []);
 
   // ── Re-apply POS defaults when POS changes ─────────────────────────────
-  const handleSelectedPOSChange = useCallback((pos: string) => {
-    setSelectedPOS(pos);
-    setMappings(applyPOSDefaults(pos));
-  }, []);
+  const handleSelectedPOSChange = useCallback(
+    (pos: string) => {
+      setSelectedPOS(pos);
+      // Only auto-apply POS defaults if all mappings are currently empty
+      // (i.e., user hasn't manually edited any mapping yet)
+      const allEmpty = mappings.every((m) => m.sourceHeader === null);
+      if (allEmpty || mappings.length === 0) {
+        setMappings(applyPOSDefaults(pos));
+      }
+    },
+    [mappings],
+  );
 
   // ── Render step content ─────────────────────────────────────────────────
   const renderStep = () => {
@@ -107,6 +116,18 @@ export function WizardShell({ wizardType }: WizardShellProps) {
             detectedPOS={detectedPOS}
             onDetectedPOSChange={setDetectedPOS}
           />
+        );
+      case 1:
+        return mergedFile ? (
+          <MappingStep
+            mappings={mappings}
+            onMappingsChange={setMappings}
+            mergedFile={mergedFile}
+            selectedPOS={selectedPOS}
+            onCanProceed={setCanProceed}
+          />
+        ) : (
+          <StepPlaceholder stepName={STEP_LABELS[currentStep]} />
         );
       default:
         return <StepPlaceholder stepName={STEP_LABELS[currentStep]} />;
