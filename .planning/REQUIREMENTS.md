@@ -1,7 +1,7 @@
 # Requirements: Catalog Migration Tool v2
 
 **Defined:** 2026-03-09
-**Core Value:** Users can self-service their entire POS migration — catalog and inventory — without needing Treez engineering support.
+**Core Value:** Users can self-service their entire POS migration -- catalog and inventory -- without needing Treez engineering support.
 
 ## v1 Requirements
 
@@ -68,7 +68,7 @@ Deferred to future release. Tracked but not in current roadmap.
 
 ### Enhanced Features
 
-- **ENH-01**: Bulk error resolution — apply fix to all rows with same error type
+- **ENH-01**: Bulk error resolution -- apply fix to all rows with same error type
 - **ENH-02**: Duplicate detection with merge strategies
 - **ENH-03**: Pre-import dry run summary showing entity counts before import
 - **ENH-04**: Multiple file upload per migration (for POS systems that split exports)
@@ -95,37 +95,37 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FILE-01 | — | Pending |
-| FILE-02 | — | Pending |
-| FILE-03 | — | Pending |
-| FILE-04 | — | Pending |
-| MAP-01 | — | Pending |
-| MAP-02 | — | Pending |
-| MAP-03 | — | Pending |
-| XFRM-01 | — | Pending |
-| XFRM-02 | — | Pending |
-| XFRM-03 | — | Pending |
-| VAL-01 | — | Pending |
-| VAL-02 | — | Pending |
-| VAL-03 | — | Pending |
-| IMP-01 | — | Pending |
-| IMP-02 | — | Pending |
-| IMP-03 | — | Pending |
-| BACK-01 | — | Pending |
-| BACK-02 | — | Pending |
-| BACK-03 | — | Pending |
-| INV-01 | — | Pending |
-| INV-02 | — | Pending |
-| INV-03 | — | Pending |
-| EXT-01 | — | Pending |
-| EXT-02 | — | Pending |
-| EXT-03 | — | Pending |
+| EXT-01 | Phase 1 | Pending |
+| EXT-02 | Phase 1 | Pending |
+| EXT-03 | Phase 1 | Pending |
+| FILE-01 | Phase 2 | Pending |
+| FILE-02 | Phase 2 | Pending |
+| FILE-03 | Phase 2 | Pending |
+| FILE-04 | Phase 2 | Pending |
+| MAP-01 | Phase 2 | Pending |
+| MAP-02 | Phase 2 | Pending |
+| XFRM-01 | Phase 3 | Pending |
+| XFRM-02 | Phase 3 | Pending |
+| XFRM-03 | Phase 3 | Pending |
+| VAL-01 | Phase 3 | Pending |
+| VAL-02 | Phase 3 | Pending |
+| VAL-03 | Phase 3 | Pending |
+| IMP-01 | Phase 3 | Pending |
+| IMP-02 | Phase 3 | Pending |
+| IMP-03 | Phase 3 | Pending |
+| BACK-01 | Phase 4 | Pending |
+| BACK-02 | Phase 4 | Pending |
+| BACK-03 | Phase 4 | Pending |
+| MAP-03 | Phase 4 | Pending |
+| INV-01 | Phase 5 | Pending |
+| INV-02 | Phase 5 | Pending |
+| INV-03 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 25 total
-- Mapped to phases: 0
-- Unmapped: 25 ⚠️
+- Mapped to phases: 25
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-09*
-*Last updated: 2026-03-09 after initial definition*
+*Last updated: 2026-03-09 after roadmap creation*
