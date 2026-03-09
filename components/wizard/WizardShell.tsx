@@ -5,11 +5,13 @@ import { StepPlaceholder } from './StepPlaceholder';
 import { UploadStep } from '../upload/UploadStep';
 import { MappingStep } from '../mapping/MappingStep';
 import { ReviewStep } from '../review/ReviewStep';
+import { ImportStep } from '../import/ImportStep';
 import { mergeFiles } from '../../lib/parser';
 import { applyPOSDefaults } from '../../lib/mapping-engine';
 import {
   saveMigrationState,
   loadMigrationState,
+  clearMigrationState,
 } from '../../lib/migration-store';
 import type {
   ParsedFile,
@@ -110,6 +112,21 @@ export function WizardShell({ wizardType }: WizardShellProps) {
     [mappings],
   );
 
+  // ── Start New Migration (clears all state, resets wizard) ──────────────
+  const handleStartNew = useCallback(async () => {
+    await clearMigrationState();
+    setParsedFiles([]);
+    setMergedFile(null);
+    setSelectedPOS('');
+    setDetectedPOS(null);
+    setMappings([]);
+    setFixes([]);
+    setDerivedRows([]);
+    setCanProceed(false);
+    setWarningCount(0);
+    setCurrentStep(0);
+  }, []);
+
   // ── Next button label ─────────────────────────────────────────────────
   const nextButtonLabel = (() => {
     if (currentStep === 2 && warningCount > 0 && canProceed) {
@@ -157,6 +174,16 @@ export function WizardShell({ wizardType }: WizardShellProps) {
             fixes={fixes}
           />
         );
+      case 3:
+        return (
+          <ImportStep
+            derivedRows={derivedRows}
+            parsedFiles={parsedFiles}
+            mappings={mappings}
+            fixes={fixes}
+            onStartNew={handleStartNew}
+          />
+        );
       default:
         return <StepPlaceholder stepName={STEP_LABELS[currentStep]} />;
     }
@@ -177,25 +204,27 @@ export function WizardShell({ wizardType }: WizardShellProps) {
         {renderStep()}
       </div>
 
-      {/* Footer navigation */}
-      <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3">
-        <button
-          type="button"
-          disabled={currentStep === 0}
-          onClick={() => setCurrentStep((s) => s - 1)}
-          className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Back
-        </button>
-        <button
-          type="button"
-          disabled={currentStep === lastStep || !canProceed}
-          onClick={() => setCurrentStep((s) => s + 1)}
-          className="rounded-md bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {nextButtonLabel}
-        </button>
-      </div>
+      {/* Footer navigation -- hidden on Import step (step 3 manages its own flow) */}
+      {currentStep !== 3 && (
+        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3">
+          <button
+            type="button"
+            disabled={currentStep === 0}
+            onClick={() => setCurrentStep((s) => s - 1)}
+            className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Back
+          </button>
+          <button
+            type="button"
+            disabled={currentStep === lastStep || !canProceed}
+            onClick={() => setCurrentStep((s) => s + 1)}
+            className="rounded-md bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {nextButtonLabel}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
