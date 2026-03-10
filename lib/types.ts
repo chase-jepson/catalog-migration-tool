@@ -26,7 +26,12 @@ export type MappingGroup =
   | 'Cannabis Details'
   | 'Pricing'
   | 'Attributes'
-  | 'Display & Media';
+  | 'Display & Media'
+  | 'Product Matching'
+  | 'Inventory Data'
+  | 'Location';
+
+export type InventoryMappingGroup = 'Product Matching' | 'Inventory Data' | 'Location';
 
 export interface MappingFieldDef {
   key: string;
@@ -210,4 +215,34 @@ export interface OutputCSVs {
 export interface TransformResult {
   derivedRows: DerivedRow[];
   categoryResolutions: Map<string, CategoryResolution>;
+}
+
+// ── Phase 4: Inventory Types ────────────────────────────────────────────────
+
+export interface StoreInfo {
+  entityId: string;
+  name: string;
+}
+
+export interface InventoryDerivedRow {
+  matched: boolean;
+  posProductId: string;
+  productName: string;
+  treezVariantId?: string;
+  quantityOnHand: number;
+  cost: string;
+  room: string;
+  excluded: boolean;
+}
+
+export interface PersistedInventoryState {
+  parsedFiles: ParsedFile[];
+  mergedHeaders: string[];
+  selectedPOS: string;
+  selectedStore: StoreInfo | null;
+  mappings: FieldMapping[];
+  fixes: RowFix[];
+  currentStep: number;
+  updatedAt: string;
+  importProgress?: ImportProgress;
 }
