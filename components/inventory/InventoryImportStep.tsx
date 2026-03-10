@@ -1,23 +1,18 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { buildInventoryCSV } from '../../lib/inventory-csv-generator';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { buildInventoryCSV, INVENTORY_OUTPUT_COLUMNS } from '../../lib/inventory-csv-generator';
 import { sendMessage } from '../../lib/messaging';
 import { buildUploadPayload } from '../../lib/file-uploader';
-import { calculateETA, getAdaptiveInterval, isTerminalStatus, MAX_POLL_DURATION_MS } from '../../lib/import-poller';
+import { getAdaptiveInterval, isTerminalStatus, MAX_POLL_DURATION_MS } from '../../lib/import-poller';
 import { detectEnvironment, getApiBaseUrl } from '../../lib/env';
 import type {
   InventoryDerivedRow,
-  ParsedFile,
-  FieldMapping,
-  RowFix,
   StoreInfo,
 } from '../../lib/types';
 
 interface InventoryImportStepProps {
   derivedRows: InventoryDerivedRow[];
-  parsedFiles: ParsedFile[];
-  mappings: FieldMapping[];
-  fixes: RowFix[];
   selectedStore: StoreInfo | null;
+  dispensaryLicense: string;
   onStartNew: () => void;
 }
 
@@ -25,10 +20,8 @@ type Phase = 'pre-import' | 'generating' | 'uploading' | 'processing' | 'done' |
 
 export function InventoryImportStep({
   derivedRows,
-  parsedFiles,
-  mappings,
-  fixes,
   selectedStore,
+  dispensaryLicense,
   onStartNew,
 }: InventoryImportStepProps) {
   const [phase, setPhase] = useState<Phase>('pre-import');
@@ -48,9 +41,20 @@ export function InventoryImportStep({
     return () => window.removeEventListener('beforeunload', handler);
   }, [phase]);
 
-  const matchedRows = derivedRows.filter((r) => r.matched && !r.excluded);
+  const activeRows = useMemo(
+    () => derivedRows.filter((r) => !r.excluded),
+    [derivedRows],
+  );
 
-  // ── Get Token and URL ──────────────────────────────────────────────────────
+  // Determine which file roles contributed to this data
+  const rolesUsed = useMemo(() => {
+    const roles: string[] = ['Inventory'];
+    if (activeRows.some((r) => r.invoiceId !== '')) roles.push('Receipts');
+    if (activeRows.some((r) => r.distributorName !== '')) roles.push('Vendors');
+    return roles;
+  }, [activeRows]);
+
+  // ── Get Token and URL ─────────────────────────────────────────────────────
   const getTokenAndUrl = useCallback(async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     const tabUrl = tab?.url ?? '';
@@ -64,7 +68,7 @@ export function InventoryImportStep({
     return { apiBaseUrl, token };
   }, []);
 
-  // ── Run Import ──────────────────────────────────────────────────────────────
+  // ── Run Import ────────────────────────────────────────────────────────────
   const handleStartImport = useCallback(async () => {
     if (!selectedStore) return;
 
@@ -75,13 +79,13 @@ export function InventoryImportStep({
     try {
       // Step 1: Generate CSV
       setPhase('generating');
-      setStatusMessage('Generating inventory CSV...');
+      setStatusMessage('Generating 56-column inventory CSV...');
 
-      const csvData = buildInventoryCSV(derivedRows, selectedStore.entityId);
+      const csvData = buildInventoryCSV(derivedRows);
       const dataRowCount = csvData.length - 1; // subtract header
 
       if (dataRowCount === 0) {
-        setErrorMessage('No matched rows to import. All rows were unmatched or excluded.');
+        setErrorMessage('No rows to import. All rows were excluded.');
         setPhase('error');
         return;
       }
@@ -89,7 +93,7 @@ export function InventoryImportStep({
       const now = new Date();
       const pad = (n: number) => n.toString().padStart(2, '0');
       const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}-${pad(now.getMinutes())}`;
-      const fileName = `Inventory Import - ${selectedStore.name} - ${ts}.csv`;
+      const fileName = `CS Tool - Inventory Import - ${selectedStore.name} - ${ts}.csv`;
 
       // Step 2: Upload
       setPhase('uploading');
@@ -149,8 +153,8 @@ export function InventoryImportStep({
         });
 
         const job = jobId
-          ? jobs.find((j) => j.id === jobId)
-          : jobs.find((j) => j.name === fileName);
+          ? jobs.find((j: any) => j.id === jobId)
+          : jobs.find((j: any) => j.name === fileName);
 
         if (job) {
           if (!jobId) jobId = job.id;
@@ -233,24 +237,35 @@ export function InventoryImportStep({
         {phase === 'pre-import' && (
           <div className="space-y-3">
             <p className="text-sm text-gray-600">
-              Generate and upload a single inventory CSV to Treez for the selected store.
+              Generate and upload the 56-column inventory CSV to Treez.
             </p>
 
-            <div className="rounded border border-gray-200 bg-white p-3">
+            <div className="rounded border border-gray-200 bg-white p-3 space-y-1">
               <p className="text-sm text-gray-700">
-                <span className="font-medium">{matchedRows.length}</span> matched rows ready for import
+                <span className="font-medium">{activeRows.length.toLocaleString()}</span> rows ready for import
               </p>
-              {matchedRows.length === 0 && (
-                <p className="mt-1 text-xs text-amber-600">
-                  No rows matched to Treez products. Import will be empty.
+              <p className="text-xs text-gray-500">
+                {INVENTORY_OUTPUT_COLUMNS.length} columns | {rolesUsed.join(' + ')}
+              </p>
+              {dispensaryLicense && (
+                <p className="text-xs text-gray-500">
+                  License: {dispensaryLicense}
                 </p>
               )}
             </div>
 
+            {activeRows.length === 0 && (
+              <div className="rounded border border-amber-200 bg-amber-50 p-3">
+                <p className="text-xs text-amber-600">
+                  No rows to import. All rows were excluded.
+                </p>
+              </div>
+            )}
+
             <button
               type="button"
               onClick={handleStartImport}
-              disabled={matchedRows.length === 0}
+              disabled={activeRows.length === 0}
               className="w-full rounded-md bg-teal-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Start Import

@@ -1,46 +1,97 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type {
-  ParsedFile,
-  FieldMapping,
   InventoryDerivedRow,
+  InventoryFileAssignment,
   RowFix,
   ValidationResult,
   StoreInfo,
 } from '../../lib/types';
-import { deriveInventoryRows, applyInventoryFixes } from '../../lib/inventory-transformer';
+import type { PerRoleMappings, ETLInput } from '../../lib/inventory-transformer';
+import { runInventoryETL } from '../../lib/inventory-transformer';
 import { validateInventoryRows, groupInventoryErrors } from '../../lib/inventory-validator';
 import { ErrorGroupList } from '../review/ErrorGroupList';
 
 interface InventoryReviewStepProps {
-  parsedFiles: ParsedFile[];
-  mappings: FieldMapping[];
+  fileAssignments: InventoryFileAssignment[];
+  perRoleMappings: PerRoleMappings;
+  dispensaryLicense: string;
   onCanProceed: (can: boolean) => void;
   onDerivedRowsChange: (rows: InventoryDerivedRow[]) => void;
-  onFixesChange: (fixes: RowFix[]) => void;
   onWarningCountChange?: (count: number) => void;
   fixes: RowFix[];
+  onFixesChange: (fixes: RowFix[]) => void;
   selectedStore: StoreInfo | null;
 }
 
 type Status = 'processing' | 'ready' | 'reviewing';
 
+/**
+ * Build ETLInput from file assignments.
+ */
+function buildETLInput(assignments: InventoryFileAssignment[]): ETLInput | null {
+  const inventoryAssign = assignments.find((a) => a.role === 'inventory');
+  if (!inventoryAssign) return null;
+
+  return {
+    inventoryFile: inventoryAssign.file,
+    receiptsFile: assignments.find((a) => a.role === 'receipts')?.file,
+    vendorsFile: assignments.find((a) => a.role === 'vendors')?.file,
+    adjustmentsFile: assignments.find((a) => a.role === 'adjustments')?.file,
+    catalogFile: assignments.find((a) => a.role === 'catalog_export')?.file,
+  };
+}
+
+/**
+ * Apply row-level fixes to derived rows.
+ */
+function applyFixes(
+  rows: InventoryDerivedRow[],
+  fixes: RowFix[],
+): InventoryDerivedRow[] {
+  if (fixes.length === 0) return rows;
+  const fixMap = new Map<string, string>();
+  for (const fix of fixes) {
+    fixMap.set(`${fix.rowIndex}|${fix.field}`, fix.newValue);
+  }
+  return rows.map((row, i) => {
+    let updated = row;
+    for (const fix of fixes) {
+      if (fix.rowIndex === i && fix.field in row) {
+        updated = { ...updated, [fix.field]: fix.newValue };
+      }
+    }
+    return updated;
+  });
+}
+
+const PREVIEW_COLUMNS: { key: keyof InventoryDerivedRow; label: string }[] = [
+  { key: 'variantReferenceId', label: 'VariantRefId' },
+  { key: 'invoiceId', label: 'InvoiceId' },
+  { key: 'units', label: 'Units' },
+  { key: 'unitCost', label: 'UnitCost' },
+  { key: 'locationPath', label: 'LocationPath' },
+  { key: 'distributorName', label: 'Distributor' },
+];
+
 export function InventoryReviewStep({
-  parsedFiles,
-  mappings,
+  fileAssignments,
+  perRoleMappings,
+  dispensaryLicense,
   onCanProceed,
   onDerivedRowsChange,
-  onFixesChange,
   onWarningCountChange,
   fixes,
+  onFixesChange,
   selectedStore,
 }: InventoryReviewStepProps) {
   const [status, setStatus] = useState<Status>('processing');
   const [derivedRows, setDerivedRows] = useState<InventoryDerivedRow[]>([]);
   const [validation, setValidation] = useState<ValidationResult | null>(null);
 
-  // For now, productLookup is empty -- all rows will be unmatched.
-  // The product matching mechanism (fetching variant reference IDs from Treez) is an open question.
-  const productLookup = useMemo(() => ({}), []);
+  const hasReceipts = useMemo(
+    () => fileAssignments.some((a) => a.role === 'receipts'),
+    [fileAssignments],
+  );
 
   const groups = useMemo(() => {
     if (!validation) return [];
@@ -50,19 +101,37 @@ export function InventoryReviewStep({
   const errorGroups = useMemo(() => groups.filter((g) => g.severity === 'error'), [groups]);
   const warningGroups = useMemo(() => groups.filter((g) => g.severity === 'warning'), [groups]);
 
-  // ── Run transform + validate pipeline ──────────────────────────────────
+  // ── Summary stats ─────────────────────────────────────────────────────────
+  const summaryStats = useMemo(() => {
+    const active = derivedRows.filter((r) => !r.excluded);
+    const rolesUsed = Array.from(new Set(fileAssignments.map((a) => a.role)));
+    const uniqueInvoices = new Set(active.map((r) => r.invoiceId).filter(Boolean));
+    const enrichedDistributors = active.filter((r) => r.distributorName !== '').length;
+
+    return {
+      totalRows: active.length,
+      rolesUsed,
+      invoiceCount: uniqueInvoices.size,
+      distributorEnriched: enrichedDistributors,
+    };
+  }, [derivedRows, fileAssignments]);
+
+  // ── Run ETL + validate pipeline ───────────────────────────────────────────
   const runPipeline = useCallback(
     (currentFixes: RowFix[]) => {
       setStatus('processing');
 
       requestAnimationFrame(() => {
-        const rows = deriveInventoryRows(parsedFiles, mappings, productLookup);
-        const fixed =
-          currentFixes.length > 0
-            ? applyInventoryFixes(rows, currentFixes)
-            : rows;
+        const etlInput = buildETLInput(fileAssignments);
+        if (!etlInput) {
+          setStatus('ready');
+          onCanProceed(false);
+          return;
+        }
 
-        const validationResult = validateInventoryRows(fixed);
+        const rows = runInventoryETL(etlInput, perRoleMappings, dispensaryLicense);
+        const fixed = currentFixes.length > 0 ? applyFixes(rows, currentFixes) : rows;
+        const validationResult = validateInventoryRows(fixed, { hasReceipts });
 
         setDerivedRows(fixed);
         setValidation(validationResult);
@@ -75,16 +144,16 @@ export function InventoryReviewStep({
         setStatus(hasErrors ? 'reviewing' : 'ready');
       });
     },
-    [parsedFiles, mappings, productLookup, onCanProceed, onDerivedRowsChange, onWarningCountChange],
+    [fileAssignments, perRoleMappings, dispensaryLicense, hasReceipts, onCanProceed, onDerivedRowsChange, onWarningCountChange],
   );
 
-  // ── Initial run on mount ───────────────────────────────────────────────
+  // ── Initial run on mount ──────────────────────────────────────────────────
   useEffect(() => {
     runPipeline(fixes);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Fix handler ────────────────────────────────────────────────────────
+  // ── Fix handler ───────────────────────────────────────────────────────────
   const handleFix = useCallback(
     (rowIndices: number[], field: string, newValue: string) => {
       const newFixes = [...fixes];
@@ -102,29 +171,25 @@ export function InventoryReviewStep({
     [fixes, onFixesChange],
   );
 
-  // ── Re-validate handler ────────────────────────────────────────────────
+  // ── Re-validate handler ───────────────────────────────────────────────────
   const handleRevalidate = useCallback(() => {
     runPipeline(fixes);
   }, [fixes, runPipeline]);
 
-  // ── Match summary ─────────────────────────────────────────────────────
-  const matchSummary = useMemo(() => {
-    const active = derivedRows.filter((r) => !r.excluded);
-    const matched = active.filter((r) => r.matched).length;
-    return { matched, total: active.length };
-  }, [derivedRows]);
-
-  // ── Processing spinner ─────────────────────────────────────────────────
+  // ── Processing spinner ────────────────────────────────────────────────────
   if (status === 'processing') {
     return (
       <div className="flex w-full flex-col items-center justify-center gap-3 py-12">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-teal-300 border-t-transparent" />
         <span className="text-sm text-gray-600">
-          Transforming inventory data...
+          Running ETL pipeline...
         </span>
       </div>
     );
   }
+
+  // Preview rows (first 10)
+  const previewRows = derivedRows.filter((r) => !r.excluded).slice(0, 10);
 
   return (
     <div className="flex w-full flex-col gap-4 p-4">
@@ -136,9 +201,55 @@ export function InventoryReviewStep({
             Store: {selectedStore.name}
           </p>
         )}
-        {validation && (
-          <p className="mt-1 text-sm text-gray-600">
-            {validation.validCount.toLocaleString()} valid rows
+      </div>
+
+      {/* Summary stats */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="rounded-lg border border-gray-200 bg-white p-3">
+          <p className="text-xs text-gray-500">Output Rows</p>
+          <p className="text-lg font-semibold text-gray-900">
+            {summaryStats.totalRows.toLocaleString()}
+          </p>
+        </div>
+        <div className="rounded-lg border border-gray-200 bg-white p-3">
+          <p className="text-xs text-gray-500">Files Used</p>
+          <p className="text-sm font-medium text-gray-900">
+            {summaryStats.rolesUsed
+              .map((r) => r.charAt(0).toUpperCase() + r.slice(1))
+              .join(' + ')}
+          </p>
+        </div>
+        {hasReceipts && (
+          <>
+            <div className="rounded-lg border border-gray-200 bg-white p-3">
+              <p className="text-xs text-gray-500">Invoices Reconstructed</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {summaryStats.invoiceCount.toLocaleString()}
+              </p>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white p-3">
+              <p className="text-xs text-gray-500">Distributors Enriched</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {summaryStats.distributorEnriched.toLocaleString()}
+              </p>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Validation summary */}
+      {validation && (
+        <div className={`rounded-lg border p-3 ${
+          validation.errorCount > 0
+            ? 'border-red-200 bg-red-50'
+            : validation.warningCount > 0
+              ? 'border-amber-200 bg-amber-50'
+              : 'border-green-200 bg-green-50'
+        }`}>
+          <p className="text-sm">
+            <span className={validation.errorCount > 0 ? 'text-red-700' : 'text-green-700'}>
+              {validation.validCount.toLocaleString()} valid
+            </span>
             {validation.errorCount > 0 && (
               <span className="text-red-600">
                 {' \u00b7 '}{validation.errorCount} error{validation.errorCount !== 1 ? 's' : ''}
@@ -147,54 +258,6 @@ export function InventoryReviewStep({
             {validation.warningCount > 0 && (
               <span className="text-amber-600">
                 {' \u00b7 '}{validation.warningCount} warning{validation.warningCount !== 1 ? 's' : ''}
-              </span>
-            )}
-          </p>
-        )}
-      </div>
-
-      {/* Match summary banner */}
-      <div
-        className={`rounded-lg border p-3 ${
-          matchSummary.matched === 0
-            ? 'border-amber-200 bg-amber-50'
-            : matchSummary.matched === matchSummary.total
-              ? 'border-green-200 bg-green-50'
-              : 'border-blue-200 bg-blue-50'
-        }`}
-      >
-        <p
-          className={`text-sm font-medium ${
-            matchSummary.matched === 0
-              ? 'text-amber-800'
-              : matchSummary.matched === matchSummary.total
-                ? 'text-green-800'
-                : 'text-blue-800'
-          }`}
-        >
-          {matchSummary.matched} of {matchSummary.total} rows matched to Treez products
-        </p>
-        {matchSummary.matched === 0 && (
-          <p className="mt-1 text-xs text-amber-600">
-            No products could be matched. This is expected if the product lookup is not yet configured.
-            Unmatched rows will be skipped during import.
-          </p>
-        )}
-        {matchSummary.matched > 0 && matchSummary.matched < matchSummary.total && (
-          <p className="mt-1 text-xs text-blue-600">
-            Unmatched rows will be skipped during import. Only matched rows will be included.
-          </p>
-        )}
-      </div>
-
-      {/* All valid banner */}
-      {status === 'ready' && validation && validation.errorCount === 0 && (
-        <div className="rounded-lg border border-green-200 bg-green-50 p-3">
-          <p className="text-sm text-green-700">
-            No blocking errors found
-            {validation.warningCount > 0 && (
-              <span className="text-amber-600">
-                {' '}({validation.warningCount} warning{validation.warningCount !== 1 ? 's' : ''} -- non-blocking)
               </span>
             )}
           </p>
@@ -207,7 +270,7 @@ export function InventoryReviewStep({
           <h3 className="mb-2 text-sm font-medium text-red-700">
             Errors ({errorGroups.reduce((sum, g) => sum + g.rows.length, 0)} rows)
           </h3>
-          <ErrorGroupList groups={errorGroups} onFix={handleFix} />
+          <ErrorGroupList groups={errorGroups as any} onFix={handleFix} />
         </div>
       )}
 
@@ -217,7 +280,7 @@ export function InventoryReviewStep({
           <h3 className="mb-2 text-sm font-medium text-amber-700">
             Warnings ({warningGroups.reduce((sum, g) => sum + g.rows.length, 0)} rows)
           </h3>
-          <ErrorGroupList groups={warningGroups} onFix={handleFix} />
+          <ErrorGroupList groups={warningGroups as any} onFix={handleFix} />
         </div>
       )}
 
@@ -231,6 +294,46 @@ export function InventoryReviewStep({
           >
             Re-validate
           </button>
+        </div>
+      )}
+
+      {/* Data preview */}
+      {previewRows.length > 0 && (
+        <div>
+          <h3 className="mb-2 text-sm font-medium text-gray-700">
+            Data Preview (first {previewRows.length} rows)
+          </h3>
+          <div className="overflow-auto rounded-lg border border-gray-200">
+            <table className="min-w-full text-xs">
+              <thead className="bg-gray-50">
+                <tr>
+                  {PREVIEW_COLUMNS.map((col) => (
+                    <th
+                      key={col.key}
+                      className="whitespace-nowrap px-3 py-2 text-left font-medium text-gray-600"
+                    >
+                      {col.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {previewRows.map((row, i) => (
+                  <tr key={i} className="hover:bg-gray-50">
+                    {PREVIEW_COLUMNS.map((col) => (
+                      <td
+                        key={col.key}
+                        className="max-w-[120px] truncate whitespace-nowrap px-3 py-1.5 text-gray-700"
+                        title={String(row[col.key] ?? '')}
+                      >
+                        {String(row[col.key] ?? '')}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
