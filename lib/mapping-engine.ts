@@ -62,6 +62,13 @@ export function getMappingsByGroup(
     'Pricing': [],
     'Attributes': [],
     'Display & Media': [],
+    'Product Matching': [],
+    'Inventory Data': [],
+    'Location': [],
+    'Customer Type': [],
+    'Dates': [],
+    'Distributor': [],
+    'Invoice': [],
   };
 
   for (const mapping of mappings) {

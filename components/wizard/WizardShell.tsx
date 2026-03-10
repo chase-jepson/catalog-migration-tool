@@ -27,10 +27,13 @@ import {
   createEmptyInventoryMappings,
   INVENTORY_POS_DEFAULTS,
   INVENTORY_MAPPING_FIELDS,
+  INVENTORY_ROLE_POS_DEFAULTS,
+  INVENTORY_ROLE_FIELDS,
 } from '../../lib/inventory-constants';
 import { extractStoreClaimsFromToken, getMsoApiBaseUrl } from '../../lib/store-api';
 import { sendMessage } from '../../lib/messaging';
 import { detectEnvironment } from '../../lib/env';
+import type { PerRoleMappings } from '../../lib/inventory-transformer';
 import type {
   ParsedFile,
   FieldMapping,
@@ -39,11 +42,22 @@ import type {
   POSDetectionResult,
   StoreInfo,
   InventoryDerivedRow,
+  InventoryFileAssignment,
+  InventoryFileRole,
+  PerRoleMappingsState,
 } from '../../lib/types';
 
 interface WizardShellProps {
   wizardType: 'catalog' | 'inventory';
 }
+
+const EMPTY_PER_ROLE_MAPPINGS: PerRoleMappingsState = {
+  inventory: [],
+  receipts: [],
+  vendors: [],
+  adjustments: [],
+  catalog_export: [],
+};
 
 export function WizardShell({ wizardType }: WizardShellProps) {
   const [currentStep, setCurrentStep] = useState(0);
@@ -66,6 +80,11 @@ export function WizardShell({ wizardType }: WizardShellProps) {
   const [storesLoading, setStoresLoading] = useState(false);
   const [storesError, setStoresError] = useState<string | null>(null);
   const [inventoryDerivedRows, setInventoryDerivedRows] = useState<InventoryDerivedRow[]>([]);
+  const [fileAssignments, setFileAssignments] = useState<InventoryFileAssignment[]>([]);
+  const [dispensaryLicense, setDispensaryLicense] = useState('');
+  const [perRoleMappings, setPerRoleMappings] = useState<PerRoleMappingsState>(
+    { ...EMPTY_PER_ROLE_MAPPINGS },
+  );
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -137,6 +156,11 @@ export function WizardShell({ wizardType }: WizardShellProps) {
           setFixes(saved.fixes ?? []);
           setCurrentStep(saved.currentStep);
           setSelectedStore(saved.selectedStore);
+          setFileAssignments(saved.fileAssignments ?? []);
+          setDispensaryLicense(saved.dispensaryLicense ?? '');
+          if (saved.perRoleMappings) {
+            setPerRoleMappings(saved.perRoleMappings);
+          }
           if (saved.parsedFiles.length > 0) {
             setMergedFile(mergeFiles(saved.parsedFiles));
             setCanProceed(
@@ -183,6 +207,9 @@ export function WizardShell({ wizardType }: WizardShellProps) {
         setDerivedRows([]);
         setInventoryDerivedRows([]);
         setSelectedStore(null);
+        setFileAssignments([]);
+        setDispensaryLicense('');
+        setPerRoleMappings({ ...EMPTY_PER_ROLE_MAPPINGS });
         setCanProceed(false);
         setWarningCount(0);
         setCurrentStep(0);
@@ -206,9 +233,12 @@ export function WizardShell({ wizardType }: WizardShellProps) {
           selectedPOS,
           selectedStore,
           mappings,
+          perRoleMappings,
           fixes,
           currentStep,
           updatedAt: new Date().toISOString(),
+          fileAssignments,
+          dispensaryLicense,
         });
       } else {
         saveMigrationState({
@@ -226,7 +256,7 @@ export function WizardShell({ wizardType }: WizardShellProps) {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [parsedFiles, mergedFile, selectedPOS, selectedStore, mappings, fixes, currentStep, restored, wizardType]);
+  }, [parsedFiles, mergedFile, selectedPOS, selectedStore, mappings, perRoleMappings, fixes, currentStep, restored, wizardType, fileAssignments, dispensaryLicense]);
 
   // ── Re-merge when files change ──────────────────────────────────────────
   const handleParsedFilesChange = useCallback((files: ParsedFile[]) => {
@@ -243,7 +273,6 @@ export function WizardShell({ wizardType }: WizardShellProps) {
     (pos: string) => {
       setSelectedPOS(pos);
       // Only auto-apply POS defaults if all mappings are currently empty
-      // (i.e., user hasn't manually edited any mapping yet)
       const allEmpty = mappings.every((m) => m.sourceHeader === null);
       if (allEmpty || mappings.length === 0) {
         if (wizardType === 'inventory') {
@@ -259,8 +288,30 @@ export function WizardShell({ wizardType }: WizardShellProps) {
           setMappings(applyPOSDefaults(pos));
         }
       }
+
+      // Auto-apply per-role POS defaults if all per-role mappings are empty
+      if (wizardType === 'inventory') {
+        const allPerRoleEmpty = Object.values(perRoleMappings).every(
+          (roleMappings: FieldMapping[]) => roleMappings.length === 0 || roleMappings.every((m: FieldMapping) => m.sourceHeader === null),
+        );
+        if (allPerRoleEmpty) {
+          const posDefaults = INVENTORY_ROLE_POS_DEFAULTS[pos];
+          if (posDefaults) {
+            const newPerRole: PerRoleMappingsState = { ...EMPTY_PER_ROLE_MAPPINGS };
+            for (const role of Object.keys(INVENTORY_ROLE_FIELDS) as InventoryFileRole[]) {
+              const roleDefaults = posDefaults[role] ?? {};
+              newPerRole[role] = (INVENTORY_ROLE_FIELDS[role] ?? []).map((field) => ({
+                fieldKey: field.key,
+                label: field.label,
+                sourceHeader: roleDefaults[field.key] ?? null,
+              }));
+            }
+            setPerRoleMappings(newPerRole);
+          }
+        }
+      }
     },
-    [mappings, wizardType],
+    [mappings, wizardType, perRoleMappings],
   );
 
   // ── Store change handler (inventory mode) ──────────────────────────────
@@ -275,6 +326,9 @@ export function WizardShell({ wizardType }: WizardShellProps) {
       setMappings([]);
       setFixes([]);
       setInventoryDerivedRows([]);
+      setFileAssignments([]);
+      setDispensaryLicense('');
+      setPerRoleMappings({ ...EMPTY_PER_ROLE_MAPPINGS });
       setCanProceed(false);
       setWarningCount(0);
       setCurrentStep(0);
@@ -298,6 +352,9 @@ export function WizardShell({ wizardType }: WizardShellProps) {
     setDerivedRows([]);
     setInventoryDerivedRows([]);
     setSelectedStore(null);
+    setFileAssignments([]);
+    setDispensaryLicense('');
+    setPerRoleMappings({ ...EMPTY_PER_ROLE_MAPPINGS });
     setCanProceed(false);
     setWarningCount(0);
     setCurrentStep(0);
@@ -322,35 +379,38 @@ export function WizardShell({ wizardType }: WizardShellProps) {
               onCanProceed={setCanProceed}
               parsedFiles={parsedFiles}
               onParsedFilesChange={handleParsedFilesChange}
+              fileAssignments={fileAssignments}
+              onFileAssignmentsChange={setFileAssignments}
               selectedPOS={selectedPOS}
               onSelectedPOSChange={handleSelectedPOSChange}
               detectedPOS={detectedPOS}
               onDetectedPOSChange={setDetectedPOS}
               selectedStore={selectedStore}
+              dispensaryLicense={dispensaryLicense}
+              onDispensaryLicenseChange={setDispensaryLicense}
             />
           );
         case 1:
-          return mergedFile ? (
+          return (
             <InventoryMappingStep
-              mappings={mappings}
-              onMappingsChange={setMappings}
-              mergedFile={mergedFile}
+              fileAssignments={fileAssignments}
+              perRoleMappings={perRoleMappings as PerRoleMappings}
+              onPerRoleMappingsChange={(m) => setPerRoleMappings(m)}
               selectedPOS={selectedPOS}
               onCanProceed={setCanProceed}
             />
-          ) : (
-            <StepPlaceholder stepName={STEP_LABELS[currentStep]} />
           );
         case 2:
           return (
             <InventoryReviewStep
-              parsedFiles={parsedFiles}
-              mappings={mappings}
+              fileAssignments={fileAssignments}
+              perRoleMappings={perRoleMappings as PerRoleMappings}
+              dispensaryLicense={dispensaryLicense}
               onCanProceed={setCanProceed}
               onDerivedRowsChange={setInventoryDerivedRows}
-              onFixesChange={setFixes}
               onWarningCountChange={setWarningCount}
               fixes={fixes}
+              onFixesChange={setFixes}
               selectedStore={selectedStore}
             />
           );
@@ -358,10 +418,8 @@ export function WizardShell({ wizardType }: WizardShellProps) {
           return (
             <InventoryImportStep
               derivedRows={inventoryDerivedRows}
-              parsedFiles={parsedFiles}
-              mappings={mappings}
-              fixes={fixes}
               selectedStore={selectedStore}
+              dispensaryLicense={dispensaryLicense}
               onStartNew={handleStartNew}
             />
           );

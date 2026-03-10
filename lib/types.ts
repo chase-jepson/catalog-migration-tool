@@ -319,12 +319,21 @@ export interface InventoryDerivedRow {
   _rowNumber?: number;
 }
 
+export interface PerRoleMappingsState {
+  inventory: FieldMapping[];
+  receipts: FieldMapping[];
+  vendors: FieldMapping[];
+  adjustments: FieldMapping[];
+  catalog_export: FieldMapping[];
+}
+
 export interface PersistedInventoryState {
   parsedFiles: ParsedFile[];
   mergedHeaders: string[];
   selectedPOS: string;
   selectedStore: StoreInfo | null;
   mappings: FieldMapping[];
+  perRoleMappings: PerRoleMappingsState;
   fixes: RowFix[];
   currentStep: number;
   updatedAt: string;
