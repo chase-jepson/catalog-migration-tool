@@ -1,5 +1,5 @@
 import { defineExtensionMessaging } from '@webext-core/messaging';
-import type { ImportJob } from './types';
+import type { ImportJob, StoreInfo } from './types';
 
 interface ProtocolMap {
   getAuthToken(data: { appUrl: string }): { token: string | null };
@@ -26,6 +26,12 @@ interface ProtocolMap {
     apiBaseUrl: string;
     token: string;
   }): ImportJob[];
+  fetchStores(data: {
+    apiBaseUrl: string;
+    token: string;
+    orgId: string;
+    entityIds: string[];
+  }): StoreInfo[];
 }
 
 export const { sendMessage, onMessage } =

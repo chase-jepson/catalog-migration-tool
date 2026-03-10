@@ -129,6 +129,25 @@ export default defineBackground(() => {
     return body.data;
   });
 
+  // Handle fetchStores -- POST to MSO API to get entity/store details
+  onMessage('fetchStores', async (message) => {
+    const { apiBaseUrl, token, orgId, entityIds } = message.data;
+    const res = await fetch(
+      `${apiBaseUrl}/organization/v1/organizations/${orgId}/entities/details`,
+      {
+        method: 'POST',
+        credentials: 'omit',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ entityIds }),
+      },
+    );
+    if (!res.ok) throw new Error(`Store fetch failed (${res.status})`);
+    return res.json();
+  });
+
   // Handle openSidePanel via raw chrome.runtime.onMessage.
   // chrome.sidePanel.open() requires a user gesture — it MUST be the first
   // call in the handler. Any await/then before it breaks the gesture chain.
