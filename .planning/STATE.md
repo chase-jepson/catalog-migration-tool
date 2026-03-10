@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-02-PLAN.md
-last_updated: "2026-03-10T02:19:47.623Z"
-last_activity: "2026-03-10 -- Plan 04-02 executed (Inventory business logic: transformer, validator, CSV generator)"
+stopped_at: Completed 04-02-PLAN.md (re-executed with full ETL pipeline)
+last_updated: "2026-03-10T05:23:15.000Z"
+last_activity: "2026-03-10 -- Plan 04-02 re-executed (Full ETL pipeline: 4-file join into 56-column CSV)"
 progress:
   total_phases: 4
   completed_phases: 3
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-03-09)
 ## Current Position
 
 Phase: 4 of 4 (Inventory Migration)
-Plan: 2 of 3 in current phase (04-02 complete)
+Plan: 2 of 3 in current phase (04-02 re-executed with full ETL)
 Status: In Progress
-Last activity: 2026-03-10 -- Plan 04-02 executed (Inventory business logic: transformer, validator, CSV generator)
+Last activity: 2026-03-10 -- Plan 04-02 re-executed (Full ETL pipeline: 4-file join into 56-column CSV)
 
 Progress: [█████████░] 92% (12 of 13 plans complete)
 
@@ -46,15 +46,15 @@ Progress: [█████████░] 92% (12 of 13 plans complete)
 | 01-extension-shell | 3 | 22min | 7.3min |
 | 02-file-upload-and-column-mapping | 3 | 15min | 5min |
 | 03-transform-validate-and-import | 4/4 | 42min | 10.5min |
-| 04-inventory-migration | 2/3 | 6min | 2min |
+| 04-inventory-migration | 2/3 | 14min | 5.5min |
 
 **Recent Trend:**
-- Last 5 plans: 03-02 (4min), 03-03 (4min), 03-04 (~30min), 04-01 (3min), 04-02 (3min)
-- Trend: Foundation plans are fast; UI-heavy plans take longer
+- Last 5 plans: 03-03 (4min), 03-04 (~30min), 04-01 (3min), 04-02 (3min), 04-02-rerun (8min)
+- Trend: Foundation plans are fast; ETL pipelines and UI-heavy plans take longer
 
 *Updated after each plan completion*
 | Phase 04 P01 | 3min | 3 tasks | 7 files |
-| Phase 04 P02 | 3min | 2 tasks | 6 files |
+| Phase 04 P02 | 8min | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -95,6 +95,9 @@ Recent decisions affecting current work:
 - [04-01]: Inventory state uses separate 'inventoryMigrationState' storage key
 - [Phase 04-02]: Unmatched rows produce warnings not errors, allowing import to proceed with partial matches
 - [Phase 04-02]: buildInventoryCSV returns string[][] for caller to serialize, consistent with catalog pattern
+- [Phase 04-02]: Active invoice filter uses 3-phase approach: overlap detection, invoice ID collection, full pull
+- [Phase 04-02]: DistributorType hardcoded to "Non-Arms Length" per spec
+- [Phase 04-02]: License expiration generated as today + 2 years for non-empty license numbers
 
 ### Pending Todos
 
@@ -108,6 +111,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-10T02:19:47.621Z
-Stopped at: Completed 04-02-PLAN.md
+Last session: 2026-03-10T05:23:15.000Z
+Stopped at: Completed 04-02-PLAN.md (re-executed with full ETL pipeline)
 Resume file: None

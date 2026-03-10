@@ -85,7 +85,7 @@ Plans:
 
 Plans:
 - [x] 04-01-PLAN.md -- Inventory types, constants, store API, messaging protocol, state persistence
-- [ ] 04-02-PLAN.md -- Full ETL pipeline: types expansion, ETL helpers, 5-phase transformer, validator, 56-column CSV generator (TDD)
+- [x] 04-02-PLAN.md -- Full ETL pipeline: types expansion, ETL helpers, 5-phase transformer, validator, 56-column CSV generator (TDD)
 - [ ] 04-03-PLAN.md -- Multi-file upload with role assignment, per-role mapping, ETL review, 56-column import UI
 
 ## Progress
@@ -98,4 +98,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 1. Extension Shell | 3/3 | Complete | 2026-03-09 |
 | 2. File Upload and Column Mapping | 3/3 | Complete | 2026-03-09 |
 | 3. Transform, Validate, and Import | 4/4 | Complete | 2026-03-09 |
-| 4. Inventory Migration | 1/3 | In Progress (replanned) |  |
+| 4. Inventory Migration | 2/3 | In Progress |  |
