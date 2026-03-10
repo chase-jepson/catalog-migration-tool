@@ -29,9 +29,22 @@ export type MappingGroup =
   | 'Display & Media'
   | 'Product Matching'
   | 'Inventory Data'
-  | 'Location';
+  | 'Location'
+  | 'Customer Type'
+  | 'Dates'
+  | 'Distributor'
+  | 'Invoice';
 
-export type InventoryMappingGroup = 'Product Matching' | 'Inventory Data' | 'Location';
+export type InventoryMappingGroup =
+  | 'Product Matching'
+  | 'Inventory Data'
+  | 'Location'
+  | 'Cannabis Details'
+  | 'Customer Type'
+  | 'Dates'
+  | 'Distributor'
+  | 'Invoice'
+  | 'Product Info';
 
 export interface MappingFieldDef {
   key: string;
@@ -224,15 +237,86 @@ export interface StoreInfo {
   name: string;
 }
 
+/** File roles for multi-file inventory upload */
+export type InventoryFileRole = 'inventory' | 'receipts' | 'vendors' | 'adjustments' | 'catalog_export';
+
+export interface InventoryFileAssignment {
+  file: ParsedFile;
+  role: InventoryFileRole;
+}
+
+/** Full 56-column derived row for inventory import */
 export interface InventoryDerivedRow {
-  matched: boolean;
-  posProductId: string;
-  productName: string;
-  treezVariantId?: string;
-  quantityOnHand: number;
-  cost: string;
-  room: string;
+  // Identity
+  treezVariantId: string;
+  variantReferenceId: string;
+  dispensaryLicense: string;
+  // Invoice
+  invoiceId: string;
+  invoiceCreatedDate: string;
+  manifestNumber: string;
+  // Trace
+  traceTreezId: string;
+  inventoryBarcodes: string;
+  // Quantities
+  originalUnitCount: string;
+  units: string;
+  unitCost: string;
+  // Dates
+  harvestDate: string;
+  expirationDate: string;
+  packagedDate: string;
+  // Customer / Location
+  customerType: string;
+  thcAmount: string;
+  thcUom: string;
+  cbdAmount: string;
+  cbdUom: string;
+  locationPath: string;
+  locationInventoryType: string;
+  locationIsSellable: string;
+  locationDefaultReceivingLocation: string;
+  // Distributor (32 columns)
+  distributorName: string;
+  distributorDBA: string;
+  distributorAddress: string;
+  distributorPhoneNumber: string;
+  distributorEmail: string;
+  distributorType: string;
+  distributorDefaultPaymentTerm: string;
+  distributorLeadTime: string;
+  distributorDeliveryDays: string;
+  distributorPreferredPaymentMethod: string;
+  distributorLicense1Type: string;
+  distributorLicense1Number: string;
+  distributorLicense1ExpirationDate: string;
+  distributorLicense2Type: string;
+  distributorLicense2Number: string;
+  distributorLicense2ExpirationDate: string;
+  distributorLicense3Type: string;
+  distributorLicense3Number: string;
+  distributorLicense3ExpirationDate: string;
+  distributorRep1Name: string;
+  distributorRep1Phone: string;
+  distributorRep1Email: string;
+  distributorRep1Role: string;
+  distributorRep1Notes: string;
+  distributorRep2Name: string;
+  distributorRep2Phone: string;
+  distributorRep2Email: string;
+  distributorRep2Role: string;
+  distributorRep2Notes: string;
+  distributorRep3Name: string;
+  distributorRep3Phone: string;
+  distributorRep3Email: string;
+  distributorRep3Role: string;
+  distributorRep3Notes: string;
+  // Internal tracking (not output columns)
+  productSKU: string;
+  externalPackageId: string;
+  productCategory: string;
   excluded: boolean;
+  _rowNumber?: number;
 }
 
 export interface PersistedInventoryState {
@@ -245,4 +329,6 @@ export interface PersistedInventoryState {
   currentStep: number;
   updatedAt: string;
   importProgress?: ImportProgress;
+  fileAssignments: InventoryFileAssignment[];
+  dispensaryLicense: string;
 }
