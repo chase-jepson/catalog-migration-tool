@@ -46,7 +46,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Inventory Migration
 
-- [ ] **INV-01**: User can select a specific store for inventory import (inventory is per-store)
+- [x] **INV-01**: User can select a specific store for inventory import (inventory is per-store)
 - [ ] **INV-02**: Tool imports inventory quantities mapped to Treez product IDs
 - [ ] **INV-03**: Tool imports cost/wholesale price data per store
 
@@ -124,7 +124,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BACK-02 | v2 | Deferred |
 | BACK-03 | v2 | Deferred |
 | MAP-03 | v2 | Deferred |
-| INV-01 | Phase 4 | Pending |
+| INV-01 | Phase 4 | Complete |
 | INV-02 | Phase 4 | Pending |
 | INV-03 | Phase 4 | Pending |
 
