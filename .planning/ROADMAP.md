@@ -2,7 +2,7 @@
 
 ## Overview
 
-This roadmap delivers a Chrome extension and backend service for migrating cannabis retailer data from competing POS systems into Treez. The work progresses from extension foundation through the complete catalog migration pipeline (upload, map, transform, validate, import), then adds backend persistence for durable state, and finally extends the proven catalog flow to inventory migration. Each phase delivers a coherent, testable capability -- after Phase 3, the tool is functionally equivalent to v1; Phases 4 and 5 add the v2 differentiators.
+This roadmap delivers a Chrome extension for migrating cannabis retailer data from competing POS systems into Treez. The work progresses from extension foundation through the complete catalog migration pipeline (upload, map, transform, validate, import), then extends the proven catalog flow to inventory migration. Each phase delivers a coherent, testable capability -- after Phase 3, the tool handles full catalog migration; Phase 4 adds inventory migration.
 
 ## Phases
 
@@ -15,8 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Extension Shell** - WXT-based Chrome extension with page detection, auth flow, and wizard scaffold
 - [x] **Phase 2: File Upload and Column Mapping** - CSV/XLSX upload with POS auto-detection and smart column mapping
 - [x] **Phase 3: Transform, Validate, and Import** - Data normalization, row validation, Treez CSV generation, and S3 upload
-- [ ] **Phase 4: Backend Persistence** - Hono + SQLite backend for migration state, file storage, and saved mappings
-- [ ] **Phase 5: Inventory Migration** - Store selection, inventory-specific transformation, and inventory import
+- [ ] **Phase 4: Inventory Migration** - Store selection, inventory-specific transformation, and inventory import
 
 ## Phase Details
 
@@ -71,25 +70,9 @@ Plans:
 - [x] 03-03-PLAN.md -- ReviewStep UI with transform preview, grouped errors, batch fix controls, WizardShell wiring
 - [x] 03-04-PLAN.md -- ImportStep UI with S3 upload, adaptive polling, progress tracking, error recovery
 
-### Phase 4: Backend Persistence
-**Goal**: Migrations persist server-side so users can resume interrupted sessions and mappings are saved for reuse
-**Depends on**: Phase 3
-**Requirements**: BACK-01, BACK-02, BACK-03, MAP-03
-**Success Criteria** (what must be TRUE):
-  1. User can close the browser mid-migration, reopen it, and resume from the exact step they left off
-  2. Uploaded source files are stored on the backend and can be retrieved for debugging or re-processing
-  3. Column mappings are saved per organization/POS combination and auto-loaded on subsequent uploads with the same combo
-  4. Backend API authenticates requests using Treez session tokens (no separate auth)
-**Plans**: TBD
-
-Plans:
-- [ ] 04-01: TBD
-- [ ] 04-02: TBD
-- [ ] 04-03: TBD
-
-### Phase 5: Inventory Migration
+### Phase 4: Inventory Migration
 **Goal**: Users can migrate per-store inventory data (quantities, costs) using the same wizard pattern proven for catalog migration
-**Depends on**: Phase 3, Phase 4
+**Depends on**: Phase 3
 **Requirements**: INV-01, INV-02, INV-03
 **Success Criteria** (what must be TRUE):
   1. User can select a specific store from their Treez organization before starting inventory import
@@ -99,19 +82,18 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 05-01: TBD
-- [ ] 05-02: TBD
-- [ ] 05-03: TBD
+- [ ] 04-01: TBD
+- [ ] 04-02: TBD
+- [ ] 04-03: TBD
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Extension Shell | 3/3 | Complete | 2026-03-09 |
 | 2. File Upload and Column Mapping | 3/3 | Complete | 2026-03-09 |
 | 3. Transform, Validate, and Import | 4/4 | Complete | 2026-03-09 |
-| 4. Backend Persistence | 0/3 | Not started | - |
-| 5. Inventory Migration | 0/3 | Not started | - |
+| 4. Inventory Migration | 0/3 | Not started | - |

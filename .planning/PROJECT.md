@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A Chrome extension and backend service that guides cannabis retailers through migrating their product catalog and inventory data from any point-of-sale system into Treez. It lives inside the Treez Catalog module, supports the full migration lifecycle (upload → map → validate → import), persists migration state server-side, and includes an admin dashboard for the Treez team to monitor migrations across organizations.
+A Chrome extension that guides cannabis retailers through migrating their product catalog and inventory data from any point-of-sale system into Treez. It lives inside the Treez Catalog module, supports the full migration lifecycle (upload → map → validate → import), and uses chrome.storage.local for state persistence. Backend persistence and admin dashboard are deferred to v2.
 
 ## Core Value
 
@@ -24,12 +24,12 @@ Users can self-service their entire POS migration — catalog and inventory — 
 - [ ] Validation with grouped errors and bulk/per-row fix capabilities
 - [ ] Price tier resolution against Treez API
 - [ ] Generate Treez-formatted import CSVs and upload to S3 via presigned URLs
-- [ ] Backend service for persisting migration state across sessions
-- [ ] Backend file storage for uploaded source files
+- ~~Backend service for persisting migration state across sessions~~ → v2
+- ~~Backend file storage for uploaded source files~~ → v2
 - [ ] Store selection for inventory migration (inventory is per-store, catalog is shared)
 - [ ] Inventory-specific transformation logic
 - [ ] Admin dashboard for Treez team to monitor all migrations, statuses, and errors
-- [ ] Saved column mappings per org/POS combo
+- ~~Saved column mappings per org/POS combo~~ → v2
 - [ ] Import progress tracking with ETA
 
 ### Out of Scope
@@ -68,6 +68,7 @@ Users can self-service their entire POS migration — catalog and inventory — 
 | Server-side file storage | Source files need to persist for debugging and re-processing | — Pending |
 | Same wizard pattern for inventory | Consistent UX, proven flow from catalog migration | — Pending |
 | Auto-detect + manual mapping | Smarter defaults reduce manual work, manual override handles edge cases | — Pending |
+| Defer backend persistence to v2 | Ship v1 as extension-only; backend, saved mappings, admin dashboard are v2 | Decided |
 
 ---
 *Last updated: 2026-03-09 after initialization*

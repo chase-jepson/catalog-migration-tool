@@ -18,7 +18,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **MAP-01**: Tool auto-maps source columns to Treez fields using POS-specific templates
 - [x] **MAP-02**: User can manually override any column mapping via dropdown
-- [ ] **MAP-03**: Column mappings are saved per org/POS combo and reused on subsequent uploads
+- ~~**MAP-03**: Column mappings are saved per org/POS combo and reused on subsequent uploads~~ → v2
 
 ### Data Transformation
 
@@ -38,11 +38,11 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **IMP-02**: Tool uploads generated CSVs to S3 via presigned URLs from Treez API
 - [x] **IMP-03**: Tool tracks upload and import progress with ETA display
 
-### Backend Persistence
+### ~~Backend Persistence~~ (Moved to v2)
 
-- [ ] **BACK-01**: Backend service persists full migration state (step, mappings, validation results, import status)
-- [ ] **BACK-02**: User can resume an interrupted migration from where they left off
-- [ ] **BACK-03**: Backend stores uploaded source files for debugging and re-processing
+- ~~**BACK-01**: Backend service persists full migration state~~ → v2
+- ~~**BACK-02**: User can resume an interrupted migration from where they left off~~ → v2
+- ~~**BACK-03**: Backend stores uploaded source files for debugging and re-processing~~ → v2
 
 ### Inventory Migration
 
@@ -59,6 +59,13 @@ Requirements for initial release. Each maps to roadmap phases.
 ## v2 Requirements
 
 Deferred to future release. Tracked but not in current roadmap.
+
+### Backend Persistence
+
+- **BACK-01**: Backend service persists full migration state (step, mappings, validation results, import status)
+- **BACK-02**: User can resume an interrupted migration from where they left off
+- **BACK-03**: Backend stores uploaded source files for debugging and re-processing
+- **MAP-03**: Column mappings are saved per org/POS combo and reused on subsequent uploads
 
 ### Admin & Monitoring
 
@@ -113,17 +120,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 | IMP-01 | Phase 3 | Complete |
 | IMP-02 | Phase 3 | Complete |
 | IMP-03 | Phase 3 | Complete |
-| BACK-01 | Phase 4 | Pending |
-| BACK-02 | Phase 4 | Pending |
-| BACK-03 | Phase 4 | Pending |
-| MAP-03 | Phase 4 | Pending |
-| INV-01 | Phase 5 | Pending |
-| INV-02 | Phase 5 | Pending |
-| INV-03 | Phase 5 | Pending |
+| BACK-01 | v2 | Deferred |
+| BACK-02 | v2 | Deferred |
+| BACK-03 | v2 | Deferred |
+| MAP-03 | v2 | Deferred |
+| INV-01 | Phase 4 | Pending |
+| INV-02 | Phase 4 | Pending |
+| INV-03 | Phase 4 | Pending |
 
 **Coverage:**
-- v1 requirements: 25 total
-- Mapped to phases: 25
+- v1 requirements: 21 total (4 deferred to v2: BACK-01/02/03, MAP-03)
+- Mapped to phases: 21
 - Unmapped: 0
 
 ---

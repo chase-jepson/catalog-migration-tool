@@ -7,7 +7,7 @@ stopped_at: Completed 03-04-PLAN.md (Phase 3 complete)
 last_updated: "2026-03-09T23:58:00.661Z"
 last_activity: 2026-03-09 -- Plan 03-04 executed (ImportStep UI with S3 upload, adaptive polling, progress tracking, error recovery)
 progress:
-  total_phases: 5
+  total_phases: 4
   completed_phases: 3
   total_plans: 10
   completed_plans: 10
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-03-09)
 
 ## Current Position
 
-Phase: 3 of 5 (Transform, Validate, and Import) -- COMPLETE
+Phase: 3 of 4 (Transform, Validate, and Import) -- COMPLETE
 Plan: 4 of 4 in current phase (03-04 complete)
 Status: Phase 3 Complete
 Last activity: 2026-03-09 -- Plan 03-04 executed (ImportStep UI with S3 upload, adaptive polling, progress tracking, error recovery)
@@ -62,7 +62,8 @@ Recent decisions affecting current work:
 
 - [Roadmap]: 5 phases derived from 25 requirements. Admin dashboard deferred to v2.
 - [Roadmap]: Catalog pipeline (Phases 2-3) built extension-only first, backend added in Phase 4. Working tool without backend mirrors v1 approach.
-- [Roadmap]: MAP-03 (saved mappings) assigned to Phase 4 because it requires backend persistence.
+- [Roadmap]: MAP-03 (saved mappings) deferred to v2 (was Phase 4, removed).
+- [Roadmap]: Backend persistence (Phase 4) removed from v1 roadmap. Inventory migration renumbered Phase 5 → Phase 4.
 - [01-01]: Manually scaffolded WXT project (init CLI requires interactive terminal)
 - [01-01]: Chrome-only extensionApi -- no browser polyfill needed
 - [01-01]: Manifest hook deletes side_panel entry for programmatic per-tab control
