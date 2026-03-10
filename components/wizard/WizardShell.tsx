@@ -6,6 +6,11 @@ import { UploadStep } from '../upload/UploadStep';
 import { MappingStep } from '../mapping/MappingStep';
 import { ReviewStep } from '../review/ReviewStep';
 import { ImportStep } from '../import/ImportStep';
+import { StoreSelector } from '../inventory/StoreSelector';
+import { InventoryUploadStep } from '../inventory/InventoryUploadStep';
+import { InventoryMappingStep } from '../inventory/InventoryMappingStep';
+import { InventoryReviewStep } from '../inventory/InventoryReviewStep';
+import { InventoryImportStep } from '../inventory/InventoryImportStep';
 import { mergeFiles } from '../../lib/parser';
 import { applyPOSDefaults } from '../../lib/mapping-engine';
 import {
@@ -13,12 +18,27 @@ import {
   loadMigrationState,
   clearMigrationState,
 } from '../../lib/migration-store';
+import {
+  saveInventoryState,
+  loadInventoryState,
+  clearInventoryState,
+} from '../../lib/inventory-migration-store';
+import {
+  createEmptyInventoryMappings,
+  INVENTORY_POS_DEFAULTS,
+  INVENTORY_MAPPING_FIELDS,
+} from '../../lib/inventory-constants';
+import { extractStoreClaimsFromToken, getMsoApiBaseUrl } from '../../lib/store-api';
+import { sendMessage } from '../../lib/messaging';
+import { detectEnvironment } from '../../lib/env';
 import type {
   ParsedFile,
   FieldMapping,
   DerivedRow,
   RowFix,
   POSDetectionResult,
+  StoreInfo,
+  InventoryDerivedRow,
 } from '../../lib/types';
 
 interface WizardShellProps {
@@ -40,37 +60,120 @@ export function WizardShell({ wizardType }: WizardShellProps) {
   const [warningCount, setWarningCount] = useState(0);
   const [restored, setRestored] = useState(false);
 
+  // ── Inventory-specific state ────────────────────────────────────────────
+  const [selectedStore, setSelectedStore] = useState<StoreInfo | null>(null);
+  const [stores, setStores] = useState<StoreInfo[]>([]);
+  const [storesLoading, setStoresLoading] = useState(false);
+  const [storesError, setStoresError] = useState<string | null>(null);
+  const [inventoryDerivedRows, setInventoryDerivedRows] = useState<InventoryDerivedRow[]>([]);
+
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const title =
     wizardType === 'catalog' ? 'Migrate Catalog' : 'Migrate Inventory';
   const lastStep = STEP_LABELS.length - 1;
 
-  // ── Restore persisted state on mount ────────────────────────────────────
+  // ── Fetch stores on mount (inventory mode only) ─────────────────────────
   useEffect(() => {
-    loadMigrationState().then((saved) => {
-      if (saved) {
-        setParsedFiles(saved.parsedFiles);
-        setSelectedPOS(saved.selectedPOS);
-        setMappings(saved.mappings);
-        setFixes(saved.fixes ?? []);
-        setCurrentStep(saved.currentStep);
-        if (saved.parsedFiles.length > 0) {
-          setMergedFile(mergeFiles(saved.parsedFiles));
-          setCanProceed(
-            saved.parsedFiles.length > 0 && saved.selectedPOS !== '',
-          );
+    if (wizardType !== 'inventory') return;
+
+    let cancelled = false;
+    setStoresLoading(true);
+    setStoresError(null);
+
+    (async () => {
+      try {
+        // Get auth token from current tab
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        const tabUrl = tab?.url ?? '';
+        const { token } = await sendMessage('getAuthToken', { appUrl: tabUrl });
+        if (!token) {
+          throw new Error('No auth token available. Please refresh the Treez page.');
+        }
+
+        // Extract org/entity claims from JWT
+        const claims = extractStoreClaimsFromToken(token);
+        if (!claims) {
+          throw new Error('Could not extract store claims from token. JWT may be missing required fields.');
+        }
+
+        // Detect environment for MSO API URL
+        const env = detectEnvironment(tabUrl);
+        if (!env) {
+          throw new Error('Could not detect Treez environment from current page.');
+        }
+
+        const apiBaseUrl = getMsoApiBaseUrl(env);
+        const storeList = await sendMessage('fetchStores', {
+          apiBaseUrl,
+          token,
+          orgId: claims.orgId,
+          entityIds: claims.entityIds,
+        });
+
+        if (!cancelled) {
+          setStores(storeList);
+          setStoresLoading(false);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setStoresError(err instanceof Error ? err.message : 'Failed to fetch stores');
+          setStoresLoading(false);
         }
       }
-      setRestored(true);
-    });
-  }, []);
+    })();
+
+    return () => { cancelled = true; };
+  }, [wizardType]);
+
+  // ── Restore persisted state on mount ────────────────────────────────────
+  useEffect(() => {
+    if (wizardType === 'inventory') {
+      loadInventoryState().then((saved) => {
+        if (saved) {
+          setParsedFiles(saved.parsedFiles);
+          setSelectedPOS(saved.selectedPOS);
+          setMappings(saved.mappings);
+          setFixes(saved.fixes ?? []);
+          setCurrentStep(saved.currentStep);
+          setSelectedStore(saved.selectedStore);
+          if (saved.parsedFiles.length > 0) {
+            setMergedFile(mergeFiles(saved.parsedFiles));
+            setCanProceed(
+              saved.parsedFiles.length > 0 &&
+              saved.selectedPOS !== '' &&
+              saved.selectedStore !== null,
+            );
+          }
+        }
+        setRestored(true);
+      });
+    } else {
+      loadMigrationState().then((saved) => {
+        if (saved) {
+          setParsedFiles(saved.parsedFiles);
+          setSelectedPOS(saved.selectedPOS);
+          setMappings(saved.mappings);
+          setFixes(saved.fixes ?? []);
+          setCurrentStep(saved.currentStep);
+          if (saved.parsedFiles.length > 0) {
+            setMergedFile(mergeFiles(saved.parsedFiles));
+            setCanProceed(
+              saved.parsedFiles.length > 0 && saved.selectedPOS !== '',
+            );
+          }
+        }
+        setRestored(true);
+      });
+    }
+  }, [wizardType]);
 
   // ── Reset wizard when the active tab refreshes/navigates ────────────────
   useEffect(() => {
     const handler = (changes: { [key: string]: chrome.storage.StorageChange }) => {
       if (changes.tabRefreshedAt) {
         clearMigrationState();
+        clearInventoryState();
         setParsedFiles([]);
         setMergedFile(null);
         setSelectedPOS('');
@@ -78,6 +181,8 @@ export function WizardShell({ wizardType }: WizardShellProps) {
         setMappings([]);
         setFixes([]);
         setDerivedRows([]);
+        setInventoryDerivedRows([]);
+        setSelectedStore(null);
         setCanProceed(false);
         setWarningCount(0);
         setCurrentStep(0);
@@ -94,21 +199,34 @@ export function WizardShell({ wizardType }: WizardShellProps) {
 
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
-      saveMigrationState({
-        parsedFiles,
-        mergedHeaders: mergedFile?.headers ?? [],
-        selectedPOS,
-        mappings,
-        fixes,
-        currentStep,
-        updatedAt: new Date().toISOString(),
-      });
+      if (wizardType === 'inventory') {
+        saveInventoryState({
+          parsedFiles,
+          mergedHeaders: mergedFile?.headers ?? [],
+          selectedPOS,
+          selectedStore,
+          mappings,
+          fixes,
+          currentStep,
+          updatedAt: new Date().toISOString(),
+        });
+      } else {
+        saveMigrationState({
+          parsedFiles,
+          mergedHeaders: mergedFile?.headers ?? [],
+          selectedPOS,
+          mappings,
+          fixes,
+          currentStep,
+          updatedAt: new Date().toISOString(),
+        });
+      }
     }, 500);
 
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [parsedFiles, mergedFile, selectedPOS, mappings, fixes, currentStep, restored]);
+  }, [parsedFiles, mergedFile, selectedPOS, selectedStore, mappings, fixes, currentStep, restored, wizardType]);
 
   // ── Re-merge when files change ──────────────────────────────────────────
   const handleParsedFilesChange = useCallback((files: ParsedFile[]) => {
@@ -128,15 +246,49 @@ export function WizardShell({ wizardType }: WizardShellProps) {
       // (i.e., user hasn't manually edited any mapping yet)
       const allEmpty = mappings.every((m) => m.sourceHeader === null);
       if (allEmpty || mappings.length === 0) {
-        setMappings(applyPOSDefaults(pos));
+        if (wizardType === 'inventory') {
+          const defaults = INVENTORY_POS_DEFAULTS[pos];
+          setMappings(
+            INVENTORY_MAPPING_FIELDS.map((field) => ({
+              fieldKey: field.key,
+              label: field.label,
+              sourceHeader: defaults?.[field.key] ?? null,
+            })),
+          );
+        } else {
+          setMappings(applyPOSDefaults(pos));
+        }
       }
     },
-    [mappings],
+    [mappings, wizardType],
+  );
+
+  // ── Store change handler (inventory mode) ──────────────────────────────
+  const handleStoreChange = useCallback(
+    (store: StoreInfo | null) => {
+      setSelectedStore(store);
+      // Reset wizard state on store change
+      setParsedFiles([]);
+      setMergedFile(null);
+      setSelectedPOS('');
+      setDetectedPOS(null);
+      setMappings([]);
+      setFixes([]);
+      setInventoryDerivedRows([]);
+      setCanProceed(false);
+      setWarningCount(0);
+      setCurrentStep(0);
+    },
+    [],
   );
 
   // ── Start New Migration (clears all state, resets wizard) ──────────────
   const handleStartNew = useCallback(async () => {
-    await clearMigrationState();
+    if (wizardType === 'inventory') {
+      await clearInventoryState();
+    } else {
+      await clearMigrationState();
+    }
     setParsedFiles([]);
     setMergedFile(null);
     setSelectedPOS('');
@@ -144,10 +296,12 @@ export function WizardShell({ wizardType }: WizardShellProps) {
     setMappings([]);
     setFixes([]);
     setDerivedRows([]);
+    setInventoryDerivedRows([]);
+    setSelectedStore(null);
     setCanProceed(false);
     setWarningCount(0);
     setCurrentStep(0);
-  }, []);
+  }, [wizardType]);
 
   // ── Next button label ─────────────────────────────────────────────────
   const nextButtonLabel = (() => {
@@ -159,6 +313,64 @@ export function WizardShell({ wizardType }: WizardShellProps) {
 
   // ── Render step content ─────────────────────────────────────────────────
   const renderStep = () => {
+    // Inventory branch
+    if (wizardType === 'inventory') {
+      switch (currentStep) {
+        case 0:
+          return (
+            <InventoryUploadStep
+              onCanProceed={setCanProceed}
+              parsedFiles={parsedFiles}
+              onParsedFilesChange={handleParsedFilesChange}
+              selectedPOS={selectedPOS}
+              onSelectedPOSChange={handleSelectedPOSChange}
+              detectedPOS={detectedPOS}
+              onDetectedPOSChange={setDetectedPOS}
+              selectedStore={selectedStore}
+            />
+          );
+        case 1:
+          return mergedFile ? (
+            <InventoryMappingStep
+              mappings={mappings}
+              onMappingsChange={setMappings}
+              mergedFile={mergedFile}
+              selectedPOS={selectedPOS}
+              onCanProceed={setCanProceed}
+            />
+          ) : (
+            <StepPlaceholder stepName={STEP_LABELS[currentStep]} />
+          );
+        case 2:
+          return (
+            <InventoryReviewStep
+              parsedFiles={parsedFiles}
+              mappings={mappings}
+              onCanProceed={setCanProceed}
+              onDerivedRowsChange={setInventoryDerivedRows}
+              onFixesChange={setFixes}
+              onWarningCountChange={setWarningCount}
+              fixes={fixes}
+              selectedStore={selectedStore}
+            />
+          );
+        case 3:
+          return (
+            <InventoryImportStep
+              derivedRows={inventoryDerivedRows}
+              parsedFiles={parsedFiles}
+              mappings={mappings}
+              fixes={fixes}
+              selectedStore={selectedStore}
+              onStartNew={handleStartNew}
+            />
+          );
+        default:
+          return <StepPlaceholder stepName={STEP_LABELS[currentStep]} />;
+      }
+    }
+
+    // Catalog branch (existing, unchanged)
     switch (currentStep) {
       case 0:
         return (
@@ -220,6 +432,17 @@ export function WizardShell({ wizardType }: WizardShellProps) {
         </h1>
         <StepIndicator steps={[...STEP_LABELS]} current={currentStep} />
       </div>
+
+      {/* Store selector banner (inventory mode only) */}
+      {wizardType === 'inventory' && (
+        <StoreSelector
+          selectedStore={selectedStore}
+          onStoreChange={handleStoreChange}
+          stores={stores}
+          loading={storesLoading}
+          error={storesError}
+        />
+      )}
 
       {/* Main content */}
       <div className="flex flex-1 overflow-auto bg-gray-50">
