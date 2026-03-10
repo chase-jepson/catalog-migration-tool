@@ -79,12 +79,12 @@ Plans:
   2. Tool maps and imports inventory quantities tied to Treez product IDs
   3. Tool maps and imports cost/wholesale price data scoped to the selected store
   4. Inventory migration uses the same wizard flow (upload, map, validate, import) as catalog migration
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 04-01: TBD
-- [ ] 04-02: TBD
-- [ ] 04-03: TBD
+- [ ] 04-01-PLAN.md -- Inventory types, constants, store API, messaging protocol, state persistence
+- [ ] 04-02-PLAN.md -- Inventory transformer, validator, and CSV generator (TDD)
+- [ ] 04-03-PLAN.md -- Inventory UI components, WizardShell wiring, and human verification
 
 ## Progress
 
