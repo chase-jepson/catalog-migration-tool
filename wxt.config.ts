@@ -18,6 +18,8 @@ export default defineConfig({
       'https://api-dev.treez.io/*',
       'https://api-prod.treez.io/*',
       'https://api.mso.treez.io/*',
+      'https://api.mso.sandbox.treez.io/*',
+      'https://api-mso-dev.treez.io/*',
       'https://oauth.treez.io/*',
       'https://oauth-dev.treez.io/*',
       'https://*.s3.us-west-2.amazonaws.com/*',

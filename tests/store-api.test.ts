@@ -6,7 +6,7 @@ vi.mock('../entrypoints/background/auth', () => ({
 }));
 
 import { decodeJwtPayload } from '../entrypoints/background/auth';
-import { extractStoreClaimsFromToken, getMsoApiBaseUrl } from '../lib/store-api';
+import { extractStoreClaimsFromToken } from '../lib/store-api';
 
 const mockDecode = vi.mocked(decodeJwtPayload);
 
@@ -62,19 +62,5 @@ describe('extractStoreClaimsFromToken', () => {
 
     const result = extractStoreClaimsFromToken('fake.jwt.token');
     expect(result).toBeNull();
-  });
-});
-
-describe('getMsoApiBaseUrl', () => {
-  it('returns production MSO API URL', () => {
-    expect(getMsoApiBaseUrl('production')).toBe('https://api.mso.treez.io');
-  });
-
-  it('returns sandbox MSO API URL', () => {
-    expect(getMsoApiBaseUrl('sandbox')).toBe('https://api.mso.sandbox.treez.io');
-  });
-
-  it('returns dev MSO API URL', () => {
-    expect(getMsoApiBaseUrl('dev')).toBe('https://api-mso-dev.treez.io');
   });
 });

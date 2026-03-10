@@ -30,9 +30,9 @@ import {
   INVENTORY_ROLE_POS_DEFAULTS,
   INVENTORY_ROLE_FIELDS,
 } from '../../lib/inventory-constants';
-import { extractStoreClaimsFromToken, getMsoApiBaseUrl } from '../../lib/store-api';
+import { extractStoreClaimsFromToken } from '../../lib/store-api';
 import { sendMessage } from '../../lib/messaging';
-import { detectEnvironment } from '../../lib/env';
+import { detectEnvironment, getApiBaseUrl } from '../../lib/env';
 import type { PerRoleMappings } from '../../lib/inventory-transformer';
 import type {
   ParsedFile,
@@ -122,7 +122,7 @@ export function WizardShell({ wizardType }: WizardShellProps) {
           throw new Error('Could not detect Treez environment from current page.');
         }
 
-        const apiBaseUrl = getMsoApiBaseUrl(env);
+        const apiBaseUrl = getApiBaseUrl(env);
         const storeList = await sendMessage('fetchStores', {
           apiBaseUrl,
           token,

@@ -145,7 +145,12 @@ export default defineBackground(() => {
       },
     );
     if (!res.ok) throw new Error(`Store fetch failed (${res.status})`);
-    return res.json();
+    const data = await res.json();
+    // Map API response fields to StoreInfo shape
+    return (data as any[]).map((entity: any) => ({
+      entityId: entity.id,
+      name: entity.name,
+    }));
   });
 
   // Handle openSidePanel via raw chrome.runtime.onMessage.
