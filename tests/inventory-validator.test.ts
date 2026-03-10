@@ -1,18 +1,71 @@
 import { describe, it, expect } from 'vitest';
-import { validateInventoryRows } from '../lib/inventory-validator';
+import { validateInventoryRows, groupInventoryErrors } from '../lib/inventory-validator';
 import type { InventoryDerivedRow } from '../lib/types';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function makeRow(overrides: Partial<InventoryDerivedRow> = {}): InventoryDerivedRow {
   return {
-    matched: true,
-    posProductId: 'POS-001',
-    productName: 'Test Product',
-    treezVariantId: 'TREEZ-V-100',
-    quantityOnHand: 10,
-    cost: '5.00',
-    room: 'Room A',
+    treezVariantId: '',
+    variantReferenceId: 'V-SKU-001',
+    dispensaryLicense: 'LIC-001',
+    invoiceId: 'INV-1 - 2026-02-11 - Vendor A',
+    invoiceCreatedDate: '2026-02-11',
+    manifestNumber: '',
+    traceTreezId: 'PKG-1',
+    inventoryBarcodes: 'PKG-1',
+    originalUnitCount: '20',
+    units: '10',
+    unitCost: '5.00',
+    harvestDate: '2025-01-01',
+    expirationDate: '2026-12-31',
+    packagedDate: '2025-01-15',
+    customerType: 'ADULT',
+    thcAmount: '23.5',
+    thcUom: '%',
+    cbdAmount: '1.2',
+    cbdUom: 'mg',
+    locationPath: 'Front of House, Sales Floor',
+    locationInventoryType: 'All Types',
+    locationIsSellable: 'TRUE',
+    locationDefaultReceivingLocation: 'FALSE',
+    distributorName: 'Vendor A',
+    distributorDBA: '',
+    distributorAddress: '',
+    distributorPhoneNumber: '',
+    distributorEmail: '',
+    distributorType: 'Non-Arms Length',
+    distributorDefaultPaymentTerm: '',
+    distributorLeadTime: '',
+    distributorDeliveryDays: '',
+    distributorPreferredPaymentMethod: '',
+    distributorLicense1Type: '',
+    distributorLicense1Number: '',
+    distributorLicense1ExpirationDate: '',
+    distributorLicense2Type: '',
+    distributorLicense2Number: '',
+    distributorLicense2ExpirationDate: '',
+    distributorLicense3Type: '',
+    distributorLicense3Number: '',
+    distributorLicense3ExpirationDate: '',
+    distributorRep1Name: '',
+    distributorRep1Phone: '',
+    distributorRep1Email: '',
+    distributorRep1Role: '',
+    distributorRep1Notes: '',
+    distributorRep2Name: '',
+    distributorRep2Phone: '',
+    distributorRep2Email: '',
+    distributorRep2Role: '',
+    distributorRep2Notes: '',
+    distributorRep3Name: '',
+    distributorRep3Phone: '',
+    distributorRep3Email: '',
+    distributorRep3Role: '',
+    distributorRep3Notes: '',
+    productSKU: 'SKU-001',
+    externalPackageId: 'PKG-1',
+    productCategory: 'Flower',
     excluded: false,
     ...overrides,
   };
@@ -21,108 +74,111 @@ function makeRow(overrides: Partial<InventoryDerivedRow> = {}): InventoryDerived
 // ── validateInventoryRows ────────────────────────────────────────────────────
 
 describe('validateInventoryRows', () => {
-  it('returns clean result for valid matched rows', () => {
-    const rows = [makeRow(), makeRow({ posProductId: 'POS-002', treezVariantId: 'TREEZ-V-200' })];
+  it('valid row passes without errors', () => {
+    const rows = [makeRow()];
     const result = validateInventoryRows(rows);
 
-    expect(result.validCount).toBe(2);
+    expect(result.validCount).toBe(1);
     expect(result.errorCount).toBe(0);
     expect(result.warningCount).toBe(0);
-    expect(result.errors).toHaveLength(0);
   });
 
-  it('produces warning (not error) for unmatched rows', () => {
-    const rows = [
-      makeRow({ matched: false, treezVariantId: undefined, posProductId: 'POS-999' }),
-    ];
-    const result = validateInventoryRows(rows);
-
-    expect(result.warningCount).toBe(1);
-    expect(result.errorCount).toBe(0);
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0].severity).toBe('warning');
-    expect(result.errors[0].field).toBe('matched');
-  });
-
-  it('produces error for NaN quantity on matched row', () => {
-    const rows = [makeRow({ quantityOnHand: NaN })];
+  it('empty VariantReferenceId produces error', () => {
+    const rows = [makeRow({ variantReferenceId: '' })];
     const result = validateInventoryRows(rows);
 
     expect(result.errorCount).toBe(1);
-    expect(result.errors[0].field).toBe('quantityOnHand');
+    expect(result.errors[0].field).toBe('variantReferenceId');
     expect(result.errors[0].severity).toBe('error');
-    expect(result.errors[0].message).toContain('not a valid number');
   });
 
-  it('produces error for negative quantity on matched row', () => {
-    const rows = [makeRow({ quantityOnHand: -5 })];
+  it('invalid Units (non-numeric) produces error', () => {
+    const rows = [makeRow({ units: 'abc' })];
     const result = validateInventoryRows(rows);
 
     expect(result.errorCount).toBe(1);
-    expect(result.errors[0].field).toBe('quantityOnHand');
+    expect(result.errors[0].field).toBe('units');
     expect(result.errors[0].severity).toBe('error');
-    expect(result.errors[0].message).toContain('negative');
   });
 
-  it('accepts zero quantity without error', () => {
-    const rows = [makeRow({ quantityOnHand: 0 })];
-    const result = validateInventoryRows(rows);
-
-    expect(result.errorCount).toBe(0);
-    expect(result.validCount).toBe(1);
-  });
-
-  it('produces error for non-numeric non-empty cost', () => {
-    const rows = [makeRow({ cost: 'abc' })];
+  it('negative Units produces error', () => {
+    const rows = [makeRow({ units: '-5' })];
     const result = validateInventoryRows(rows);
 
     expect(result.errorCount).toBe(1);
-    expect(result.errors[0].field).toBe('cost');
-    expect(result.errors[0].severity).toBe('error');
+    expect(result.errors[0].field).toBe('units');
   });
 
-  it('produces error for negative cost', () => {
-    const rows = [makeRow({ cost: '-10' })];
+  it('missing receipt data (empty invoiceId) produces warning', () => {
+    const rows = [makeRow({ invoiceId: '', invoiceCreatedDate: '' })];
+    const result = validateInventoryRows(rows, { hasReceipts: false });
+
+    // When no receipts provided, empty invoiceId is acceptable (no warning)
+    expect(result.warningCount).toBe(0);
+  });
+
+  it('empty invoiceId when receipts ARE provided produces warning', () => {
+    const rows = [makeRow({ invoiceId: '' })];
+    const result = validateInventoryRows(rows, { hasReceipts: true });
+
+    expect(result.warningCount).toBeGreaterThanOrEqual(1);
+    const invoiceWarning = result.errors.find((e) => e.field === 'invoiceId');
+    expect(invoiceWarning?.severity).toBe('warning');
+  });
+
+  it('invalid date format produces warning', () => {
+    const rows = [makeRow({ harvestDate: '2025-13-01' })];
     const result = validateInventoryRows(rows);
 
-    expect(result.errorCount).toBe(1);
-    expect(result.errors[0].field).toBe('cost');
-    expect(result.errors[0].severity).toBe('error');
-    expect(result.errors[0].message).toContain('negative');
+    // Invalid month 13 -- should warn
+    const dateWarnings = result.errors.filter((e) => e.field === 'harvestDate');
+    expect(dateWarnings.length).toBeGreaterThanOrEqual(1);
+    expect(dateWarnings[0].severity).toBe('warning');
   });
 
-  it('accepts empty cost without error (optional field)', () => {
-    const rows = [makeRow({ cost: '' })];
+  it('empty ExternalPackageId produces warning', () => {
+    const rows = [makeRow({ externalPackageId: '' })];
     const result = validateInventoryRows(rows);
 
-    expect(result.errorCount).toBe(0);
-    expect(result.validCount).toBe(1);
+    const warning = result.errors.find((e) => e.field === 'externalPackageId');
+    expect(warning).toBeDefined();
+    expect(warning?.severity).toBe('warning');
   });
 
-  it('skips excluded rows entirely', () => {
-    const rows = [
-      makeRow({ excluded: true, quantityOnHand: NaN }), // Would fail if not excluded
-      makeRow(),
-    ];
+  it('skips excluded rows', () => {
+    const rows = [makeRow({ excluded: true, variantReferenceId: '' })];
     const result = validateInventoryRows(rows);
 
     expect(result.errorCount).toBe(0);
     expect(result.warningCount).toBe(0);
-    expect(result.validCount).toBe(1); // Only the non-excluded row counts
   });
 
   it('returns correct counts with mixed errors and warnings', () => {
     const rows = [
       makeRow(), // valid
-      makeRow({ matched: false, treezVariantId: undefined }), // warning
-      makeRow({ quantityOnHand: NaN }), // error
-      makeRow({ cost: '-5' }), // error
+      makeRow({ variantReferenceId: '' }), // error
+      makeRow({ externalPackageId: '' }), // warning
     ];
     const result = validateInventoryRows(rows);
 
-    expect(result.validCount).toBe(2); // 4 active - 2 errors
-    expect(result.errorCount).toBe(2);
+    expect(result.validCount).toBe(2); // 3 active - 1 error
+    expect(result.errorCount).toBe(1);
     expect(result.warningCount).toBe(1);
-    expect(result.errors).toHaveLength(3);
+  });
+});
+
+// ── groupInventoryErrors ────────────────────────────────────────────────────
+
+describe('groupInventoryErrors', () => {
+  it('groups errors by field+message', () => {
+    const rows = [
+      makeRow({ variantReferenceId: '' }),
+      makeRow({ variantReferenceId: '' }),
+    ];
+    const result = validateInventoryRows(rows);
+    const groups = groupInventoryErrors(result.errors);
+
+    expect(groups.length).toBe(1);
+    expect(groups[0].rows).toHaveLength(2);
   });
 });

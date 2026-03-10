@@ -4,80 +4,119 @@ import type {
   ValidationResult,
 } from './types';
 
+export interface InventoryValidationOptions {
+  /** Whether receipt files were provided (affects invoice field validation) */
+  hasReceipts?: boolean;
+}
+
 /**
- * Validate inventory derived rows.
+ * Validate inventory derived rows for the 56-column output.
  *
  * Rules:
- * - Excluded rows are skipped entirely
- * - Unmatched rows (matched=false) produce a warning, NOT an error
- * - Matched rows: quantity must be a valid number >= 0
- * - Matched rows: cost, if non-empty, must be a valid number >= 0
+ * - Excluded rows are skipped
+ * - VariantReferenceId must not be empty (error)
+ * - Units must be valid number >= 0 (error)
+ * - UnitCost, if non-empty, must be valid number (warning)
+ * - Date fields, if non-empty, must match yyyy-MM-dd (warning)
+ * - ExternalPackageId should not be empty (warning)
+ * - Missing invoice data when no receipts file is acceptable
  */
 export function validateInventoryRows(
   rows: InventoryDerivedRow[],
+  options: InventoryValidationOptions = {},
 ): ValidationResult {
   const errors: RowValidationError[] = [];
+  const { hasReceipts = true } = options;
+
+  const dateRegex = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     if (row.excluded) continue;
 
-    // Unmatched rows produce a warning
-    if (!row.matched) {
+    // VariantReferenceId must not be empty
+    if (!row.variantReferenceId) {
       errors.push({
         rowIndex: i,
-        field: 'matched',
-        currentValue: row.posProductId,
-        message: `No Treez product match for "${row.posProductId || row.productName}"`,
+        field: 'variantReferenceId',
+        currentValue: row.variantReferenceId,
+        message: 'VariantReferenceId is required',
+        fixType: 'text',
+        severity: 'error',
+      });
+    }
+
+    // Units must be valid number >= 0
+    const unitsNum = Number(row.units);
+    if (row.units !== '' && Number.isNaN(unitsNum)) {
+      errors.push({
+        rowIndex: i,
+        field: 'units',
+        currentValue: row.units,
+        message: 'Units is not a valid number',
+        fixType: 'text',
+        severity: 'error',
+      });
+    } else if (unitsNum < 0) {
+      errors.push({
+        rowIndex: i,
+        field: 'units',
+        currentValue: row.units,
+        message: 'Units cannot be negative',
+        fixType: 'text',
+        severity: 'error',
+      });
+    }
+
+    // UnitCost: if non-empty, must be valid number
+    if (row.unitCost && Number.isNaN(Number(row.unitCost))) {
+      errors.push({
+        rowIndex: i,
+        field: 'unitCost',
+        currentValue: row.unitCost,
+        message: 'Unit cost is not a valid number',
         fixType: 'text',
         severity: 'warning',
       });
-      continue; // Skip further validation for unmatched rows
     }
 
-    // Quantity validation (required, must be number >= 0)
-    if (Number.isNaN(row.quantityOnHand)) {
-      errors.push({
-        rowIndex: i,
-        field: 'quantityOnHand',
-        currentValue: String(row.quantityOnHand),
-        message: 'Quantity is not a valid number',
-        fixType: 'text',
-        severity: 'error',
-      });
-    } else if (row.quantityOnHand < 0) {
-      errors.push({
-        rowIndex: i,
-        field: 'quantityOnHand',
-        currentValue: String(row.quantityOnHand),
-        message: 'Quantity cannot be negative',
-        fixType: 'text',
-        severity: 'error',
-      });
-    }
-
-    // Cost validation (optional, but if non-empty must be valid number >= 0)
-    if (row.cost !== '') {
-      const costNum = Number(row.cost);
-      if (Number.isNaN(costNum)) {
+    // Date fields: if non-empty, must match yyyy-MM-dd
+    for (const dateField of ['harvestDate', 'expirationDate', 'packagedDate', 'invoiceCreatedDate'] as const) {
+      const val = row[dateField];
+      if (val && !dateRegex.test(val)) {
         errors.push({
           rowIndex: i,
-          field: 'cost',
-          currentValue: row.cost,
-          message: 'Cost is not a valid number',
+          field: dateField,
+          currentValue: val,
+          message: `Invalid date format (expected yyyy-MM-dd): ${val}`,
           fixType: 'text',
-          severity: 'error',
-        });
-      } else if (costNum < 0) {
-        errors.push({
-          rowIndex: i,
-          field: 'cost',
-          currentValue: row.cost,
-          message: 'Cost cannot be negative',
-          fixType: 'text',
-          severity: 'error',
+          severity: 'warning',
         });
       }
+    }
+
+    // ExternalPackageId should not be empty
+    if (!row.externalPackageId) {
+      errors.push({
+        rowIndex: i,
+        field: 'externalPackageId',
+        currentValue: row.externalPackageId,
+        message: 'External Package ID is empty',
+        fixType: 'text',
+        severity: 'warning',
+      });
+    }
+
+    // InvoiceId: only validate if receipts were provided
+    if (hasReceipts && !row.invoiceId) {
+      errors.push({
+        rowIndex: i,
+        field: 'invoiceId',
+        currentValue: row.invoiceId,
+        message: 'Invoice ID is empty (receipt data available but no match found)',
+        fixType: 'text',
+        severity: 'warning',
+      });
     }
   }
 
