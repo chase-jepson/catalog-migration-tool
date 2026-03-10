@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Extension Shell** - WXT-based Chrome extension with page detection, auth flow, and wizard scaffold
 - [x] **Phase 2: File Upload and Column Mapping** - CSV/XLSX upload with POS auto-detection and smart column mapping
 - [x] **Phase 3: Transform, Validate, and Import** - Data normalization, row validation, Treez CSV generation, and S3 upload
-- [ ] **Phase 4: Inventory Migration** - Store selection, inventory-specific transformation, and inventory import
+- [ ] **Phase 4: Inventory Migration** - Store selection, multi-file ETL pipeline, 56-column inventory import
 
 ## Phase Details
 
@@ -71,20 +71,22 @@ Plans:
 - [x] 03-04-PLAN.md -- ImportStep UI with S3 upload, adaptive polling, progress tracking, error recovery
 
 ### Phase 4: Inventory Migration
-**Goal**: Users can migrate per-store inventory data (quantities, costs) using the same wizard pattern proven for catalog migration
+**Goal**: Users can migrate per-store inventory data by joining up to 4 input files (inventory, receipts, vendors, adjustments) plus a catalog export into a 56-column Treez inventory import CSV with invoice reconstruction, distributor enrichment, and compliance data
 **Depends on**: Phase 3
 **Requirements**: INV-01, INV-02, INV-03
 **Success Criteria** (what must be TRUE):
   1. User can select a specific store from their Treez organization before starting inventory import
-  2. Tool maps and imports inventory quantities tied to Treez product IDs
-  3. Tool maps and imports cost/wholesale price data scoped to the selected store
-  4. Inventory migration uses the same wizard flow (upload, map, validate, import) as catalog migration
+  2. Tool joins multiple input files (inventory, receipts, vendors, adjustments, catalog export) into a single 56-column CSV
+  3. Tool reconstructs invoices from receipt data with corrected quantities (receipts + adjustments)
+  4. Tool enriches rows with distributor data (32 columns) from vendor export
+  5. Inventory migration uses the same wizard flow (upload, map, validate, import) as catalog migration
+  6. Pipeline gracefully degrades when optional files (receipts, vendors, adjustments) are not provided
 **Plans**: 3 plans
 
 Plans:
-- [ ] 04-01-PLAN.md -- Inventory types, constants, store API, messaging protocol, state persistence
-- [ ] 04-02-PLAN.md -- Inventory transformer, validator, and CSV generator (TDD)
-- [ ] 04-03-PLAN.md -- Inventory UI components, WizardShell wiring, and human verification
+- [x] 04-01-PLAN.md -- Inventory types, constants, store API, messaging protocol, state persistence
+- [ ] 04-02-PLAN.md -- Full ETL pipeline: types expansion, ETL helpers, 5-phase transformer, validator, 56-column CSV generator (TDD)
+- [ ] 04-03-PLAN.md -- Multi-file upload with role assignment, per-role mapping, ETL review, 56-column import UI
 
 ## Progress
 
@@ -96,4 +98,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 1. Extension Shell | 3/3 | Complete | 2026-03-09 |
 | 2. File Upload and Column Mapping | 3/3 | Complete | 2026-03-09 |
 | 3. Transform, Validate, and Import | 4/4 | Complete | 2026-03-09 |
-| 4. Inventory Migration | 2/3 | In Progress|  |
+| 4. Inventory Migration | 1/3 | In Progress (replanned) |  |
