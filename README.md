@@ -24,9 +24,9 @@ Auto-detection and smart column mapping for:
 ## Download & Install
 
 1. Download the latest ZIP from the [Releases page](https://gitlab.com/chase_jepson/catalog-migration-tool-v2/-/releases)
-2. Unzip the downloaded file
+2. Unzip the downloaded file into a new folder (e.g., `catalog-migration-tool`)
 3. Open `chrome://extensions/` in Chrome and enable **Developer mode** (top-right toggle)
-4. Click **Load unpacked** and select the unzipped folder
+4. Click **Load unpacked** and select the folder containing `manifest.json`
 5. Navigate to `app.treez.io/treez-admin/import/home` -- you should see **Migrate Catalog** and **Migrate Inventory** buttons
 6. Click either button and follow the wizard: Upload your file > Map columns > Review & fix errors > Import
 
