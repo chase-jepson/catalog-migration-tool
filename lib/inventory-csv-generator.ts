@@ -52,17 +52,17 @@ const FIELD_TO_COLUMN: Record<string, keyof InventoryDerivedRow> = {
   'Distributor License 3 Number': 'distributorLicense3Number',
   'Distributor License 3 Expiration Date': 'distributorLicense3ExpirationDate',
   'Distributor Representative 1 Name': 'distributorRep1Name',
-  'Distributor Representative 1 Phone': 'distributorRep1Phone',
+  'Distributor Representative 1 Phone Number': 'distributorRep1Phone',
   'Distributor Representative 1 Email': 'distributorRep1Email',
   'Distributor Representative 1 Role': 'distributorRep1Role',
   'Distributor Representative 1 Notes': 'distributorRep1Notes',
   'Distributor Representative 2 Name': 'distributorRep2Name',
-  'Distributor Representative 2 Phone': 'distributorRep2Phone',
+  'Distributor Representative 2 Phone Number': 'distributorRep2Phone',
   'Distributor Representative 2 Email': 'distributorRep2Email',
   'Distributor Representative 2 Role': 'distributorRep2Role',
   'Distributor Representative 2 Notes': 'distributorRep2Notes',
   'Distributor Representative 3 Name': 'distributorRep3Name',
-  'Distributor Representative 3 Phone': 'distributorRep3Phone',
+  'Distributor Representative 3 Phone Number': 'distributorRep3Phone',
   'Distributor Representative 3 Email': 'distributorRep3Email',
   'Distributor Representative 3 Role': 'distributorRep3Role',
   'Distributor Representative 3 Notes': 'distributorRep3Notes',
@@ -92,4 +92,15 @@ export function buildInventoryCSV(
     );
 
   return [header, ...dataRows];
+}
+
+/**
+ * Serialize a 2D string array to a CSV string.
+ * Handles quoting of cells containing commas, quotes, or newlines.
+ */
+export function serializeCSV(rows: string[][]): string {
+  return rows.map((row) => row.map((cell) => {
+    const escaped = cell.replace(/"/g, '""');
+    return /[,"\n\r]/.test(cell) ? `"${escaped}"` : cell;
+  }).join(',')).join('\n');
 }

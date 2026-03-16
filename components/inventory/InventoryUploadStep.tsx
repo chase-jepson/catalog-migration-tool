@@ -49,8 +49,8 @@ function autoDetectRole(file: ParsedFile): InventoryFileRole | null {
   if (name.includes('adjustment')) return 'adjustments';
   if (name.includes('receipt')) return 'receipts';
   if (name.includes('vendor')) return 'vendors';
-  if (name.includes('catalog') || name.includes('export')) return 'catalog_export';
   if (name.includes('inventory')) return 'inventory';
+  if (name.includes('catalog')) return 'catalog_export';
 
   // Header heuristics
   if (headers.has('external package id') && headers.has('receive date')) return 'receipts';
@@ -279,14 +279,14 @@ export function InventoryUploadStep({
       {status === 'parsing' && (
         <div className="rounded-lg border border-gray-200 bg-white p-4">
           <div className="flex items-center gap-3">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" />
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-treez-primary border-t-transparent" />
             <span className="text-sm text-gray-600">
               Parsing file {progress.current} of {progress.total}...
             </span>
           </div>
           <div className="mt-2 h-1.5 rounded-full bg-gray-200">
             <div
-              className="h-1.5 rounded-full bg-teal-600 transition-all"
+              className="h-1.5 rounded-full bg-treez-primary transition-all"
               style={{
                 width: `${(progress.current / progress.total) * 100}%`,
               }}
@@ -315,7 +315,16 @@ export function InventoryUploadStep({
           <button
             type="button"
             onClick={handleSheetConfirm}
-            className="rounded-md bg-teal-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-teal-700"
+            className="btn-treez-green font-[Roboto,sans-serif] font-medium"
+            style={{
+              padding: '0 16px',
+              borderRadius: '15px',
+              border: 'none',
+              color: '#0f1709',
+              fontSize: '14px',
+              height: '36px',
+              letterSpacing: '0.4px',
+            }}
           >
             Parse selected sheet
           </button>
@@ -378,7 +387,7 @@ export function InventoryUploadStep({
                   <select
                     value={currentRole}
                     onChange={(e) => handleRoleChange(file.fileName, e.target.value as InventoryFileRole)}
-                    className="mt-1 w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-700 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                    className="mt-1 w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-700 focus:border-treez-accent-muted0 focus:outline-none focus:ring-1 focus:ring-treez-accent-muted0"
                   >
                     {INVENTORY_FILE_ROLES.map((r) => (
                       <option key={r.role} value={r.role}>
@@ -387,7 +396,7 @@ export function InventoryUploadStep({
                     ))}
                   </select>
                   {autoDetectRole(file) === currentRole && (
-                    <p className="mt-0.5 text-xs text-teal-600">(auto-detected)</p>
+                    <p className="mt-0.5 text-xs text-treez-primary">(auto-detected)</p>
                   )}
                   {hasDuplicate && otherFileName && (
                     <p className="mt-0.5 text-xs text-amber-600">
@@ -466,7 +475,7 @@ export function InventoryUploadStep({
             value={dispensaryLicense}
             onChange={(e) => handleLicenseChange(e.target.value)}
             placeholder="e.g., C12-0000331-LIC"
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-treez-accent-muted0 focus:outline-none focus:ring-1 focus:ring-treez-accent-muted0"
           />
           <p className="text-xs text-gray-500">
             Required. This license number will be included in every row of the import.

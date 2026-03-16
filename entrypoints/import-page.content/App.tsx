@@ -1,32 +1,43 @@
 const buttonStyle: React.CSSProperties = {
-  backgroundColor: '#0891b2',
-  color: '#ffffff',
-  border: 'none',
-  borderRadius: '4px',
-  padding: '8px 16px',
-  fontSize: '14px',
-  fontWeight: 500,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  position: 'relative',
+  boxSizing: 'border-box',
+  WebkitTapHighlightColor: 'transparent',
+  outline: '0px',
+  border: '0px',
+  margin: '0px',
   cursor: 'pointer',
-  fontFamily: 'inherit',
-  lineHeight: '1.5',
-  transition: 'background-color 0.15s ease',
+  userSelect: 'none',
+  verticalAlign: 'middle',
+  appearance: 'none',
+  textDecoration: 'none',
+  textTransform: 'none',
+  letterSpacing: '0.02857em',
+  minWidth: '64px',
+  height: '2.5rem',
+  padding: '0.5rem 1.25rem',
+  borderRadius: '1rem',
+  color: 'rgb(15, 23, 9)',
+  fontWeight: 500,
+  fontSize: '0.938rem',
+  lineHeight: '1.5rem',
+  fontFamily: 'Roboto',
+  transition: '0.2s',
+  backgroundColor: 'rgb(169, 224, 121)',
+  whiteSpace: 'nowrap',
 };
 
 const containerStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  gap: '8px',
-  alignItems: 'center',
-  marginLeft: '8px',
+  display: 'contents',
 };
 
 function handleClick(wizardType: 'catalog' | 'inventory') {
-  // Use raw chrome.runtime.sendMessage to preserve user gesture context.
-  // @webext-core/messaging adds async layers that break the gesture chain,
-  // which chrome.sidePanel.open() requires.
-  chrome.runtime.sendMessage({
-    type: 'openSidePanel',
-    data: { wizardType },
-  });
+  // Dispatch custom event for the wizard-drawer content script
+  document.dispatchEvent(
+    new CustomEvent('cmt:open-wizard', { detail: { wizardType } }),
+  );
 }
 
 export default function App() {
@@ -36,10 +47,10 @@ export default function App() {
         type="button"
         style={buttonStyle}
         onMouseEnter={(e) => {
-          (e.target as HTMLButtonElement).style.backgroundColor = '#0e7490';
+          (e.target as HTMLButtonElement).style.backgroundColor = 'rgb(145, 200, 100)';
         }}
         onMouseLeave={(e) => {
-          (e.target as HTMLButtonElement).style.backgroundColor = '#0891b2';
+          (e.target as HTMLButtonElement).style.backgroundColor = 'rgb(169, 224, 121)';
         }}
         onClick={() => handleClick('catalog')}
       >
@@ -49,10 +60,10 @@ export default function App() {
         type="button"
         style={buttonStyle}
         onMouseEnter={(e) => {
-          (e.target as HTMLButtonElement).style.backgroundColor = '#0e7490';
+          (e.target as HTMLButtonElement).style.backgroundColor = 'rgb(145, 200, 100)';
         }}
         onMouseLeave={(e) => {
-          (e.target as HTMLButtonElement).style.backgroundColor = '#0891b2';
+          (e.target as HTMLButtonElement).style.backgroundColor = 'rgb(169, 224, 121)';
         }}
         onClick={() => handleClick('inventory')}
       >

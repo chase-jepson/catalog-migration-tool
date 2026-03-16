@@ -36,7 +36,7 @@ export interface PerRoleMappings {
   catalog_export: FieldMapping[];
 }
 
-export interface DistributorInfo {
+interface DistributorInfo {
   distributorName: string;
   distributorDBA: string;
   distributorAddress: string;
@@ -93,6 +93,16 @@ function getVal(
   return (row[col] ?? '').trim();
 }
 
+/** Format a numeric value to up to 2 decimal places (strip trailing zeros), or return '' if blank/NaN */
+function formatDecimal2(val: any): string {
+  if (val === undefined || val === null || val === '') return '';
+  const num = Number(val);
+  if (Number.isNaN(num)) return String(val);
+  // Use toFixed(2) then strip trailing zeros after decimal point
+  const fixed = num.toFixed(2);
+  return fixed.replace(/\.?0+$/, '') || '0';
+}
+
 function emptyDistributor(): DistributorInfo {
   return {
     distributorName: '',
@@ -134,7 +144,7 @@ function emptyDistributor(): DistributorInfo {
 
 // ── Phase A: Receipt Processing ─────────────────────────────────────────────
 
-export interface InvoiceRow {
+interface InvoiceRow {
   ExternalPackageId: string;
   ProductSKU: string;
   ReceiveDate: string;
@@ -171,9 +181,11 @@ export function processReceipts(
   }));
 
   // A1 Step 3: Sum receipts by group
+  // Use \0 separator to avoid collision with pipe-separated vendor names
+  const SEP = '\0';
   const receiptSummed = sumByGroup(
     receiptSubset,
-    (r) => `${r.ProductSKU}|${r.ReceiveDate}|${r.ExternalPackageId}|${r.VendorName}|${r.OrderTitle}`,
+    (r) => [r.ProductSKU, r.ReceiveDate, r.ExternalPackageId, r.VendorName, r.OrderTitle].join(SEP),
     ['Quantity', 'TotalCost'],
   );
 
@@ -194,7 +206,7 @@ export function processReceipts(
 
   for (const r of receiptSummed) {
     // Extract ExternalPackageId from the group key (3rd element)
-    const keyParts = r._groupKey.split('|');
+    const keyParts = r._groupKey.split(SEP);
     stackedForSum.push({
       ExternalPackageId: keyParts[2],
       Quantity: String(r.Quantity),
@@ -223,25 +235,49 @@ export function processReceipts(
     });
   }
 
-  // A2: Descriptive invoice rows (one per receipt row, keep descriptive fields)
-  // Build descriptive invoice info from original receipt subset
-  const invoiceInfo = receiptSubset.map((r) => ({
-    ExternalPackageId: r.ExternalPackageId,
-    ReceiveDate: r.ReceiveDate,
-    VendorName: r.VendorName,
-    OrderTitle: r.OrderTitle,
-    ProductSKU: r.ProductSKU,
-  }));
+  // A2: Build descriptive invoice rows from SUMMED receipt groups (not raw rows).
+  // Each summed group represents one (ProductSKU, ReceiveDate, EPID, VendorName, OrderTitle) combo.
+  const summedDescriptive = receiptSummed.map((r) => {
+    const keyParts = r._groupKey.split(SEP);
+    return {
+      ProductSKU: keyParts[0],
+      ReceiveDate: keyParts[1],
+      ExternalPackageId: keyParts[2],
+      VendorName: keyParts[3],
+      OrderTitle: keyParts[4],
+      Quantity: Number(r.Quantity),
+    };
+  });
 
-  // A3: Merge -- left join invoice info + combined totals
-  const merged = invoiceInfo.map((info) => {
+  // A2.5: Dedup — sort by EPID asc, Quantity desc; then keep first per
+  // (ExternalPackageId, VendorName, ReceiveDate, OrderTitle).
+  // This picks the highest-quantity ProductSKU row within each group.
+  summedDescriptive.sort((a, b) => {
+    const epidCmp = a.ExternalPackageId.localeCompare(b.ExternalPackageId);
+    if (epidCmp !== 0) return epidCmp;
+    return b.Quantity - a.Quantity; // descending
+  });
+
+  const dedupKey = (r: typeof summedDescriptive[0]) =>
+    `${r.ExternalPackageId}|${r.VendorName}|${r.ReceiveDate}|${r.OrderTitle}`;
+  const seenDedupKeys = new Set<string>();
+  const deduped = summedDescriptive.filter((r) => {
+    const key = dedupKey(r);
+    if (seenDedupKeys.has(key)) return false;
+    seenDedupKeys.add(key);
+    return true;
+  });
+
+  // A3: Merge — join deduped descriptive rows with package-level totals
+  const merged = deduped.map((info) => {
     const totals = totalsMap.get(info.ExternalPackageId);
     const quantity = totals?.Quantity ?? 0;
     const totalCost = totals?.TotalCost ?? 0;
     const unitCost = quantity !== 0 ? Math.round((totalCost / quantity) * 100) / 100 : 0;
 
     const invoiceId = extractInvoiceId(info.OrderTitle);
-    const invoiceIdDate = `${invoiceId} - ${info.ReceiveDate} - ${info.VendorName}`;
+    const receiveDateISO = formatDateToISO(info.ReceiveDate);
+    const invoiceIdDate = `${invoiceId} - ${receiveDateISO || info.ReceiveDate} - ${info.VendorName}`;
 
     return {
       ExternalPackageId: info.ExternalPackageId,
@@ -249,10 +285,10 @@ export function processReceipts(
       ReceiveDate: info.ReceiveDate,
       Quantity: String(quantity),
       TotalCost: String(totalCost),
-      UnitCost: String(unitCost),
+      UnitCost: unitCost.toFixed(2).replace(/\.?0+$/, '') || '0',
       VendorName: info.VendorName,
       OrderTitle: info.OrderTitle,
-      InvoiceId: invoiceIdDate,
+      InvoiceId: invoiceId,
       InvoiceIdDate: invoiceIdDate,
     };
   });
@@ -266,16 +302,16 @@ export function processReceipts(
     }
   }
 
-  // Get unique InvoiceIds from overlapping packages
-  const activeInvoiceIds = new Set<string>();
+  // Get unique InvoiceIdDates from overlapping packages (date+vendor+id for precise grouping)
+  const activeInvoiceIdDates = new Set<string>();
   for (const row of merged) {
     if (overlappingPkgIds.has(row.ExternalPackageId)) {
-      activeInvoiceIds.add(row.InvoiceId);
+      activeInvoiceIdDates.add(row.InvoiceIdDate);
     }
   }
 
-  // Phase 2: Pull ALL rows for active invoice IDs
-  let activeRows = merged.filter((r) => activeInvoiceIds.has(r.InvoiceId));
+  // Phase 2: Pull ALL rows for active invoice groups
+  let activeRows = merged.filter((r) => activeInvoiceIdDates.has(r.InvoiceIdDate));
 
   // Phase 3: Filter out rows where Quantity = 0
   activeRows = activeRows.filter((r) => Number(r.Quantity) !== 0);
@@ -297,22 +333,65 @@ export function processVendors(
   const expDate = new Date(now.getFullYear() + 2, now.getMonth(), now.getDate());
   const expStr = `${expDate.getFullYear()}-${String(expDate.getMonth() + 1).padStart(2, '0')}-${String(expDate.getDate()).padStart(2, '0')}`;
 
+  // Step 1: Group rows by vendor name, merge vendor codes (dedup, skip blanks)
+  const vendorGroups = new Map<string, {
+    codes: Set<string>;
+    rows: Record<string, string>[];
+  }>();
+
   for (const row of vendorRows) {
     const name = getVal(row, fm, 'vnd_vendorName');
     if (!name) continue;
 
-    // Build address
-    const addressParts = [
-      getVal(row, fm, 'vnd_address'),
-      getVal(row, fm, 'vnd_city'),
-      `${getVal(row, fm, 'vnd_state')} ${getVal(row, fm, 'vnd_postalCode')}`.trim(),
-    ].filter(Boolean);
-    const address = addressParts.join(', ');
+    let group = vendorGroups.get(name);
+    if (!group) {
+      group = { codes: new Set(), rows: [] };
+      vendorGroups.set(name, group);
+    }
+    group.rows.push(row);
 
-    // License numbers
-    const lic1 = getVal(row, fm, 'vnd_vendorCode');
-    const lic2 = getVal(row, fm, 'vnd_vendorCode1');
-    const lic3 = getVal(row, fm, 'vnd_vendorCode2');
+    const code = getVal(row, fm, 'vnd_vendorCode');
+    if (code) {
+      // Handle comma-separated codes in a single cell too
+      for (const c of code.split(',')) {
+        const trimmed = c.trim();
+        if (trimmed) group.codes.add(trimmed);
+      }
+    }
+  }
+
+  // Step 2: Build distributor info for each unique vendor
+  for (const [name, group] of vendorGroups) {
+    // Use first row for address/contact info
+    const row = group.rows[0];
+    const codes = Array.from(group.codes);
+
+    // Build address — Parabola-style if/else (first match wins)
+    const street = getVal(row, fm, 'vnd_address');
+    const city = getVal(row, fm, 'vnd_city');
+    const state = getVal(row, fm, 'vnd_state');
+    const zip = getVal(row, fm, 'vnd_postalCode');
+    let address = '';
+    if (street && city && state && zip) {
+      address = `${street} ${city}, ${state} ${zip}`;
+    } else if (street && city && state && !zip) {
+      address = `${street} ${city}, ${state}`;
+    } else if (!street && city && state && zip) {
+      address = `${city}, ${state} ${zip}`;
+    } else if (!street && !city && state && zip) {
+      address = `${state} ${zip}`;
+    } else if (!street && city && state && !zip) {
+      address = `${city}, ${state}`;
+    } else if (street && city && !state) {
+      address = `${street} ${city}`;
+    } else if (!street && !city && state && !zip) {
+      address = state;
+    }
+
+    // Split codes into up to 3 licenses
+    const lic1 = codes[0] ?? '';
+    const lic2 = codes[1] ?? '';
+    const lic3 = codes[2] ?? '';
 
     result[name] = {
       distributorName: name,
@@ -389,6 +468,9 @@ export function processInventory(
     const cbdRaw = getVal(row, fm, 'inv_cbd');
     const thc = splitPotency(thcRaw);
     const cbd = splitPotency(cbdRaw);
+    // UoM is required when amount is present — must be "%" or "mg", default to "mg"
+    if (thc.amount && (thc.uom !== '%' && thc.uom !== 'mg')) thc.uom = 'mg';
+    if (cbd.amount && (cbd.uom !== '%' && cbd.uom !== 'mg')) cbd.uom = 'mg';
     const availableFor = getVal(row, fm, 'inv_availableFor');
     const room = getVal(row, fm, 'inv_room');
     const custType = deriveCustomerType(availableFor);
@@ -439,12 +521,24 @@ export function joinChain(
   }
 
   // Step 2: Left join result + distributor on VendorName
+  // Receipt vendor names can be pipe-separated (e.g., "Vendor A | Vendor B").
+  // Try exact match first, then match on each pipe-separated part.
   if (Object.keys(distributorData).length > 0) {
     result = result.map((row) => {
       const vendorName = row.VendorName ?? '';
-      const distInfo = distributorData[vendorName];
+      // Try exact match
+      let distInfo = distributorData[vendorName];
+      // Try pipe-separated parts
+      if (!distInfo && vendorName.includes('|')) {
+        const parts = vendorName.split('|').map((p: string) => p.trim());
+        for (const part of parts) {
+          distInfo = distributorData[part];
+          if (distInfo) break;
+        }
+      }
       if (distInfo) {
-        return { ...row, ...distInfo };
+        // Use full receipt VendorName as distributorName, but vendor details from matched record
+        return { ...row, ...distInfo, distributorName: vendorName };
       }
       return { ...row, ...emptyDistributor() };
     });
@@ -471,12 +565,7 @@ export function finalEnrichment(
   joinedRows: Record<string, any>[],
   dispensaryLicense: string,
 ): InventoryDerivedRow[] {
-  // Step 1: Blank Units -> "0"
-  for (const row of joinedRows) {
-    if (!row.Units || row.Units === '') {
-      row.Units = '0';
-    }
-  }
+  // Step 1: Leave blank Units empty (receipt-only rows have no inventory quantity)
 
   // Step 2: Row numbers partitioned by ExternalPackageId
   const partitions = groupBy(joinedRows, (r) => r.ExternalPackageId ?? '');
@@ -516,22 +605,22 @@ export function finalEnrichment(
       variantReferenceId: `V-${productSKU}`,
       dispensaryLicense,
       // Invoice
-      invoiceId: row.InvoiceId ?? '',
+      invoiceId: row.InvoiceIdDate ?? '',
       invoiceCreatedDate: receiveDate,
       manifestNumber: '',
       // Trace
       traceTreezId,
       inventoryBarcodes,
       // Quantities
-      originalUnitCount: row.Quantity ?? '',
-      units: row.Units ?? '0',
+      originalUnitCount: formatDecimal2(row.Quantity),
+      units: row.Units ?? '',
       unitCost: row.UnitCost ?? '',
       // Dates
       harvestDate,
       expirationDate,
       packagedDate,
       // Customer / Location
-      customerType: row.customerType ?? '',
+      customerType: row.customerType || 'ADULT',
       thcAmount: row.thcAmount ?? '',
       thcUom: row.thcUom ?? '',
       cbdAmount: row.cbdAmount ?? '',

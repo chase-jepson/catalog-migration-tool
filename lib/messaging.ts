@@ -1,12 +1,17 @@
 import { defineExtensionMessaging } from '@webext-core/messaging';
-import type { ImportJob, StoreInfo } from './types';
+import type {
+  ImportJob,
+  PortalAuthState,
+  PortalJobStatus,
+  PortalReindexResult,
+  PortalRollbackResult,
+  PortalStore,
+  PortalValidationResult,
+  StoreInfo,
+} from './types';
 
 interface ProtocolMap {
   getAuthToken(data: { appUrl: string }): { token: string | null };
-  openSidePanel(data: {
-    tabId: number;
-    wizardType: 'catalog' | 'inventory';
-  }): void;
   getPresignedUrl(data: {
     apiBaseUrl: string;
     token: string;
@@ -32,6 +37,41 @@ interface ProtocolMap {
     orgId: string;
     entityIds: string[];
   }): StoreInfo[];
+  portalLogin(data: {
+    username: string;
+    password: string;
+  }): PortalAuthState;
+  portalFetchStores(data: {
+    portalToken: string;
+  }): PortalStore[];
+  portalValidate(data: {
+    portalToken: string;
+    csvContent: string;
+    storeId: string;
+    fileName: string;
+  }): PortalValidationResult;
+  portalExecute(data: {
+    portalToken: string;
+    jobId: string;
+  }): { status: string; job_id: string };
+  portalGetJob(data: {
+    portalToken: string;
+    jobId: string;
+  }): PortalJobStatus;
+  portalRollback(data: {
+    portalToken: string;
+    jobId: string;
+  }): PortalRollbackResult;
+  portalCancel(data: {
+    portalToken: string;
+    jobId: string;
+  }): { status: string; job_id: string };
+  portalReindex(data: {
+    portalToken: string;
+    storeId: string;
+    username: string;
+    password: string;
+  }): PortalReindexResult;
 }
 
 export const { sendMessage, onMessage } =

@@ -3,8 +3,17 @@ import { onMessage } from '../../lib/messaging';
 import { getValidToken } from './auth';
 
 export default defineBackground(() => {
-  // Open side panel when extension action icon is clicked
-  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+  // Allow content scripts to access session storage
+  chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' });
+
+  // When extension icon is clicked, tell the content script to open the drawer
+  chrome.action.onClicked.addListener(async (tab) => {
+    if (!tab.id || !tab.url) return;
+    if (isImportPageUrl(tab.url)) {
+      // Content script is already injected — dispatch custom event to open drawer
+      chrome.tabs.sendMessage(tab.id, { type: 'openDrawer', wizardType: 'catalog' });
+    }
+  });
 
   /**
    * Check if a URL matches one of the Treez import page patterns.
@@ -16,37 +25,6 @@ export default defineBackground(() => {
       return regex.test(url);
     });
   }
-
-  /**
-   * Enable or disable the side panel for a specific tab based on URL.
-   */
-  async function updateSidePanelForTab(
-    tabId: number,
-    url: string | undefined,
-  ): Promise<void> {
-    if (!url) return;
-    const enabled = isImportPageUrl(url);
-    await chrome.sidePanel.setOptions({
-      tabId,
-      path: 'sidepanel.html',
-      enabled,
-    });
-  }
-
-  // Listen for tab URL changes (standard navigation)
-  chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-    await updateSidePanelForTab(tabId, tab.url);
-
-    // Signal side panel to reset when the active tab refreshes
-    if (changeInfo.status === 'loading') {
-      chrome.storage.session.set({ tabRefreshedAt: Date.now() });
-    }
-  });
-
-  // Listen for SPA navigation (history.pushState / replaceState)
-  chrome.webNavigation.onHistoryStateUpdated.addListener(async (details) => {
-    await updateSidePanelForTab(details.tabId, details.url);
-  });
 
   // Handle getAuthToken messages via typed messaging
   onMessage('getAuthToken', async (message) => {
@@ -153,19 +131,165 @@ export default defineBackground(() => {
     }));
   });
 
-  // Handle openSidePanel via raw chrome.runtime.onMessage.
-  // chrome.sidePanel.open() requires a user gesture — it MUST be the first
-  // call in the handler. Any await/then before it breaks the gesture chain.
-  chrome.runtime.onMessage.addListener((message, sender) => {
-    if (message.type !== 'openSidePanel') return;
+  // ── Portal API handlers ──────────────────────────────────────────────────
 
-    const tabId = sender.tab?.id;
-    if (!tabId) return;
+  const PORTAL_BASE_URL = 'https://customer-success.mso.treez.io';
 
-    // Open IMMEDIATELY — must be first call to preserve gesture context
-    chrome.sidePanel.open({ tabId });
+  // Handle portalLogin -- authenticate with portal and return token + user info
+  onMessage('portalLogin', async (message) => {
+    const { username, password } = message.data;
+    const res = await fetch(`${PORTAL_BASE_URL}/api/auth/login`, {
+      method: 'POST',
+      credentials: 'omit',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
 
-    // Store wizard type after (panel reads it on mount)
-    chrome.storage.session.set({ wizardType: message.data.wizardType });
+    if (res.status === 401) {
+      throw new Error('Invalid credentials');
+    }
+    if (res.status === 403) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail ?? 'Missing required role');
+    }
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Portal login failed (${res.status}): ${text}`);
+    }
+
+    return res.json();
   });
+
+  // Handle portalFetchStores -- get list of configured stores from portal
+  onMessage('portalFetchStores', async (message) => {
+    const { portalToken } = message.data;
+    const res = await fetch(`${PORTAL_BASE_URL}/api/stores`, {
+      credentials: 'omit',
+      headers: { Authorization: `Bearer ${portalToken}` },
+    });
+
+    if (!res.ok) {
+      throw new Error(`Portal store fetch failed (${res.status})`);
+    }
+
+    return res.json();
+  });
+
+  // Handle portalValidate -- upload CSV to portal for server-side validation
+  onMessage('portalValidate', async (message) => {
+    const { portalToken, csvContent, storeId, fileName } = message.data;
+
+    // Build multipart form data
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const formData = new FormData();
+    formData.append('file', blob, fileName);
+    formData.append('store_id', storeId);
+
+    const res = await fetch(`${PORTAL_BASE_URL}/api/import/upload`, {
+      method: 'POST',
+      credentials: 'omit',
+      headers: { Authorization: `Bearer ${portalToken}` },
+      body: formData,
+    });
+
+    if (res.status === 409) {
+      throw new Error('This store is currently locked. Please unlock it before uploading.');
+    }
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Portal validation failed (${res.status}): ${text}`);
+    }
+
+    return res.json();
+  });
+
+  // Handle portalExecute -- approve and launch a VALIDATED import job
+  onMessage('portalExecute', async (message) => {
+    const { portalToken, jobId } = message.data;
+    const res = await fetch(`${PORTAL_BASE_URL}/api/import/jobs/${jobId}/execute`, {
+      method: 'POST',
+      credentials: 'omit',
+      headers: { Authorization: `Bearer ${portalToken}` },
+    });
+    if (res.status === 409) {
+      throw new Error('This job can no longer be executed. It may have already been started, cancelled, or rolled back.');
+    }
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Portal execute failed (${res.status}): ${text}`);
+    }
+    return res.json();
+  });
+
+  // Handle portalGetJob -- poll job status
+  onMessage('portalGetJob', async (message) => {
+    const { portalToken, jobId } = message.data;
+    const res = await fetch(`${PORTAL_BASE_URL}/api/import/jobs/${jobId}`, {
+      credentials: 'omit',
+      headers: { Authorization: `Bearer ${portalToken}` },
+    });
+    if (!res.ok) {
+      throw new Error(`Portal job fetch failed (${res.status})`);
+    }
+    return res.json();
+  });
+
+  // Handle portalRollback -- rollback a completed/failed import
+  onMessage('portalRollback', async (message) => {
+    const { portalToken, jobId } = message.data;
+    const res = await fetch(`${PORTAL_BASE_URL}/api/import/jobs/${jobId}/rollback`, {
+      method: 'POST',
+      credentials: 'omit',
+      headers: { Authorization: `Bearer ${portalToken}` },
+    });
+    if (res.status === 409) {
+      throw new Error('This job cannot be rolled back. Only completed or failed imports can be rolled back.');
+    }
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Portal rollback failed (${res.status}): ${text}`);
+    }
+    return res.json();
+  });
+
+  // Handle portalCancel -- cancel a VALIDATED import job
+  onMessage('portalCancel', async (message) => {
+    const { portalToken, jobId } = message.data;
+    const res = await fetch(`${PORTAL_BASE_URL}/api/import/jobs/${jobId}/cancel`, {
+      method: 'POST',
+      credentials: 'omit',
+      headers: { Authorization: `Bearer ${portalToken}` },
+    });
+    if (res.status === 409) {
+      throw new Error('This job can no longer be cancelled. It may have already been executed or cancelled.');
+    }
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Portal cancel failed (${res.status}): ${text}`);
+    }
+    return res.json();
+  });
+
+  // Handle portalReindex -- trigger OpenSearch reindex for a store
+  onMessage('portalReindex', async (message) => {
+    const { portalToken, storeId, username, password } = message.data;
+    const res = await fetch(`${PORTAL_BASE_URL}/api/import/reindex/${storeId}`, {
+      method: 'POST',
+      credentials: 'omit',
+      headers: {
+        Authorization: `Bearer ${portalToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username, password }),
+    });
+    if (res.status === 401) {
+      throw new Error('IOMT authentication failed. Check your credentials.');
+    }
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Reindex failed (${res.status}): ${text}`);
+    }
+    return res.json();
+  });
+
 });

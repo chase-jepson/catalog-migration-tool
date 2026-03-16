@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { buildInventoryCSV, INVENTORY_OUTPUT_COLUMNS } from '../../lib/inventory-csv-generator';
+import { buildInventoryCSV, serializeCSV, INVENTORY_OUTPUT_COLUMNS } from '../../lib/inventory-csv-generator';
 import { sendMessage } from '../../lib/messaging';
 import { buildUploadPayload } from '../../lib/file-uploader';
 import { getAdaptiveInterval, isTerminalStatus, MAX_POLL_DURATION_MS } from '../../lib/import-poller';
 import { detectEnvironment, getApiBaseUrl } from '../../lib/env';
+import { getPortalAuth } from '../../lib/portal-auth';
 import type {
   InventoryDerivedRow,
+  PortalReindexResult,
   StoreInfo,
 } from '../../lib/types';
 
@@ -13,23 +15,35 @@ interface InventoryImportStepProps {
   derivedRows: InventoryDerivedRow[];
   selectedStore: StoreInfo | null;
   dispensaryLicense: string;
+  portalJobId: string | null;
+  portalStoreId: string | null;
   onStartNew: () => void;
 }
 
-type Phase = 'pre-import' | 'generating' | 'uploading' | 'processing' | 'done' | 'error';
+type Phase = 'pre-import' | 'generating' | 'uploading' | 'processing' | 'done' | 'error' | 'rolling-back' | 'rolled-back';
+type ReindexPhase = 'idle' | 'credentials' | 'reindexing' | 'done' | 'error';
 
 export function InventoryImportStep({
   derivedRows,
   selectedStore,
   dispensaryLicense,
+  portalJobId,
+  portalStoreId,
   onStartNew,
 }: InventoryImportStepProps) {
   const [phase, setPhase] = useState<Phase>('pre-import');
   const [progressPercent, setProgressPercent] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [rollbackResult, setRollbackResult] = useState<Record<string, number> | null>(null);
   const [totalImported, setTotalImported] = useState(0);
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+
+  // Reindex state
+  const [reindexPhase, setReindexPhase] = useState<ReindexPhase>('idle');
+  const [reindexUsername, setReindexUsername] = useState('');
+  const [reindexPassword, setReindexPassword] = useState('');
+  const [reindexResult, setReindexResult] = useState<PortalReindexResult | null>(null);
+  const [reindexError, setReindexError] = useState('');
 
   const cancelledRef = useRef(false);
 
@@ -56,8 +70,13 @@ export function InventoryImportStep({
 
   // ── Get Token and URL ─────────────────────────────────────────────────────
   const getTokenAndUrl = useCallback(async () => {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    const tabUrl = tab?.url ?? '';
+    let tabUrl = '';
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      tabUrl = tab?.url ?? '';
+    } catch {
+      tabUrl = window.location.href;
+    }
     const env = detectEnvironment(tabUrl);
     if (!env) throw new Error('Could not detect Treez environment from current page');
 
@@ -197,19 +216,153 @@ export function InventoryImportStep({
     }
   }, [derivedRows, selectedStore, getTokenAndUrl]);
 
-  const handleCancel = useCallback(() => {
-    cancelledRef.current = true;
-    setShowCancelConfirm(false);
-    setPhase('error');
-    setErrorMessage('Import cancelled.');
-  }, []);
+  // ── Portal Cancel (discard validated job) ─────────────────────────────────────
+  const handlePortalCancel = useCallback(async () => {
+    if (!portalJobId) return;
+    try {
+      const auth = await getPortalAuth();
+      if (!auth) throw new Error('Portal session expired.');
+      await sendMessage('portalCancel', { portalToken: auth.token, jobId: portalJobId });
+      setErrorMessage('Job cancelled. You can start a new migration.');
+      setPhase('error');
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Cancel failed');
+      setPhase('error');
+    }
+  }, [portalJobId]);
+
+  // ── Portal Execute (uses validated job) ─────────────────────────────────────
+  const handlePortalExecute = useCallback(async () => {
+    if (!portalJobId) return;
+    cancelledRef.current = false;
+    setErrorMessage('');
+    setProgressPercent(0);
+
+    try {
+      const auth = await getPortalAuth();
+      if (!auth) throw new Error('Portal session expired. Please go back and re-authenticate.');
+
+      setPhase('uploading');
+      setStatusMessage('Executing import via portal...');
+      setProgressPercent(10);
+
+      await sendMessage('portalExecute', { portalToken: auth.token, jobId: portalJobId });
+      setProgressPercent(25);
+
+      // Poll for completion
+      setPhase('processing');
+      setStatusMessage('Processing import...');
+      const pollStart = Date.now();
+
+      while (true) {
+        if (cancelledRef.current) break;
+        if (Date.now() - pollStart > MAX_POLL_DURATION_MS) {
+          throw new Error('Import timed out after 60 minutes');
+        }
+        await new Promise((r) => setTimeout(r, 5000));
+
+        const freshAuth = await getPortalAuth();
+        if (!freshAuth) throw new Error('Portal session expired during import.');
+
+        const job = await sendMessage('portalGetJob', { portalToken: freshAuth.token, jobId: portalJobId });
+
+        const processed = job.processed_invoices ?? 0;
+        const total = job.total_invoices ?? 1;
+        setProgressPercent(25 + Math.round((processed / total) * 75));
+        setStatusMessage(`Processing: ${processed}/${total} invoices`);
+
+        if (['COMPLETED', 'FAILED', 'ROLLED_BACK'].includes(job.status)) {
+          setTotalImported(job.succeeded_rows ?? 0);
+          setProgressPercent(100);
+          if (job.status === 'COMPLETED') {
+            setPhase('done');
+          } else if (job.status === 'FAILED') {
+            setErrorMessage(`Import failed: ${job.error_summary ?? 'Unknown error'}. ${job.succeeded_rows ?? 0} rows succeeded, ${job.failed_rows ?? 0} failed.`);
+            setPhase('done');
+          } else {
+            setErrorMessage(`Import was rolled back.`);
+            setPhase('error');
+          }
+          return;
+        }
+      }
+    } catch (err) {
+      if (!cancelledRef.current) {
+        setErrorMessage(err instanceof Error ? err.message : 'Portal import failed');
+        setPhase('error');
+      }
+    }
+  }, [portalJobId]);
+
+  // ── Portal Rollback ─────────────────────────────────────────────────────────
+  const handleRollback = useCallback(async () => {
+    if (!portalJobId) return;
+    setPhase('rolling-back');
+    setStatusMessage('Rolling back import...');
+
+    try {
+      const auth = await getPortalAuth();
+      if (!auth) throw new Error('Portal session expired. Cannot rollback.');
+
+      const result = await sendMessage('portalRollback', { portalToken: auth.token, jobId: portalJobId });
+      setRollbackResult(result.deleted_counts);
+      setPhase('rolled-back');
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Rollback failed');
+      setPhase('error');
+    }
+  }, [portalJobId]);
+
+  // ── Reindex OpenSearch ────────────────────────────────────────────────────────
+  const handleReindex = useCallback(async () => {
+    if (!portalStoreId || !reindexUsername || !reindexPassword) return;
+    setReindexPhase('reindexing');
+    setReindexError('');
+
+    try {
+      const auth = await getPortalAuth();
+      if (!auth) throw new Error('Portal session expired. Please re-authenticate.');
+
+      const result = await sendMessage('portalReindex', {
+        portalToken: auth.token,
+        storeId: portalStoreId,
+        username: reindexUsername,
+        password: reindexPassword,
+      });
+      setReindexResult(result);
+      setReindexPhase('done');
+    } catch (err) {
+      setReindexError(err instanceof Error ? err.message : 'Reindex failed');
+      setReindexPhase('error');
+    }
+  }, [portalStoreId, reindexUsername, reindexPassword]);
+
+  // ── Download CSV ────────────────────────────────────────────────────────────
+  const handleDownload = useCallback(() => {
+    const csvData = buildInventoryCSV(derivedRows);
+    const csvString = serializeCSV(csvData);
+
+    const storeName = selectedStore?.name ?? 'inventory';
+    const now = new Date();
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}-${pad(now.getMinutes())}`;
+    const fileName = `CS Tool - Inventory Import - ${storeName} - ${ts}.csv`;
+
+    const blob = new Blob([csvString], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [derivedRows, selectedStore]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex h-full flex-col p-4">
+    <div className="flex h-full w-full flex-col p-4">
       {/* Header */}
-      <h2 className="mb-3 text-base font-semibold text-gray-900">
+      <h2 className="mb-3 text-sm font-medium text-gray-900">
         {phase === 'done' ? 'Import Complete' : 'Import Inventory to Treez'}
       </h2>
 
@@ -262,14 +415,54 @@ export function InventoryImportStep({
               </div>
             )}
 
-            <button
-              type="button"
-              onClick={handleStartImport}
-              disabled={activeRows.length === 0}
-              className="w-full rounded-md bg-teal-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Start Import
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleDownload}
+                disabled={activeRows.length === 0}
+                className="btn-treez-text flex-1 font-[Roboto,sans-serif] font-medium disabled:cursor-not-allowed disabled:opacity-40"
+                style={{
+                  padding: '0 20px',
+                  borderRadius: '15px',
+                  border: '1px solid #1a4007',
+                  color: '#1a4007',
+                  fontSize: '14px',
+                  height: '40px',
+                  letterSpacing: '0.4px',
+                  lineHeight: '24px',
+                }}
+              >
+                Download
+              </button>
+              <button
+                type="button"
+                onClick={portalJobId ? handlePortalExecute : handleStartImport}
+                disabled={activeRows.length === 0}
+                className="btn-treez-green flex-1 font-[Roboto,sans-serif] font-medium disabled:cursor-not-allowed disabled:opacity-40"
+                style={{
+                  padding: '0 20px',
+                  borderRadius: '15px',
+                  border: 'none',
+                  color: '#0f1709',
+                  fontSize: '14px',
+                  height: '40px',
+                  letterSpacing: '0.4px',
+                  lineHeight: '24px',
+                }}
+              >
+                Import
+              </button>
+            </div>
+
+            {portalJobId && (
+              <button
+                type="button"
+                onClick={handlePortalCancel}
+                className="w-full font-[Roboto,sans-serif] text-xs text-gray-500 hover:text-red-600"
+              >
+                Cancel validated job
+              </button>
+            )}
           </div>
         )}
 
@@ -277,13 +470,13 @@ export function InventoryImportStep({
         {(phase === 'generating' || phase === 'uploading' || phase === 'processing') && (
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" />
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-treez-primary border-t-transparent" />
               <span className="text-sm text-gray-700">{statusMessage}</span>
             </div>
 
             <div className="h-2 rounded-full bg-gray-200">
               <div
-                className="h-2 rounded-full bg-teal-600 transition-all duration-300"
+                className="h-2 rounded-full bg-treez-primary transition-all duration-300"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
@@ -308,10 +501,158 @@ export function InventoryImportStep({
               )}
             </div>
 
+            {/* OpenSearch Reindex Section */}
+            {portalStoreId && reindexPhase !== 'done' && (
+              <div className="rounded border border-gray-200 bg-gray-50 p-3 space-y-2">
+                <p className="text-xs font-medium text-gray-800">
+                  Reindex OpenSearch
+                </p>
+                <p className="text-xs text-gray-600">
+                  Trigger an OpenSearch reindex so imported inventory appears in Treez.
+                </p>
+
+                {(reindexPhase === 'idle' || reindexPhase === 'credentials' || reindexPhase === 'error') && (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      setReindexPhase('credentials');
+                      handleReindex();
+                    }}
+                    className="space-y-2"
+                  >
+                    <input
+                      type="email"
+                      name="email"
+                      placeholder="Email"
+                      autoComplete="username"
+                      value={reindexUsername}
+                      onChange={(e) => setReindexUsername(e.target.value)}
+                      className="w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900 placeholder-gray-400 focus:border-gray-500 focus:outline-none"
+                    />
+                    <input
+                      type="password"
+                      name="password"
+                      placeholder="Password"
+                      autoComplete="current-password"
+                      value={reindexPassword}
+                      onChange={(e) => setReindexPassword(e.target.value)}
+                      className="w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900 placeholder-gray-400 focus:border-gray-500 focus:outline-none"
+                    />
+                    {reindexPhase === 'error' && (
+                      <p className="text-xs text-red-600">{reindexError}</p>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={!reindexUsername || !reindexPassword}
+                      className="btn-treez-green w-full font-[Roboto,sans-serif] font-medium disabled:cursor-not-allowed disabled:opacity-40"
+                      style={{
+                        padding: '0 16px',
+                        borderRadius: '15px',
+                        border: 'none',
+                        color: '#0f1709',
+                        fontSize: '13px',
+                        height: '36px',
+                        letterSpacing: '0.4px',
+                      }}
+                    >
+                      Reindex
+                    </button>
+                  </form>
+                )}
+
+                {reindexPhase === 'reindexing' && (
+                  <div className="flex items-center gap-2 py-1">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-500 border-t-transparent" />
+                    <span className="text-xs text-gray-600">Reindexing OpenSearch...</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Reindex success */}
+            {reindexPhase === 'done' && reindexResult && (
+              <div className="rounded border border-green-200 bg-green-50 px-3 py-2">
+                <p className="text-xs font-medium text-green-800">OpenSearch reindex complete</p>
+                <p className="text-xs text-green-600">
+                  {reindexResult.successful_uploads} successful, {reindexResult.failed_uploads} failed out of {reindexResult.total} total
+                </p>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={onStartNew}
+                className="btn-treez-green flex-1 font-[Roboto,sans-serif] font-medium"
+                style={{
+                  padding: '0 20px',
+                  borderRadius: '15px',
+                  border: 'none',
+                  color: '#0f1709',
+                  fontSize: '14px',
+                  height: '40px',
+                  letterSpacing: '0.4px',
+                  lineHeight: '24px',
+                }}
+              >
+                Start New Migration
+              </button>
+              {portalJobId && (
+                <button
+                  type="button"
+                  onClick={handleRollback}
+                  className="btn-treez-rollback flex-1 font-[Roboto,sans-serif] font-medium"
+                  style={{
+                    padding: '0 16px',
+                    borderRadius: '15px',
+                    border: '1px solid #d32f2f',
+                    color: '#d32f2f',
+                    fontSize: '14px',
+                    height: '40px',
+                  }}
+                >
+                  Rollback Import
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Rolling back */}
+        {phase === 'rolling-back' && (
+          <div className="flex flex-col items-center gap-3 py-6">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-red-500 border-t-transparent" />
+            <span className="text-sm text-gray-700">{statusMessage}</span>
+          </div>
+        )}
+
+        {/* Rolled back */}
+        {phase === 'rolled-back' && (
+          <div className="space-y-3">
+            <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-center">
+              <p className="text-sm font-medium text-amber-800">Import rolled back successfully</p>
+              {rollbackResult && (
+                <div className="mt-1 text-xs text-amber-700">
+                  {Object.entries(rollbackResult).map(([table, count]) => (
+                    <span key={table} className="mr-3">{table}: {count}</span>
+                  ))}
+                </div>
+              )}
+            </div>
             <button
               type="button"
               onClick={onStartNew}
-              className="w-full rounded-md bg-teal-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-700"
+              className="btn-treez-green w-full font-[Roboto,sans-serif] font-medium"
+              style={{
+                padding: '0 20px',
+                borderRadius: '15px',
+                border: 'none',
+                color: '#0f1709',
+                fontSize: '14px',
+                height: '40px',
+                letterSpacing: '0.4px',
+                lineHeight: '24px',
+              }}
             >
               Start New Migration
             </button>
@@ -329,14 +670,32 @@ export function InventoryImportStep({
               <button
                 type="button"
                 onClick={handleStartImport}
-                className="flex-1 rounded-md bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700"
+                className="btn-treez-green flex-1 font-[Roboto,sans-serif] font-medium"
+                style={{
+                  padding: '0 20px',
+                  borderRadius: '15px',
+                  border: 'none',
+                  color: '#0f1709',
+                  fontSize: '14px',
+                  height: '40px',
+                  letterSpacing: '0.4px',
+                  lineHeight: '24px',
+                }}
               >
                 Retry
               </button>
               <button
                 type="button"
                 onClick={onStartNew}
-                className="flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="btn-treez-text font-[Roboto,sans-serif] font-medium"
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: '16px',
+                  border: 'none',
+                  color: '#1a4007',
+                  fontSize: '15px',
+                  height: '40px',
+                }}
               >
                 Start Over
               </button>
@@ -345,42 +704,6 @@ export function InventoryImportStep({
         )}
       </div>
 
-      {/* Cancel button during import */}
-      {(phase === 'uploading' || phase === 'processing') && (
-        <div className="mt-3 border-t border-gray-200 pt-3">
-          {showCancelConfirm ? (
-            <div className="space-y-2">
-              <p className="text-xs text-gray-600">
-                Cancel the current import?
-              </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCancelConfirm(false)}
-                  className="flex-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
-                >
-                  Continue
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  className="flex-1 rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700"
-                >
-                  Cancel Import
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowCancelConfirm(true)}
-              className="w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
-            >
-              Cancel Import
-            </button>
-          )}
-        </div>
-      )}
     </div>
   );
 }

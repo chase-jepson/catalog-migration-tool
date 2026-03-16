@@ -32,7 +32,7 @@ import {
 } from '../../lib/inventory-constants';
 import { extractStoreClaimsFromToken } from '../../lib/store-api';
 import { sendMessage } from '../../lib/messaging';
-import { detectEnvironment, getApiBaseUrl } from '../../lib/env';
+import { detectEnvironment, getMsoApiBaseUrl } from '../../lib/env';
 import type { PerRoleMappings } from '../../lib/inventory-transformer';
 import type {
   ParsedFile,
@@ -49,6 +49,7 @@ import type {
 
 interface WizardShellProps {
   wizardType: 'catalog' | 'inventory';
+  onClose?: () => void;
 }
 
 const EMPTY_PER_ROLE_MAPPINGS: PerRoleMappingsState = {
@@ -59,7 +60,7 @@ const EMPTY_PER_ROLE_MAPPINGS: PerRoleMappingsState = {
   catalog_export: [],
 };
 
-export function WizardShell({ wizardType }: WizardShellProps) {
+export function WizardShell({ wizardType, onClose }: WizardShellProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [parsedFiles, setParsedFiles] = useState<ParsedFile[]>([]);
   const [mergedFile, setMergedFile] = useState<ParsedFile | null>(null);
@@ -71,7 +72,7 @@ export function WizardShell({ wizardType }: WizardShellProps) {
   const [fixes, setFixes] = useState<RowFix[]>([]);
   const [derivedRows, setDerivedRows] = useState<DerivedRow[]>([]);
   const [canProceed, setCanProceed] = useState(false);
-  const [warningCount, setWarningCount] = useState(0);
+  const [importDone, setImportDone] = useState(false);
   const [restored, setRestored] = useState(false);
 
   // ── Inventory-specific state ────────────────────────────────────────────
@@ -80,8 +81,10 @@ export function WizardShell({ wizardType }: WizardShellProps) {
   const [storesLoading, setStoresLoading] = useState(false);
   const [storesError, setStoresError] = useState<string | null>(null);
   const [inventoryDerivedRows, setInventoryDerivedRows] = useState<InventoryDerivedRow[]>([]);
+  const [portalJobId, setPortalJobId] = useState<string | null>(null);
+  const [portalStoreId, setPortalStoreId] = useState<string | null>(null);
   const [fileAssignments, setFileAssignments] = useState<InventoryFileAssignment[]>([]);
-  const [dispensaryLicense, setDispensaryLicense] = useState('');
+  const [dispensaryLicense, setDispensaryLicense] = useState('TEMP-C00-00000000-LIC');
   const [perRoleMappings, setPerRoleMappings] = useState<PerRoleMappingsState>(
     { ...EMPTY_PER_ROLE_MAPPINGS },
   );
@@ -102,9 +105,15 @@ export function WizardShell({ wizardType }: WizardShellProps) {
 
     (async () => {
       try {
-        // Get auth token from current tab
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        const tabUrl = tab?.url ?? '';
+        // Get current page URL — works in both side panel and content script contexts
+        let tabUrl = '';
+        try {
+          const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+          tabUrl = tab?.url ?? '';
+        } catch {
+          // Content scripts can't use chrome.tabs — use page location directly
+          tabUrl = window.location.href;
+        }
         const { token } = await sendMessage('getAuthToken', { appUrl: tabUrl });
         if (!token) {
           throw new Error('No auth token available. Please refresh the Treez page.');
@@ -122,7 +131,7 @@ export function WizardShell({ wizardType }: WizardShellProps) {
           throw new Error('Could not detect Treez environment from current page.');
         }
 
-        const apiBaseUrl = getApiBaseUrl(env);
+        const apiBaseUrl = getMsoApiBaseUrl(env);
         const storeList = await sendMessage('fetchStores', {
           apiBaseUrl,
           token,
@@ -145,80 +154,15 @@ export function WizardShell({ wizardType }: WizardShellProps) {
     return () => { cancelled = true; };
   }, [wizardType]);
 
-  // ── Restore persisted state on mount ────────────────────────────────────
+  // ── Clear persisted state on mount (always start fresh) ─────────────────
   useEffect(() => {
     if (wizardType === 'inventory') {
-      loadInventoryState().then((saved) => {
-        if (saved) {
-          setParsedFiles(saved.parsedFiles);
-          setSelectedPOS(saved.selectedPOS);
-          setMappings(saved.mappings);
-          setFixes(saved.fixes ?? []);
-          setCurrentStep(saved.currentStep);
-          setSelectedStore(saved.selectedStore);
-          setFileAssignments(saved.fileAssignments ?? []);
-          setDispensaryLicense(saved.dispensaryLicense ?? '');
-          if (saved.perRoleMappings) {
-            setPerRoleMappings(saved.perRoleMappings);
-          }
-          if (saved.parsedFiles.length > 0) {
-            setMergedFile(mergeFiles(saved.parsedFiles));
-            setCanProceed(
-              saved.parsedFiles.length > 0 &&
-              saved.selectedPOS !== '' &&
-              saved.selectedStore !== null,
-            );
-          }
-        }
-        setRestored(true);
-      });
+      clearInventoryState();
     } else {
-      loadMigrationState().then((saved) => {
-        if (saved) {
-          setParsedFiles(saved.parsedFiles);
-          setSelectedPOS(saved.selectedPOS);
-          setMappings(saved.mappings);
-          setFixes(saved.fixes ?? []);
-          setCurrentStep(saved.currentStep);
-          if (saved.parsedFiles.length > 0) {
-            setMergedFile(mergeFiles(saved.parsedFiles));
-            setCanProceed(
-              saved.parsedFiles.length > 0 && saved.selectedPOS !== '',
-            );
-          }
-        }
-        setRestored(true);
-      });
+      clearMigrationState();
     }
+    setRestored(true);
   }, [wizardType]);
-
-  // ── Reset wizard when the active tab refreshes/navigates ────────────────
-  useEffect(() => {
-    const handler = (changes: { [key: string]: chrome.storage.StorageChange }) => {
-      if (changes.tabRefreshedAt) {
-        clearMigrationState();
-        clearInventoryState();
-        setParsedFiles([]);
-        setMergedFile(null);
-        setSelectedPOS('');
-        setDetectedPOS(null);
-        setMappings([]);
-        setFixes([]);
-        setDerivedRows([]);
-        setInventoryDerivedRows([]);
-        setSelectedStore(null);
-        setFileAssignments([]);
-        setDispensaryLicense('');
-        setPerRoleMappings({ ...EMPTY_PER_ROLE_MAPPINGS });
-        setCanProceed(false);
-        setWarningCount(0);
-        setCurrentStep(0);
-      }
-    };
-
-    chrome.storage.session.onChanged.addListener(handler);
-    return () => chrome.storage.session.onChanged.removeListener(handler);
-  }, []);
 
   // ── Debounced persistence on state changes ──────────────────────────────
   useEffect(() => {
@@ -327,11 +271,10 @@ export function WizardShell({ wizardType }: WizardShellProps) {
       setFixes([]);
       setInventoryDerivedRows([]);
       setFileAssignments([]);
-      setDispensaryLicense('');
+      setDispensaryLicense('TEMP-C00-00000000-LIC');
       setPerRoleMappings({ ...EMPTY_PER_ROLE_MAPPINGS });
       setCanProceed(false);
-      setWarningCount(0);
-      setCurrentStep(0);
+            setCurrentStep(0);
     },
     [],
   );
@@ -353,20 +296,13 @@ export function WizardShell({ wizardType }: WizardShellProps) {
     setInventoryDerivedRows([]);
     setSelectedStore(null);
     setFileAssignments([]);
-    setDispensaryLicense('');
+    setDispensaryLicense('TEMP-C00-00000000-LIC');
     setPerRoleMappings({ ...EMPTY_PER_ROLE_MAPPINGS });
     setCanProceed(false);
-    setWarningCount(0);
-    setCurrentStep(0);
+        setCurrentStep(0);
   }, [wizardType]);
 
-  // ── Next button label ─────────────────────────────────────────────────
-  const nextButtonLabel = (() => {
-    if (currentStep === 2 && warningCount > 0 && canProceed) {
-      return `Import with ${warningCount} warning${warningCount !== 1 ? 's' : ''}`;
-    }
-    return 'Next';
-  })();
+  const nextButtonLabel = 'Next';
 
   // ── Render step content ─────────────────────────────────────────────────
   const renderStep = () => {
@@ -408,7 +344,8 @@ export function WizardShell({ wizardType }: WizardShellProps) {
               dispensaryLicense={dispensaryLicense}
               onCanProceed={setCanProceed}
               onDerivedRowsChange={setInventoryDerivedRows}
-              onWarningCountChange={setWarningCount}
+              onPortalJobId={setPortalJobId}
+              onPortalStoreId={setPortalStoreId}
               fixes={fixes}
               onFixesChange={setFixes}
               selectedStore={selectedStore}
@@ -420,6 +357,8 @@ export function WizardShell({ wizardType }: WizardShellProps) {
               derivedRows={inventoryDerivedRows}
               selectedStore={selectedStore}
               dispensaryLicense={dispensaryLicense}
+              portalJobId={portalJobId}
+              portalStoreId={portalStoreId}
               onStartNew={handleStartNew}
             />
           );
@@ -462,7 +401,6 @@ export function WizardShell({ wizardType }: WizardShellProps) {
             onCanProceed={setCanProceed}
             onDerivedRowsChange={setDerivedRows}
             onFixesChange={setFixes}
-            onWarningCountChange={setWarningCount}
             fixes={fixes}
           />
         );
@@ -473,7 +411,9 @@ export function WizardShell({ wizardType }: WizardShellProps) {
             parsedFiles={parsedFiles}
             mappings={mappings}
             fixes={fixes}
+            selectedPOS={selectedPOS}
             onStartNew={handleStartNew}
+            onDone={() => setImportDone(true)}
           />
         );
       default:
@@ -482,12 +422,31 @@ export function WizardShell({ wizardType }: WizardShellProps) {
   };
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Header */}
-      <div className="border-b border-gray-200 bg-white">
-        <h1 className="px-4 pt-4 text-lg font-semibold text-gray-900">
-          {title}
-        </h1>
+    <div className="flex h-full flex-col font-[Roboto,sans-serif]">
+      {/* Header — matches Treez drawer header (24px 32px 16px padding) */}
+      <div className="bg-white">
+        <div className="flex items-center justify-between" style={{ padding: '24px 32px 16px' }}>
+          <div className="min-w-0 flex-1">
+            <h1 className="font-[Roboto,sans-serif] font-normal" style={{ color: '#0f1709', fontSize: '18px' }}>
+              {title}
+            </h1>
+          </div>
+          {/* Close icon — matches Treez material-symbols close */}
+          <button
+            type="button"
+            onClick={() => {
+              chrome.storage.session.remove('wizardType');
+              if (onClose) { onClose(); } else { try { window.close(); } catch (_) { /* side panel fallback */ } }
+            }}
+            className="ml-2 flex shrink-0 items-center justify-center hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0"
+            style={{ color: '#1a1a1a' }}
+            aria-label="Close"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style={{ width: '20px', height: '20px' }}>
+              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+            </svg>
+          </button>
+        </div>
         <StepIndicator steps={[...STEP_LABELS]} current={currentStep} />
       </div>
 
@@ -507,27 +466,79 @@ export function WizardShell({ wizardType }: WizardShellProps) {
         {renderStep()}
       </div>
 
-      {/* Footer navigation -- hidden on Import step (step 3 manages its own flow) */}
-      {currentStep !== 3 && (
-        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3">
+      {/* Footer — matches Treez drawer elevated bottom bar */}
+      <div
+        className="flex items-center justify-between bg-white"
+        style={{
+          padding: '16px 24px',
+          borderTop: '1px solid #e0e0e0',
+          boxShadow:
+            'rgba(0,0,0,0.2) 0px 3px 3px -2px, rgba(0,0,0,0.14) 0px 3px 4px 0px, rgba(0,0,0,0.12) 0px 1px 8px 0px',
+        }}
+      >
+        {currentStep > 0 ? (
           <button
             type="button"
-            disabled={currentStep === 0}
             onClick={() => setCurrentStep((s) => s - 1)}
-            className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+            className="btn-treez-text font-[Roboto,sans-serif] font-medium"
+            style={{
+              padding: '8px 10px',
+              borderRadius: '16px',
+              border: 'none',
+              color: '#1a4007',
+              fontSize: '15px',
+              height: '40px',
+              letterSpacing: '0.43px',
+              lineHeight: '24px',
+            }}
           >
             Back
           </button>
+        ) : (
+          <div />
+        )}
+        {currentStep < lastStep ? (
           <button
             type="button"
-            disabled={currentStep === lastStep || !canProceed}
+            disabled={!canProceed}
             onClick={() => setCurrentStep((s) => s + 1)}
-            className="rounded-md bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-40"
+            className="btn-treez-green font-[Roboto,sans-serif] font-medium disabled:cursor-not-allowed disabled:opacity-40"
+            style={{
+              padding: '0 20px',
+              borderRadius: '15px',
+              border: 'none',
+              color: '#0f1709',
+              fontSize: '14px',
+              height: '40px',
+              letterSpacing: '0.4px',
+              lineHeight: '24px',
+            }}
           >
             {nextButtonLabel}
           </button>
-        </div>
-      )}
+        ) : importDone ? (
+          <button
+            type="button"
+            onClick={() => {
+              chrome.storage.session.remove('wizardType');
+              if (onClose) { onClose(); } else { try { window.close(); } catch (_) { /* side panel fallback */ } }
+            }}
+            className="btn-treez-green font-[Roboto,sans-serif] font-medium"
+            style={{
+              padding: '0 20px',
+              borderRadius: '15px',
+              border: 'none',
+              color: '#0f1709',
+              fontSize: '14px',
+              height: '40px',
+              letterSpacing: '0.4px',
+              lineHeight: '24px',
+            }}
+          >
+            Done
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }

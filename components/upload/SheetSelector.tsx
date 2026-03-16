@@ -17,7 +17,7 @@ export function SheetSelector({ sheets, selected, onSelect }: SheetSelectorProps
       <select
         value={selected}
         onChange={(e) => onSelect(e.target.value)}
-        className="w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+        className="w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-treez-accent-muted0 focus:outline-none focus:ring-1 focus:ring-treez-accent-muted0"
       >
         {sheets.map((sheet) => (
           <option key={sheet} value={sheet}>

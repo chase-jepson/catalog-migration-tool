@@ -24,49 +24,67 @@ export default defineContentScript({
       if (document.getElementById(MOUNT_ID)) return;
 
       const anchor = findAnchor();
-      const parent = anchor?.parentElement ?? document.body;
+      if (!anchor) return;
 
+      // The button sits inside a flex-column parent. Wrap the button
+      // and our migrate buttons together in an inline row.
+      const parent = anchor.parentElement!;
+      const wrapper = document.createElement('div');
+      wrapper.style.display = 'flex';
+      wrapper.style.flexDirection = 'row';
+      wrapper.style.alignItems = 'center';
+      wrapper.style.gap = '12px';
+      wrapper.style.flexWrap = 'wrap';
+
+      // Move the wizard button into the wrapper, then insert wrapper
+      // where the button was
+      parent.insertBefore(wrapper, anchor);
+      wrapper.appendChild(anchor);
+
+      // Mount our buttons inside the wrapper, after the wizard button
       const ui = createIntegratedUi(ctx, {
         position: 'inline',
-        anchor: parent,
+        tag: 'span',
+        anchor: wrapper,
         onMount: (container) => {
           container.id = MOUNT_ID;
+          container.style.display = 'inline-flex';
+          container.style.gap = '12px';
+          container.style.alignItems = 'center';
           const root = ReactDOM.createRoot(container);
           root.render(<App />);
           return root;
         },
         onRemove: (root) => {
           root?.unmount();
+          // Restore original button position
+          if (wrapper.parentElement) {
+            wrapper.parentElement.insertBefore(anchor, wrapper);
+            wrapper.remove();
+          }
         },
       });
 
       ui.mount();
     }
 
-    // Try to mount immediately
-    if (findAnchor()) {
-      mountUi();
-      return;
-    }
-
-    // If anchor not found (SPA may not have rendered yet), use MutationObserver
+    // Use a persistent MutationObserver that re-mounts after SPA navigation
+    // (back/forward can tear down and re-render the anchor button)
     const observer = new MutationObserver(() => {
-      if (findAnchor()) {
-        observer.disconnect();
+      if (findAnchor() && !document.getElementById(MOUNT_ID)) {
         mountUi();
       }
     });
 
     observer.observe(document.body, { childList: true, subtree: true });
 
-    const timeoutId = setTimeout(() => {
-      observer.disconnect();
+    // Try to mount immediately
+    if (findAnchor()) {
       mountUi();
-    }, MOUNT_TIMEOUT);
+    }
 
     ctx.onInvalidated(() => {
       observer.disconnect();
-      clearTimeout(timeoutId);
     });
   },
 });

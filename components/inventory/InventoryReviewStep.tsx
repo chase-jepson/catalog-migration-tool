@@ -2,14 +2,27 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type {
   InventoryDerivedRow,
   InventoryFileAssignment,
+  PortalAuthState,
+  PortalStore,
+  PortalValidationResult,
   RowFix,
+  RowValidationError,
   ValidationResult,
   StoreInfo,
 } from '../../lib/types';
 import type { PerRoleMappings, ETLInput } from '../../lib/inventory-transformer';
 import { runInventoryETL } from '../../lib/inventory-transformer';
-import { validateInventoryRows, groupInventoryErrors } from '../../lib/inventory-validator';
+import {
+  validateInventoryRows,
+  validateCrossRow,
+  groupInventoryErrors,
+  mapPortalIssuesToErrors,
+} from '../../lib/inventory-validator';
+import { buildInventoryCSV, serializeCSV } from '../../lib/inventory-csv-generator';
+import { sendMessage } from '../../lib/messaging';
+import { getPortalAuth } from '../../lib/portal-auth';
 import { ErrorGroupList } from '../review/ErrorGroupList';
+import { PortalLoginForm } from './PortalLoginForm';
 
 interface InventoryReviewStepProps {
   fileAssignments: InventoryFileAssignment[];
@@ -18,12 +31,14 @@ interface InventoryReviewStepProps {
   onCanProceed: (can: boolean) => void;
   onDerivedRowsChange: (rows: InventoryDerivedRow[]) => void;
   onWarningCountChange?: (count: number) => void;
+  onPortalJobId?: (jobId: string | null) => void;
+  onPortalStoreId?: (storeId: string | null) => void;
   fixes: RowFix[];
   onFixesChange: (fixes: RowFix[]) => void;
   selectedStore: StoreInfo | null;
 }
 
-type Status = 'processing' | 'ready' | 'reviewing';
+type Status = 'processing' | 'ready' | 'reviewing' | 'portal-login' | 'portal-validating' | 'portal-done';
 
 /**
  * Build ETLInput from file assignments.
@@ -49,10 +64,6 @@ function applyFixes(
   fixes: RowFix[],
 ): InventoryDerivedRow[] {
   if (fixes.length === 0) return rows;
-  const fixMap = new Map<string, string>();
-  for (const fix of fixes) {
-    fixMap.set(`${fix.rowIndex}|${fix.field}`, fix.newValue);
-  }
   return rows.map((row, i) => {
     let updated = row;
     for (const fix of fixes) {
@@ -64,15 +75,6 @@ function applyFixes(
   });
 }
 
-const PREVIEW_COLUMNS: { key: keyof InventoryDerivedRow; label: string }[] = [
-  { key: 'variantReferenceId', label: 'VariantRefId' },
-  { key: 'invoiceId', label: 'InvoiceId' },
-  { key: 'units', label: 'Units' },
-  { key: 'unitCost', label: 'UnitCost' },
-  { key: 'locationPath', label: 'LocationPath' },
-  { key: 'distributorName', label: 'Distributor' },
-];
-
 export function InventoryReviewStep({
   fileAssignments,
   perRoleMappings,
@@ -80,6 +82,8 @@ export function InventoryReviewStep({
   onCanProceed,
   onDerivedRowsChange,
   onWarningCountChange,
+  onPortalJobId,
+  onPortalStoreId,
   fixes,
   onFixesChange,
   selectedStore,
@@ -87,11 +91,11 @@ export function InventoryReviewStep({
   const [status, setStatus] = useState<Status>('processing');
   const [derivedRows, setDerivedRows] = useState<InventoryDerivedRow[]>([]);
   const [validation, setValidation] = useState<ValidationResult | null>(null);
-
-  const hasReceipts = useMemo(
-    () => fileAssignments.some((a) => a.role === 'receipts'),
-    [fileAssignments],
-  );
+  const [portalAuth, setPortalAuth] = useState<PortalAuthState | null>(null);
+  const [portalResult, setPortalResult] = useState<PortalValidationResult | null>(null);
+  const [portalErrors, setPortalErrors] = useState<RowValidationError[]>([]);
+  const [portalError, setPortalError] = useState('');
+  const [portalSkipped, setPortalSkipped] = useState(false);
 
   const groups = useMemo(() => {
     if (!validation) return [];
@@ -100,6 +104,16 @@ export function InventoryReviewStep({
 
   const errorGroups = useMemo(() => groups.filter((g) => g.severity === 'error'), [groups]);
   const warningGroups = useMemo(() => groups.filter((g) => g.severity === 'warning'), [groups]);
+
+  // Portal error groups
+  const portalErrorGroups = useMemo(() => {
+    if (portalErrors.length === 0) return { errors: [], warnings: [] };
+    const grouped = groupInventoryErrors(portalErrors);
+    return {
+      errors: grouped.filter((g) => g.severity === 'error'),
+      warnings: grouped.filter((g) => g.severity === 'warning'),
+    };
+  }, [portalErrors]);
 
   // ── Summary stats ─────────────────────────────────────────────────────────
   const summaryStats = useMemo(() => {
@@ -116,10 +130,19 @@ export function InventoryReviewStep({
     };
   }, [derivedRows, fileAssignments]);
 
+  const hasReceipts = useMemo(
+    () => fileAssignments.some((a) => a.role === 'receipts'),
+    [fileAssignments],
+  );
+
   // ── Run ETL + validate pipeline ───────────────────────────────────────────
   const runPipeline = useCallback(
     (currentFixes: RowFix[]) => {
       setStatus('processing');
+      setPortalResult(null);
+      setPortalErrors([]);
+      setPortalError('');
+      setPortalSkipped(false);
 
       requestAnimationFrame(() => {
         const etlInput = buildETLInput(fileAssignments);
@@ -131,20 +154,40 @@ export function InventoryReviewStep({
 
         const rows = runInventoryETL(etlInput, perRoleMappings, dispensaryLicense);
         const fixed = currentFixes.length > 0 ? applyFixes(rows, currentFixes) : rows;
-        const validationResult = validateInventoryRows(fixed, { hasReceipts });
+
+        // Layer 1: per-field validation
+        const layer1 = validateInventoryRows(fixed);
+
+        // Layer 2: cross-row validation
+        const crossRowErrors = validateCrossRow(fixed);
+
+        // Merge all errors
+        const allErrors = [...layer1.errors, ...crossRowErrors];
+        const errorCount = allErrors.filter((e) => e.severity === 'error').length;
+        const warningCount = allErrors.filter((e) => e.severity === 'warning').length;
+        const rowsWithErrors = new Set(
+          allErrors.filter((e) => e.severity === 'error').map((e) => e.rowIndex),
+        ).size;
+        const activeRows = fixed.filter((r) => !r.excluded).length;
+
+        const validationResult: ValidationResult = {
+          validCount: activeRows - rowsWithErrors,
+          errorCount,
+          warningCount,
+          errors: allErrors,
+        };
 
         setDerivedRows(fixed);
         setValidation(validationResult);
         onDerivedRowsChange(fixed);
+        onWarningCountChange?.(warningCount);
 
-        const hasErrors = validationResult.errorCount > 0;
+        const hasErrors = errorCount > 0;
         onCanProceed(!hasErrors);
-        onWarningCountChange?.(validationResult.warningCount);
-
         setStatus(hasErrors ? 'reviewing' : 'ready');
       });
     },
-    [fileAssignments, perRoleMappings, dispensaryLicense, hasReceipts, onCanProceed, onDerivedRowsChange, onWarningCountChange],
+    [fileAssignments, perRoleMappings, dispensaryLicense, onCanProceed, onDerivedRowsChange, onWarningCountChange],
   );
 
   // ── Initial run on mount ──────────────────────────────────────────────────
@@ -152,6 +195,103 @@ export function InventoryReviewStep({
     runPipeline(fixes);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ── Portal validation flow ─────────────────────────────────────────────────
+  const runPortalValidation = useCallback(async (auth: PortalAuthState) => {
+    setStatus('portal-validating');
+    setPortalError('');
+    setPortalErrors([]);
+
+    try {
+      // Step 1: Generate CSV content
+      const csvData = buildInventoryCSV(derivedRows);
+      const csvContent = serializeCSV(csvData);
+      const fileName = `validation-${Date.now()}.csv`;
+
+      // Step 2: Fetch portal stores to find matching store ID
+      const portalStores = await sendMessage('portalFetchStores', {
+        portalToken: auth.token,
+      });
+
+      // Match by store name (case-insensitive)
+      const storeName = selectedStore?.name?.toLowerCase() ?? '';
+      const matchedStore = portalStores.find(
+        (s: PortalStore) => s.name.toLowerCase() === storeName || s.store_id === selectedStore?.entityId,
+      );
+
+      if (!matchedStore) {
+        setPortalError(
+          `Could not find store "${selectedStore?.name}" in the portal. ` +
+          `Available: ${portalStores.map((s: PortalStore) => s.name).join(', ')}`,
+        );
+        setStatus('ready');
+        onCanProceed(true); // Allow proceeding despite portal mismatch
+        return;
+      }
+
+      // Step 3: Send to portal for validation
+      const result = await sendMessage('portalValidate', {
+        portalToken: auth.token,
+        csvContent,
+        storeId: matchedStore.id,
+        fileName,
+      });
+
+      setPortalResult(result);
+      onPortalJobId?.(result.job_id);
+      onPortalStoreId?.(matchedStore.id);
+
+      // Step 4: Map portal issues to local format
+      const mappedErrors = mapPortalIssuesToErrors(result.issues);
+      setPortalErrors(mappedErrors);
+
+      const portalHasErrors = mappedErrors.some((e) => e.severity === 'error');
+      onCanProceed(!portalHasErrors);
+      setStatus('portal-done');
+    } catch (err) {
+      setPortalError(err instanceof Error ? err.message : 'Portal validation failed');
+      setStatus('ready');
+      onCanProceed(true); // Allow proceeding if portal is unreachable
+    }
+  }, [derivedRows, selectedStore, onCanProceed]);
+
+  // ── Auto-trigger portal validation when local passes ───────────────────────
+  useEffect(() => {
+    if (status !== 'ready' || portalSkipped || portalResult) return;
+    if (validation && validation.errorCount === 0) {
+      // Check for existing auth
+      getPortalAuth().then((auth) => {
+        if (auth) {
+          setPortalAuth(auth);
+          runPortalValidation(auth);
+        } else {
+          setStatus('portal-login');
+          onCanProceed(false);
+        }
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
+
+  const handlePortalAuthenticated = useCallback((auth: PortalAuthState) => {
+    setPortalAuth(auth);
+    runPortalValidation(auth);
+  }, [runPortalValidation]);
+
+  const handleSkipPortal = useCallback(() => {
+    setPortalSkipped(true);
+    setStatus('ready');
+    onCanProceed(true);
+  }, [onCanProceed]);
+
+  const handleRetryPortal = useCallback(() => {
+    if (portalAuth) {
+      runPortalValidation(portalAuth);
+    } else {
+      setStatus('portal-login');
+      onCanProceed(false);
+    }
+  }, [portalAuth, runPortalValidation, onCanProceed]);
 
   // ── Fix handler ───────────────────────────────────────────────────────────
   const handleFix = useCallback(
@@ -180,7 +320,7 @@ export function InventoryReviewStep({
   if (status === 'processing') {
     return (
       <div className="flex w-full flex-col items-center justify-center gap-3 py-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-teal-300 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-treez-accent border-t-transparent" />
         <span className="text-sm text-gray-600">
           Running ETL pipeline...
         </span>
@@ -188,14 +328,11 @@ export function InventoryReviewStep({
     );
   }
 
-  // Preview rows (first 10)
-  const previewRows = derivedRows.filter((r) => !r.excluded).slice(0, 10);
-
   return (
     <div className="flex w-full flex-col gap-4 p-4">
       {/* Summary header */}
       <div>
-        <h2 className="text-base font-semibold text-gray-800">Inventory Review</h2>
+        <h2 className="text-sm font-medium text-gray-900">Inventory Review</h2>
         {selectedStore && (
           <p className="text-xs text-gray-500">
             Store: {selectedStore.name}
@@ -247,13 +384,12 @@ export function InventoryReviewStep({
               : 'border-green-200 bg-green-50'
         }`}>
           <p className="text-sm">
-            <span className={validation.errorCount > 0 ? 'text-red-700' : 'text-green-700'}>
-              {validation.validCount.toLocaleString()} valid
-            </span>
-            {validation.errorCount > 0 && (
+            {validation.errorCount > 0 ? (
               <span className="text-red-600">
-                {' \u00b7 '}{validation.errorCount} error{validation.errorCount !== 1 ? 's' : ''}
+                {validation.errorCount} error{validation.errorCount !== 1 ? 's' : ''}
               </span>
+            ) : (
+              <span className="text-green-700">Local validation passed</span>
             )}
             {validation.warningCount > 0 && (
               <span className="text-amber-600">
@@ -290,52 +426,133 @@ export function InventoryReviewStep({
           <button
             type="button"
             onClick={handleRevalidate}
-            className="rounded-md bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
+            className="btn-treez-green font-[Roboto,sans-serif] font-medium"
+            style={{
+              padding: '0 20px',
+              borderRadius: '15px',
+              border: 'none',
+              color: '#0f1709',
+              fontSize: '14px',
+              height: '40px',
+              letterSpacing: '0.4px',
+              lineHeight: '24px',
+            }}
           >
             Re-validate
           </button>
         </div>
       )}
 
-      {/* Data preview */}
-      {previewRows.length > 0 && (
-        <div>
-          <h3 className="mb-2 text-sm font-medium text-gray-700">
-            Data Preview (first {previewRows.length} rows)
-          </h3>
-          <div className="overflow-auto rounded-lg border border-gray-200">
-            <table className="min-w-full text-xs">
-              <thead className="bg-gray-50">
-                <tr>
-                  {PREVIEW_COLUMNS.map((col) => (
-                    <th
-                      key={col.key}
-                      className="whitespace-nowrap px-3 py-2 text-left font-medium text-gray-600"
-                    >
-                      {col.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {previewRows.map((row, i) => (
-                  <tr key={i} className="hover:bg-gray-50">
-                    {PREVIEW_COLUMNS.map((col) => (
-                      <td
-                        key={col.key}
-                        className="max-w-[120px] truncate whitespace-nowrap px-3 py-1.5 text-gray-700"
-                        title={String(row[col.key] ?? '')}
-                      >
-                        {String(row[col.key] ?? '')}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {/* ── Portal Validation Section ──────────────────────────────────────── */}
+
+      {/* Portal login form */}
+      {status === 'portal-login' && (
+        <div className="space-y-2">
+          <PortalLoginForm onAuthenticated={handlePortalAuthenticated} />
+          <button
+            type="button"
+            onClick={handleSkipPortal}
+            className="w-full text-center text-xs text-gray-500 underline hover:text-gray-700"
+          >
+            Skip Validation
+          </button>
+        </div>
+      )}
+
+      {/* Portal validating spinner */}
+      {status === 'portal-validating' && (
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-green-200 bg-green-50 py-6">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-green-600 border-t-transparent" />
+          <span className="text-sm text-green-700">
+            Running validation (PMS + TraceTreez)...
+          </span>
+        </div>
+      )}
+
+      {/* Portal error (non-fatal) */}
+      {portalError && (
+        <div className="space-y-2">
+          <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2">
+            <p className="text-xs text-amber-700">{portalError}</p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleRetryPortal}
+              className="text-xs text-[#1a4007] underline hover:text-[#0f1709]"
+            >
+              Retry
+            </button>
+            <button
+              type="button"
+              onClick={handleSkipPortal}
+              className="text-xs text-gray-500 underline hover:text-gray-700"
+            >
+              Skip Validation
+            </button>
           </div>
         </div>
       )}
+
+      {/* Portal skipped warning */}
+      {portalSkipped && (
+        <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2">
+          <p className="text-xs text-amber-700">
+            Validation skipped. Server-side checks (PMS product resolution, TraceTreez lookup) will not be performed.
+          </p>
+        </div>
+      )}
+
+      {/* Portal validation results */}
+      {status === 'portal-done' && portalResult && (
+        <div className="space-y-3">
+          {/* Resolution stats */}
+          <div className="rounded-lg border border-green-200 bg-green-50 p-3">
+            <p className="mb-1 text-xs font-medium text-green-800">Validation</p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-green-700">
+              <span>PMS Resolved: {portalResult.resolution.pms_resolved}</span>
+              <span>PMS Unresolved: {portalResult.resolution.pms_unresolved}</span>
+              <span>TraceTreez Resolved: {portalResult.resolution.tracetreez_resolved}</span>
+              <span>TraceTreez Unresolved: {portalResult.resolution.tracetreez_unresolved}</span>
+            </div>
+          </div>
+
+          {/* Portal errors */}
+          {portalErrorGroups.errors.length > 0 && (
+            <div>
+              <h3 className="mb-2 text-sm font-medium text-red-700">
+                Errors ({portalErrorGroups.errors.reduce((sum, g) => sum + g.rows.length, 0)} issues)
+              </h3>
+              <ErrorGroupList groups={portalErrorGroups.errors as any} onFix={handleFix} />
+            </div>
+          )}
+
+          {/* Portal warnings */}
+          {portalErrorGroups.warnings.length > 0 && (
+            <div>
+              <h3 className="mb-2 text-sm font-medium text-amber-700">
+                Warnings ({portalErrorGroups.warnings.reduce((sum, g) => sum + g.rows.length, 0)} issues)
+              </h3>
+              <ErrorGroupList groups={portalErrorGroups.warnings as any} onFix={handleFix} />
+            </div>
+          )}
+
+          {/* Portal passed */}
+          {portalErrorGroups.errors.length === 0 && (
+            <div className="rounded border border-green-200 bg-green-50 px-3 py-2">
+              <p className="text-sm text-green-700">Validation passed</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Authenticated indicator */}
+      {portalAuth && status !== 'portal-login' && (
+        <p className="text-xs text-gray-400">
+          {portalAuth.email}
+        </p>
+      )}
+
     </div>
   );
 }

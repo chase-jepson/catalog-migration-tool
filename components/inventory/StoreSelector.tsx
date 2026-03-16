@@ -18,16 +18,19 @@ export function StoreSelector({
 }: StoreSelectorProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [highlightIndex, setHighlightIndex] = useState(0);
   const [showConfirm, setShowConfirm] = useState(false);
   const [pendingStore, setPendingStore] = useState<StoreInfo | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
-  // Close on outside click
+  // Close on outside click — use composedPath() to work inside shadow DOM
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      const path = e.composedPath();
+      if (dropdownRef.current && !path.includes(dropdownRef.current)) {
         setOpen(false);
         setSearch('');
       }
@@ -36,14 +39,29 @@ export function StoreSelector({
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
-  // Focus search when opened
+  // Focus search when opened, reset highlight
   useEffect(() => {
-    if (open) searchRef.current?.focus();
+    if (open) {
+      searchRef.current?.focus();
+      setHighlightIndex(0);
+    }
   }, [open]);
 
   const filteredStores = stores.filter((s) =>
     s.name.toLowerCase().includes(search.toLowerCase()),
   );
+
+  // Reset highlight when search changes
+  useEffect(() => {
+    setHighlightIndex(0);
+  }, [search]);
+
+  // Scroll highlighted item into view
+  useEffect(() => {
+    if (!open || !listRef.current) return;
+    const items = listRef.current.querySelectorAll('[data-store-item]');
+    items[highlightIndex]?.scrollIntoView({ block: 'nearest' });
+  }, [highlightIndex, open]);
 
   const handleSelect = useCallback(
     (store: StoreInfo) => {
@@ -59,6 +77,34 @@ export function StoreSelector({
       setSearch('');
     },
     [selectedStore, onStoreChange],
+  );
+
+  // Keyboard navigation
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!open) return;
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          setHighlightIndex((i) => Math.min(i + 1, filteredStores.length - 1));
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          setHighlightIndex((i) => Math.max(i - 1, 0));
+          break;
+        case 'Enter':
+          e.preventDefault();
+          if (filteredStores[highlightIndex]) {
+            handleSelect(filteredStores[highlightIndex]);
+          }
+          break;
+        case 'Escape':
+          setOpen(false);
+          setSearch('');
+          break;
+      }
+    },
+    [open, filteredStores, highlightIndex, handleSelect],
   );
 
   const handleConfirmChange = useCallback(() => {
@@ -126,24 +172,28 @@ export function StoreSelector({
                 placeholder="Search Stores"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="flex-1 border-none bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none"
               />
             </div>
 
             {/* Store list */}
-            <div className="max-h-48 overflow-y-auto py-1">
+            <div ref={listRef} className="max-h-48 overflow-y-auto py-1">
               {filteredStores.length === 0 ? (
                 <div className="px-3 py-2 text-sm text-gray-400">No stores found</div>
               ) : (
-                filteredStores.map((store) => (
+                filteredStores.map((store, idx) => (
                   <button
                     key={store.entityId}
                     type="button"
+                    data-store-item
                     onClick={() => handleSelect(store)}
-                    className={`flex w-full items-center px-3 py-2 text-left text-sm hover:bg-gray-50 transition-colors ${
+                    className={`flex w-full items-center px-3 py-2 text-left text-sm transition-colors ${
                       selectedStore?.entityId === store.entityId
-                        ? 'font-medium text-teal-700 bg-teal-50'
-                        : 'text-gray-900'
+                        ? 'font-medium text-treez-primary bg-treez-accent-muted'
+                        : idx === highlightIndex
+                          ? 'bg-gray-100 text-gray-900'
+                          : 'text-gray-900 hover:bg-gray-50'
                     }`}
                   >
                     {store.name}
@@ -165,14 +215,30 @@ export function StoreSelector({
             <button
               type="button"
               onClick={handleCancelChange}
-              className="rounded-md border border-gray-300 bg-white px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
+              className="btn-treez-text font-[Roboto,sans-serif] font-medium"
+              style={{
+                padding: '0 16px',
+                borderRadius: '15px',
+                border: 'none',
+                color: '#1a4007',
+                fontSize: '14px',
+                height: '32px',
+              }}
             >
               Cancel
             </button>
             <button
               type="button"
               onClick={handleConfirmChange}
-              className="rounded-md bg-amber-600 px-3 py-1 text-sm font-medium text-white hover:bg-amber-700"
+              className="btn-treez-green font-[Roboto,sans-serif] font-medium"
+              style={{
+                padding: '0 16px',
+                borderRadius: '15px',
+                border: 'none',
+                color: '#0f1709',
+                fontSize: '14px',
+                height: '32px',
+              }}
             >
               Change Store
             </button>

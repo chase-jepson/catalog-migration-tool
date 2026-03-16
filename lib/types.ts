@@ -68,7 +68,7 @@ export interface POSDetectionResult {
 
 // ── Persisted Migration State ───────────────────────────────────────────────
 
-export interface ImportProgress {
+interface ImportProgress {
   status: 'idle' | 'uploading' | 'complete' | 'error';
   message?: string;
 }
@@ -168,7 +168,7 @@ export interface ErrorGroup {
 
 // ── Phase 3: Import Types ─────────────────────────────────────────────────
 
-export type FileStatus = 'pending' | 'uploading' | 'processing' | 'done' | 'failed' | 'done_with_warnings';
+type FileStatus = 'pending' | 'uploading' | 'processing' | 'done' | 'failed' | 'done_with_warnings';
 export type ImportObjectType = 'brands' | 'attributes' | 'products' | 'variants' | 'attributeJoins' | 'images';
 
 export interface ImportFileState {
@@ -179,14 +179,6 @@ export interface ImportFileState {
   processedCount: number;
   errorCount: number;
   error?: string;
-}
-
-export interface DetailedImportProgress {
-  files: ImportFileState[];
-  startTime: number;
-  currentFileIndex: number;
-  completed: boolean;
-  cancelled: boolean;
 }
 
 export interface ImportJob {
@@ -325,6 +317,77 @@ export interface PerRoleMappingsState {
   vendors: FieldMapping[];
   adjustments: FieldMapping[];
   catalog_export: FieldMapping[];
+}
+
+// ── Phase 4: Portal Validation Types ─────────────────────────────────────────
+
+export interface PortalAuthState {
+  token: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  expiresAt: number;
+}
+
+export interface PortalValidationResult {
+  job_id: string;
+  status: 'VALIDATED' | 'FAILED';
+  summary: {
+    total_rows: number;
+    total_invoices: number;
+    total_package_groups: number;
+    rows_with_units: number;
+    rows_depleted: number;
+    unique_distributors: number;
+    unique_locations: number;
+  };
+  issues: PortalValidationIssue[];
+  resolution: {
+    pms_resolved: number;
+    pms_unresolved: number;
+    tracetreez_resolved: number;
+    tracetreez_unresolved: number;
+  };
+}
+
+export interface PortalStore {
+  id: string;
+  name: string;
+  store_id: string;
+  org_id: string;
+  dispensary_license: string;
+  status: string;
+}
+
+export interface PortalJobStatus {
+  id: string;
+  status: string;
+  total_rows: number | null;
+  total_invoices: number | null;
+  processed_invoices: number | null;
+  succeeded_rows: number | null;
+  failed_rows: number | null;
+  error_summary: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+}
+
+export interface PortalRollbackResult {
+  status: string;
+  job_id: string;
+  deleted_counts: Record<string, number>;
+  audit_deleted: number;
+  revision_info_deleted: number;
+}
+
+export interface PortalReindexResult {
+  status: string;
+  store_name: string;
+  tenant_id: string;
+  triggered_by: string;
+  successful_uploads: number;
+  failed_uploads: number;
+  total: number;
 }
 
 export interface PersistedInventoryState {

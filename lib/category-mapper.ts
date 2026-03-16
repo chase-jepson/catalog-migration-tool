@@ -312,7 +312,7 @@ const CATEGORY_DEFAULT_SUBCATEGORY: Record<string, string> = {
 const PRODUCT_CATEGORIES_SET = new Set(PRODUCT_CATEGORIES as readonly string[]);
 
 /** Returns true when the resolution is weak */
-export function isWeakResolution(cat: string): boolean {
+function isWeakResolution(cat: string): boolean {
   if (!cat) return true;
   if (!PRODUCT_CATEGORIES_SET.has(cat)) return true;
   if (cat === 'Misc') return true;

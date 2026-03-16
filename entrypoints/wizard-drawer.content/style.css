@@ -1,0 +1,53 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-treez-primary: #1a4007;
+  --color-treez-primary-light: #2d6b0e;
+  --color-treez-accent: #dbf5b3;
+  --color-treez-accent-muted: #e8f7d0;
+  --color-treez-text: #0f1709;
+  --color-treez-text-secondary: #4a5a3e;
+}
+
+:host {
+  font-family: 'Roboto', sans-serif !important;
+}
+
+/* Back button hover — matches Treez "Copy Product" hover (light green bg) */
+.btn-treez-text {
+  background-color: transparent;
+  transition: background-color 0.15s;
+}
+.btn-treez-text:hover {
+  background-color: #e8f7d0;
+}
+
+/* Rollback button hover — light grey, not green */
+.btn-treez-rollback {
+  background-color: transparent;
+  transition: background-color 0.15s;
+}
+.btn-treez-rollback:hover {
+  background-color: #f0f0f0;
+}
+
+/* Green button hover — slightly darker like Treez active tab */
+.btn-treez-green {
+  background-color: #a9e079;
+  transition: background-color 0.15s;
+}
+.btn-treez-green:hover:not(:disabled) {
+  background-color: #96d066;
+}
+
+/* Custom select dropdown arrow matching Treez MUI ArrowDropDown */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='rgba(0,0,0,0.54)'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 20px;
+  padding-right: 32px !important;
+}

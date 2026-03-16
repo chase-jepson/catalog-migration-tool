@@ -136,14 +136,6 @@ export function UploadStep({
     [parsedFiles, onParsedFilesChange, onCanProceed, onDetectedPOSChange, runDetection],
   );
 
-  const handleChangeFile = useCallback(() => {
-    onParsedFilesChange([]);
-    setStatus('idle');
-    setError(null);
-    setPendingSheet(null);
-    onCanProceed(false);
-  }, [onParsedFilesChange, onCanProceed]);
-
   const handlePOSChange = useCallback(
     (pos: string) => {
       onSelectedPOSChange(pos);
@@ -171,14 +163,14 @@ export function UploadStep({
       {status === 'parsing' && (
         <div className="rounded-lg border border-gray-200 bg-white p-4">
           <div className="flex items-center gap-3">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" />
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-treez-primary border-t-transparent" />
             <span className="text-sm text-gray-600">
               Parsing file {progress.current} of {progress.total}...
             </span>
           </div>
           <div className="mt-2 h-1.5 rounded-full bg-gray-200">
             <div
-              className="h-1.5 rounded-full bg-teal-600 transition-all"
+              className="h-1.5 rounded-full bg-treez-primary transition-all"
               style={{
                 width: `${(progress.current / progress.total) * 100}%`,
               }}
@@ -207,7 +199,7 @@ export function UploadStep({
           <button
             type="button"
             onClick={handleSheetConfirm}
-            className="rounded-md bg-teal-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-teal-700"
+            className="rounded-md bg-treez-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-treez-primary"
           >
             Parse selected sheet
           </button>
@@ -225,7 +217,6 @@ export function UploadStep({
               selectedPOS={selectedPOS}
               onSelectedPOSChange={handlePOSChange}
               onRemoveFile={handleRemoveFile}
-              onChangeFile={handleChangeFile}
               showPOS={idx === 0}
             />
           ))}

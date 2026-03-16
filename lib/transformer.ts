@@ -200,17 +200,9 @@ function convertAmount(parsed: ParsedWeight, targetUom: string): number {
   return parsed.value;
 }
 
-/** Get weight in grams regardless of source unit */
-export function getWeightInGrams(amount: number, unit: string): number {
-  if (unit === 'grams' || unit === 'g' || unit === '') return amount;
-  if (unit === 'milligrams' || unit === 'mg') return amount / 1000;
-  if (unit === 'oz') return amount * 28.3495;
-  return amount;
-}
-
 /** Extract weight in grams from product name */
-export function extractGramsFromName(name: string): number {
-  const gramMatch = name.match(/(?:^|\s)(\d*\.?\d+)\s*g\b/i);
+function extractGramsFromName(name: string): number {
+  const gramMatch = name.match(/(?:^|[\s\-–—])(\d*\.?\d+)\s*g\b/i);
   if (gramMatch) {
     const val = parseFloat(gramMatch[1]);
     if (!isNaN(val) && val > 0 && val <= 100) return val;
@@ -526,6 +518,11 @@ export function deriveRows(
       const num = parseFloat(cannaVal);
       amount = !isNaN(num) && num > 0 ? num : 0;
       if (amount <= 0 && weightInGrams > 0) amount = weightInGrams * 1000;
+      if (amount <= 0) {
+        const mgStr = extractMgFromName(rawName);
+        const mgVal = parseFloat(mgStr);
+        if (!isNaN(mgVal) && mgVal > 0) amount = mgVal;
+      }
     } else {
       amount = category === 'Non-Inv' ? 1 : convertAmount(parsed, uom);
     }

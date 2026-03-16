@@ -2,18 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { cleanup, render, screen, fireEvent } from '@testing-library/react';
 import { createElement } from 'react';
 
-// Mock chrome.runtime.sendMessage (App.tsx uses raw chrome API for gesture context)
-const mockSendMessage = vi.fn();
-globalThis.chrome = {
-  runtime: { sendMessage: mockSendMessage },
-} as any;
-
 import App from '../entrypoints/import-page.content/App';
 
 describe('Content Script App', () => {
   beforeEach(() => {
     cleanup();
-    mockSendMessage.mockClear();
   });
 
   it('renders a "Migrate Catalog" button', () => {
@@ -26,21 +19,23 @@ describe('Content Script App', () => {
     expect(screen.getByText('Migrate Inventory')).toBeDefined();
   });
 
-  it('sends openSidePanel message with wizardType "catalog" on click', () => {
+  it('dispatches cmt:open-wizard event with wizardType "catalog" on click', () => {
+    const handler = vi.fn();
+    document.addEventListener('cmt:open-wizard', handler);
     render(createElement(App));
     fireEvent.click(screen.getByText('Migrate Catalog'));
-    expect(mockSendMessage).toHaveBeenCalledWith({
-      type: 'openSidePanel',
-      data: { wizardType: 'catalog' },
-    });
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect((handler.mock.calls[0][0] as CustomEvent).detail).toEqual({ wizardType: 'catalog' });
+    document.removeEventListener('cmt:open-wizard', handler);
   });
 
-  it('sends openSidePanel message with wizardType "inventory" on click', () => {
+  it('dispatches cmt:open-wizard event with wizardType "inventory" on click', () => {
+    const handler = vi.fn();
+    document.addEventListener('cmt:open-wizard', handler);
     render(createElement(App));
     fireEvent.click(screen.getByText('Migrate Inventory'));
-    expect(mockSendMessage).toHaveBeenCalledWith({
-      type: 'openSidePanel',
-      data: { wizardType: 'inventory' },
-    });
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect((handler.mock.calls[0][0] as CustomEvent).detail).toEqual({ wizardType: 'inventory' });
+    document.removeEventListener('cmt:open-wizard', handler);
   });
 });

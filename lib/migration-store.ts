@@ -4,7 +4,7 @@ const STORAGE_KEY = 'migrationState';
 
 /**
  * Save migration state to chrome.storage.local.
- * Uses the 'migrationState' key for persistence across side panel sessions.
+ * Uses the 'migrationState' key for persistence across sessions.
  */
 export async function saveMigrationState(
   state: PersistedMigrationState,

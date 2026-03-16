@@ -38,7 +38,7 @@ export function ErrorBatchRow({ group, onFix }: ErrorBatchRowProps) {
           <select
             value={fixValue}
             onChange={(e) => setFixValue(e.target.value)}
-            className="flex-1 text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-teal-300 focus:border-teal-300"
+            className="flex-1 text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-treez-accent focus:border-treez-accent"
           >
             <option value="">Select...</option>
             {group.dropdownOptions.map((opt) => (
@@ -53,14 +53,14 @@ export function ErrorBatchRow({ group, onFix }: ErrorBatchRowProps) {
             value={fixValue}
             onChange={(e) => setFixValue(e.target.value)}
             placeholder="Enter value..."
-            className="flex-1 text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-teal-300 focus:border-teal-300"
+            className="flex-1 text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-treez-accent focus:border-treez-accent"
           />
         )}
         <button
           type="button"
           disabled={!fixValue}
           onClick={handleApply}
-          className="whitespace-nowrap rounded bg-teal-600 px-2 py-1 text-xs font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-40"
+          className="whitespace-nowrap rounded bg-treez-primary px-2 py-1 text-xs font-medium text-white hover:bg-treez-primary disabled:cursor-not-allowed disabled:opacity-40"
         >
           Apply to all {group.rows.length} rows
         </button>

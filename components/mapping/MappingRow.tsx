@@ -27,7 +27,7 @@ export function MappingRow({
     <div
       id={`mapping-row-${fieldKey}`}
       className={`flex items-start justify-between gap-3 rounded-md border px-3 py-2 transition-colors duration-300 ${
-        highlighted ? 'bg-teal-50 border-teal-300' : 'border-gray-200 bg-white'
+        highlighted ? 'bg-treez-accent-muted border-treez-accent' : 'border-gray-200 bg-white'
       }`}
     >
       {/* Target field */}

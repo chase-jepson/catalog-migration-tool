@@ -55,7 +55,7 @@ export function FileDropZone({ onFilesSelected, disabled }: FileDropZoneProps) {
       onDragLeave={handleDragLeave}
       className={`flex items-center gap-3 rounded-lg border-2 border-dashed p-4 transition-colors ${
         isDragOver
-          ? 'border-teal-500 bg-teal-50'
+          ? 'border-treez-accent-muted0 bg-treez-accent-muted'
           : 'border-gray-300 bg-white'
       } ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
     >
@@ -82,7 +82,17 @@ export function FileDropZone({ onFilesSelected, disabled }: FileDropZoneProps) {
             type="button"
             disabled={disabled}
             onClick={() => inputRef.current?.click()}
-            className="rounded-md bg-teal-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="btn-treez-green font-[Roboto,sans-serif] font-medium disabled:cursor-not-allowed disabled:opacity-50"
+            style={{
+              padding: '0 16px',
+              borderRadius: '15px',
+              border: 'none',
+              color: '#0f1709',
+              fontSize: '14px',
+              height: '36px',
+              letterSpacing: '0.4px',
+              lineHeight: '24px',
+            }}
           >
             Choose file
           </button>

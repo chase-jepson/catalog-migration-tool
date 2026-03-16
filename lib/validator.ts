@@ -124,7 +124,7 @@ export function validateDerivedRows(derived: DerivedRow[]): ValidationResult {
       });
     }
 
-    // classification: if non-empty must be valid (error), if empty it's a warning
+    // classification: error if non-empty and invalid, warning if empty
     if (row.classification) {
       if (!VALID_CLASSIFICATIONS.includes(row.classification as (typeof VALID_CLASSIFICATIONS)[number])) {
         errors.push({
@@ -151,45 +151,25 @@ export function validateDerivedRows(derived: DerivedRow[]): ValidationResult {
 
     // ── Optional fields (severity: 'warning') ────────────────────────────
 
-    if (!row.description.trim()) {
-      errors.push({
-        rowIndex: i,
-        field: 'description',
-        currentValue: row.description,
-        message: 'Description is empty',
-        fixType: 'text',
-        severity: 'warning',
-      });
-    }
-
-    if (!row.strain.trim()) {
+    // strain: warn if empty
+    if (!row.strain?.trim()) {
       errors.push({
         rowIndex: i,
         field: 'strain',
-        currentValue: row.strain,
+        currentValue: row.strain || '',
         message: 'Strain is empty',
         fixType: 'text',
         severity: 'warning',
       });
     }
 
-    if (!row.thc.trim()) {
+    // description: warn if empty
+    if (!row.description?.trim()) {
       errors.push({
         rowIndex: i,
-        field: 'thc',
-        currentValue: row.thc,
-        message: 'THC content is empty',
-        fixType: 'text',
-        severity: 'warning',
-      });
-    }
-
-    if (!row.cbd.trim()) {
-      errors.push({
-        rowIndex: i,
-        field: 'cbd',
-        currentValue: row.cbd,
-        message: 'CBD content is empty',
+        field: 'description',
+        currentValue: row.description || '',
+        message: 'Description is empty',
         fixType: 'text',
         severity: 'warning',
       });

@@ -6,9 +6,14 @@ export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   manifest: {
     name: 'Catalog Migration Tool',
-    description: 'Migrate product catalog and inventory data into Treez',
+    description: 'Transform product catalog and inventory data from other POS systems into Treez import files, review the generated files, and import the catalog into Treez.',
+    icons: {
+      16: 'icon-16.png',
+      48: 'icon-48.png',
+      128: 'icon-128.png',
+    },
     action: {},
-    permissions: ['storage', 'unlimitedStorage', 'activeTab', 'tabs', 'sidePanel', 'scripting', 'webNavigation'],
+    permissions: ['storage', 'unlimitedStorage', 'activeTab', 'tabs', 'scripting'],
     host_permissions: [
       'https://app.treez.io/*',
       'https://app.sandbox.treez.io/*',
@@ -24,12 +29,6 @@ export default defineConfig({
       'https://oauth-dev.treez.io/*',
       'https://*.s3.us-west-2.amazonaws.com/*',
     ],
-  },
-  hooks: {
-    'build:manifestGenerated': (_wxt, manifest) => {
-      // Remove default side_panel entry so we control it programmatically
-      delete (manifest as any).side_panel;
-    },
   },
   vite: () => ({
     plugins: [tailwindcss()],

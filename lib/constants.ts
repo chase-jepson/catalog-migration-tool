@@ -11,14 +11,6 @@ export const IMPORT_PAGE_PATTERNS = [
 
 export const STEP_LABELS = ['Upload', 'Map', 'Review', 'Import'] as const;
 
-export const TREEZ_HOSTS: Record<TreezEnv, string> = {
-  production: 'app.treez.io',
-  sandbox: 'app.sandbox.treez.io',
-  dev: 'app.dev.treez.io',
-};
-
-export const IMPORT_PATH = '/treez-admin/import/home';
-
 // ── POS Systems ─────────────────────────────────────────────────────────────
 
 export const POS_SYSTEMS = [

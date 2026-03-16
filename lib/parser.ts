@@ -30,16 +30,37 @@ export function detectHeaderRow(sheet: XLSX.WorkSheet): number {
   });
   if (aoa.length < 2) return 0;
 
-  const row0Filled = aoa[0].filter((c) => c !== '').length;
-  const row1Filled = aoa[1].filter((c) => c !== '').length;
+  // Scan the first 20 rows to find the real header row.
+  // The header row is the first row with many filled cells (>= 4)
+  // and no cells that look like dates/timestamps or "Export Date:" style metadata.
+  const maxScan = Math.min(20, aoa.length);
 
-  // If the first row has 3 or fewer non-empty cells AND the second row has
-  // at least 3x as many, the first row is likely a title/report header
-  if (row0Filled <= 3 && row1Filled >= row0Filled * 3) {
-    return 1; // skip row 0, headers start at row 1
+  // First pass: find the row with the most non-empty cells
+  let bestRow = 0;
+  let bestFilled = 0;
+  for (let i = 0; i < maxScan; i++) {
+    const filled = aoa[i].filter((c) => c !== '').length;
+    if (filled > bestFilled) {
+      bestFilled = filled;
+      bestRow = i;
+    }
   }
 
-  return 0; // row 0 is the header row
+  // If the best row has significantly more columns than row 0, skip to it
+  const row0Filled = aoa[0].filter((c) => c !== '').length;
+  if (bestRow > 0 && bestFilled >= 4 && bestFilled > row0Filled * 2) {
+    return bestRow;
+  }
+
+  // Fallback: if row 0 has very few cells and row 1 has more, skip row 0
+  if (row0Filled <= 3 && aoa.length > 1) {
+    const row1Filled = aoa[1].filter((c) => c !== '').length;
+    if (row1Filled >= row0Filled * 3) {
+      return 1;
+    }
+  }
+
+  return 0;
 }
 
 /** Preferred sheet names -- if present, use instead of the first sheet */

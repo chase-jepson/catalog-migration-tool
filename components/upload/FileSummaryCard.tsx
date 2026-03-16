@@ -9,7 +9,6 @@ interface FileSummaryCardProps {
   selectedPOS: string;
   onSelectedPOSChange: (pos: string) => void;
   onRemoveFile: (fileName: string) => void;
-  onChangeFile: () => void;
   showPOS?: boolean;
 }
 
@@ -21,7 +20,6 @@ export function FileSummaryCard({
   selectedPOS,
   onSelectedPOSChange,
   onRemoveFile,
-  onChangeFile,
   showPOS = false,
 }: FileSummaryCardProps) {
   const [showPOSDropdown, setShowPOSDropdown] = useState(false);
@@ -31,9 +29,9 @@ export function FileSummaryCard({
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-3">
           {/* File icon */}
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-50">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-treez-accent-muted">
             <svg
-              className="h-5 w-5 text-teal-600"
+              className="h-5 w-5 text-treez-primary"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -91,7 +89,7 @@ export function FileSummaryCard({
                 <button
                   type="button"
                   onClick={() => setShowPOSDropdown(!showPOSDropdown)}
-                  className="text-teal-600 hover:text-teal-700"
+                  className="text-treez-primary hover:text-treez-primary"
                 >
                   Change
                 </button>
@@ -102,7 +100,7 @@ export function FileSummaryCard({
                 <button
                   type="button"
                   onClick={() => setShowPOSDropdown(!showPOSDropdown)}
-                  className="text-teal-600 hover:text-teal-700"
+                  className="text-treez-primary hover:text-treez-primary"
                 >
                   Select
                 </button>
@@ -123,7 +121,7 @@ export function FileSummaryCard({
                 onSelectedPOSChange(e.target.value);
                 setShowPOSDropdown(false);
               }}
-              className="mt-2 w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+              className="mt-2 w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-treez-accent-muted0 focus:outline-none focus:ring-1 focus:ring-treez-accent-muted0"
             >
               <option value="">-- Select POS --</option>
               {POS_OPTIONS.map((pos) => (
@@ -136,16 +134,6 @@ export function FileSummaryCard({
         </div>
       )}
 
-      {/* Change file link */}
-      <div className="mt-2 text-right">
-        <button
-          type="button"
-          onClick={onChangeFile}
-          className="text-xs text-teal-600 hover:text-teal-700"
-        >
-          Change file
-        </button>
-      </div>
     </div>
   );
 }

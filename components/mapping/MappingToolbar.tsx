@@ -21,9 +21,9 @@ export function MappingToolbar({
       <button
         type="button"
         onClick={onResetToAuto}
-        className="rounded border border-teal-400 bg-white px-3 py-1 text-xs font-medium text-teal-700 hover:bg-teal-50"
+        className="rounded border border-treez-accent bg-white px-3 py-1 text-xs font-medium text-treez-primary hover:bg-treez-accent-muted"
       >
-        Reset to {posName || 'auto'} defaults
+        Apply {posName || 'auto'} defaults
       </button>
     </div>
   );

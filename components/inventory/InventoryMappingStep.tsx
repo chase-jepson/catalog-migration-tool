@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   INVENTORY_ROLE_FIELDS,
-  INVENTORY_FILE_ROLES,
 } from '../../lib/inventory-constants';
 import type { PerRoleMappings } from '../../lib/inventory-transformer';
 import type {
@@ -17,6 +16,39 @@ interface InventoryMappingStepProps {
   selectedPOS: string;
   onCanProceed: (can: boolean) => void;
 }
+
+/** Section definitions — drive the UI ordering and labels */
+const SECTIONS: {
+  role: InventoryFileRole;
+  title: string;
+  description: string;
+}[] = [
+  {
+    role: 'inventory',
+    title: 'Inventory Information',
+    description: 'Core inventory data — SKU, quantities, location, potency, and dates.',
+  },
+  {
+    role: 'receipts',
+    title: 'Invoice Information',
+    description: 'Receipt history — used to reconstruct invoices and compute unit costs.',
+  },
+  {
+    role: 'vendors',
+    title: 'Distributor Information',
+    description: 'Vendor details and licenses. Duplicate vendors are auto-merged and license codes split into up to 3 slots.',
+  },
+  {
+    role: 'adjustments',
+    title: 'Adjustment Information',
+    description: 'Quantity and cost adjustments by package — combined with receipts for package totals.',
+  },
+  {
+    role: 'catalog_export',
+    title: 'Catalog Information',
+    description: 'Post-migration Treez catalog — used to detect Merch category for TraceTreezId.',
+  },
+];
 
 /**
  * Check if all required fields for each assigned role have mappings.
@@ -51,7 +83,7 @@ export function InventoryMappingStep({
   selectedPOS,
   onCanProceed,
 }: InventoryMappingStepProps) {
-  const [expandedRoles, setExpandedRoles] = useState<Set<InventoryFileRole>>(
+  const [expandedSections, setExpandedSections] = useState<Set<InventoryFileRole>>(
     () => new Set(fileAssignments.map((a) => a.role)),
   );
 
@@ -71,8 +103,8 @@ export function InventoryMappingStep({
     [perRoleMappings, onPerRoleMappingsChange],
   );
 
-  const toggleRole = useCallback((role: InventoryFileRole) => {
-    setExpandedRoles((prev) => {
+  const toggleSection = useCallback((role: InventoryFileRole) => {
+    setExpandedSections((prev) => {
       const next = new Set(prev);
       if (next.has(role)) next.delete(role);
       else next.add(role);
@@ -80,30 +112,32 @@ export function InventoryMappingStep({
     });
   }, []);
 
-  // Only show roles that have assigned files
-  const assignedRoles = fileAssignments.map((a) => a.role);
-  const uniqueRoles = Array.from(new Set(assignedRoles));
+  // Build a set of assigned roles for quick lookup
+  const assignedRoleSet = new Set(fileAssignments.map((a) => a.role));
+
+  // Only show sections that have assigned files
+  const activeSections = SECTIONS.filter((s) => assignedRoleSet.has(s.role));
 
   return (
     <div className="flex w-full flex-col gap-3 p-4">
       <div>
         <h2 className="text-sm font-medium text-gray-900">Map Columns</h2>
         <p className="mt-1 text-xs text-gray-500">
-          Map columns from each uploaded file to the expected fields.
+          Map your source columns to the fields used in the import CSV.
           {selectedPOS && (
-            <span className="text-teal-600"> POS defaults applied for {selectedPOS}.</span>
+            <span className="text-treez-primary"> POS defaults applied for {selectedPOS}.</span>
           )}
         </p>
       </div>
 
-      {uniqueRoles.map((role) => {
+      {activeSections.map((section) => {
+        const { role, title, description } = section;
         const assignment = fileAssignments.find((a) => a.role === role);
         if (!assignment) return null;
 
-        const roleDef = INVENTORY_FILE_ROLES.find((r) => r.role === role);
         const fieldDefs = INVENTORY_ROLE_FIELDS[role] ?? [];
         const roleMappings = perRoleMappings[role] ?? [];
-        const isExpanded = expandedRoles.has(role);
+        const isExpanded = expandedSections.has(role);
         const headers = assignment.file.headers;
 
         // Count mapped vs total required
@@ -117,24 +151,22 @@ export function InventoryMappingStep({
             key={role}
             className="rounded-lg border border-gray-200 bg-white shadow-sm"
           >
-            {/* Accordion header */}
+            {/* Section header */}
             <button
               type="button"
-              onClick={() => toggleRole(role)}
+              onClick={() => toggleSection(role)}
               className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-gray-50"
             >
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-900">
-                  {roleDef?.label ?? role}
-                </p>
-                <p className="truncate text-xs text-gray-500">
-                  {assignment.file.fileName}
+                <p className="text-sm font-medium text-gray-900">{title}</p>
+                <p className="mt-0.5 text-xs text-gray-400">
+                  Source: {assignment.file.fileName}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <span className={`text-xs ${
                   mappedRequired === requiredFields.length
-                    ? 'text-green-600'
+                    ? 'text-treez-primary'
                     : 'text-amber-600'
                 }`}>
                   {mappedRequired}/{requiredFields.length} required
@@ -153,6 +185,9 @@ export function InventoryMappingStep({
             {/* Field mappings */}
             {isExpanded && (
               <div className="border-t border-gray-100 px-4 py-3 space-y-3">
+                {/* Section description */}
+                <p className="text-xs text-gray-500">{description}</p>
+
                 {fieldDefs.map((def) => {
                   const mapping = roleMappings.find((m) => m.fieldKey === def.key);
                   const currentValue = mapping?.sourceHeader ?? '';
@@ -162,7 +197,7 @@ export function InventoryMappingStep({
                       <label className="mb-1 flex items-baseline gap-1 text-xs font-medium text-gray-700">
                         <span>{def.label}</span>
                         {def.required && (
-                          <span className="text-red-500">(required)</span>
+                          <span className="text-red-500">*</span>
                         )}
                       </label>
                       <select
@@ -174,7 +209,7 @@ export function InventoryMappingStep({
                             e.target.value === '' ? null : e.target.value,
                           )
                         }
-                        className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-700 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                        className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-700 focus:border-treez-accent-muted0 focus:outline-none focus:ring-1 focus:ring-treez-accent-muted0"
                       >
                         <option value="">-- Not mapped --</option>
                         {headers.map((h) => (
@@ -195,7 +230,7 @@ export function InventoryMappingStep({
         );
       })}
 
-      {uniqueRoles.length === 0 && (
+      {activeSections.length === 0 && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
           <p className="text-sm text-amber-700">
             No files have been assigned roles. Go back to the Upload step and assign at least an Inventory file.

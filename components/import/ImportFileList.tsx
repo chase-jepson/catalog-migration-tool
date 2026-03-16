@@ -1,5 +1,4 @@
 import type { ImportFileState } from '../../lib/types';
-import { ImportProgress } from './ImportProgress';
 
 interface ImportFileListProps {
   files: ImportFileState[];
@@ -12,7 +11,7 @@ function StatusIcon({ status }: { status: ImportFileState['status'] }) {
   switch (status) {
     case 'done':
       return (
-        <svg className="h-4 w-4 shrink-0 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+        <svg className="h-4 w-4 shrink-0 text-treez-primary" viewBox="0 0 20 20" fill="currentColor">
           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
         </svg>
       );
@@ -31,7 +30,7 @@ function StatusIcon({ status }: { status: ImportFileState['status'] }) {
     case 'uploading':
     case 'processing':
       return (
-        <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-teal-300 border-t-transparent" />
+        <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-treez-accent border-t-transparent" />
       );
     default:
       // pending -- gray circle
@@ -39,74 +38,91 @@ function StatusIcon({ status }: { status: ImportFileState['status'] }) {
   }
 }
 
+const STATUS_TEXT: Record<string, string> = {
+  uploading: 'Uploading...',
+  processing: 'Processing...',
+};
+
 export function ImportFileList({ files, currentIndex, eta }: ImportFileListProps) {
   return (
     <div className="space-y-1">
       {files.map((file, idx) => {
         const isCurrent = idx === currentIndex;
         const isActive = file.status === 'uploading' || file.status === 'processing';
+        const percent = file.rowCount > 0 ? Math.min(100, Math.round((file.processedCount / file.rowCount) * 100)) : 0;
 
         return (
           <div key={file.key}>
             <div
-              className={`flex items-center justify-between rounded border px-2.5 py-1.5 text-sm ${
+              className={`rounded-lg border px-3 py-2 text-sm ${
                 file.status === 'done' || file.status === 'done_with_warnings'
-                  ? 'border-green-200 bg-green-50'
+                  ? 'border-treez-accent bg-treez-accent-muted'
                   : file.status === 'failed'
                     ? 'border-red-200 bg-red-50'
                     : isCurrent
-                      ? 'border-teal-200 bg-teal-50'
+                      ? 'border-treez-accent bg-treez-accent-muted'
                       : 'border-gray-200 bg-gray-50'
               }`}
             >
-              <div className="flex items-center gap-2">
-                <StatusIcon status={file.status} />
+              {/* Top row: icon + label + row count */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <StatusIcon status={file.status} />
+                  <span
+                    className={`font-medium ${
+                      file.status === 'done' || file.status === 'done_with_warnings'
+                        ? 'text-treez-primary'
+                        : file.status === 'failed'
+                          ? 'text-red-700'
+                          : isActive
+                            ? 'text-treez-primary'
+                            : 'text-gray-500'
+                    }`}
+                  >
+                    {file.label}
+                  </span>
+                  {isCurrent && isActive && (
+                    <span className="text-xs text-gray-400">
+                      {STATUS_TEXT[file.status] ?? ''}
+                    </span>
+                  )}
+                </div>
                 <span
-                  className={
+                  className={`shrink-0 text-xs font-medium ${
                     file.status === 'done' || file.status === 'done_with_warnings'
-                      ? 'text-green-700'
+                      ? 'text-treez-text-secondary'
                       : file.status === 'failed'
-                        ? 'text-red-700'
+                        ? 'text-red-600'
                         : isActive
-                          ? 'text-teal-700'
-                          : 'text-gray-500'
-                  }
+                          ? 'text-gray-600'
+                          : 'text-gray-400'
+                  }`}
                 >
-                  {file.label}
+                  {isActive && file.rowCount > 0
+                    ? `${file.processedCount.toLocaleString()} / ${file.rowCount.toLocaleString()} rows`
+                    : file.rowCount > 0
+                      ? `${file.rowCount.toLocaleString()} rows`
+                      : ''}
+                  {file.errorCount > 0 && (
+                    <span className="ml-1 text-red-500">
+                      ({file.errorCount} failed)
+                    </span>
+                  )}
                 </span>
               </div>
-              <span
-                className={`text-xs font-medium ${
-                  file.status === 'done' || file.status === 'done_with_warnings'
-                    ? 'text-green-600'
-                    : file.status === 'failed'
-                      ? 'text-red-600'
-                      : 'text-gray-400'
-                }`}
-              >
-                {file.rowCount > 0 ? `${file.rowCount.toLocaleString()} rows` : ''}
-                {file.errorCount > 0 && (
-                  <span className="ml-1 text-red-500">
-                    ({file.errorCount} failed)
-                  </span>
-                )}
-              </span>
+
+              {/* Inline progress bar for active file */}
+              {isCurrent && isActive && (
+                <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-200">
+                  <div
+                    className="h-full rounded-full bg-treez-accent transition-all duration-300"
+                    style={{ width: `${percent}%` }}
+                  />
+                </div>
+              )}
             </div>
 
-            {/* Show progress bar for current active file */}
-            {isCurrent && isActive && (
-              <div className="mt-1 px-1">
-                <ImportProgress
-                  fileLabel={file.label}
-                  status={file.status}
-                  processedCount={file.processedCount}
-                  totalRows={file.rowCount}
-                  eta={eta}
-                />
-              </div>
-            )}
-
-            {/* Show error message for failed files */}
+            {/* Error message for failed files */}
             {file.status === 'failed' && file.error && (
               <p className="mt-1 px-2 text-xs text-red-600">{file.error}</p>
             )}

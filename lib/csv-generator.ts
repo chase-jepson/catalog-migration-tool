@@ -65,7 +65,7 @@ export function arrayToCSV(data: string[][]): string {
  * Only includes rows where excluded === false.
  * Ported from v1 transformer.ts buildOutputCSVs.
  */
-export function buildOutputCSVs(derived: DerivedRow[]): OutputCSVs {
+export function buildOutputCSVs(derived: DerivedRow[], selectedPOS?: string): OutputCSVs {
   // ── 1. Brands ──────────────────────────────────────────────────────────
   const brandSet = new Map<string, string>(); // lowercase -> winning casing
   for (const d of derived) {
@@ -295,9 +295,10 @@ export function buildOutputCSVs(derived: DerivedRow[]): OutputCSVs {
     const currentOrder = (imageOrderMap.get(d.skuBarcode) ?? 0) + 1;
     imageOrderMap.set(d.skuBarcode, currentOrder);
 
-    const imageUrl = d.imageFilename.startsWith('http')
-      ? d.imageFilename
-      : d.imageFilename;
+    let imageUrl = d.imageFilename;
+    if (!imageUrl.startsWith('http') && selectedPOS === 'Dutchie') {
+      imageUrl = `https://leaflogixmedia.blob.core.windows.net/product-image/${imageUrl}`;
+    }
 
     imagesOutput.push([d.skuBarcode, '', imageUrl, '', currentOrder.toString(), '']);
   }

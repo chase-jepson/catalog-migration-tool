@@ -53,8 +53,6 @@ function makeVendorMappings(): FieldMapping[] {
   return [
     makeMapping('vnd_vendorName', 'Vendor name'),
     makeMapping('vnd_vendorCode', 'Vendor code'),
-    makeMapping('vnd_vendorCode1', 'Vendor code (1)'),
-    makeMapping('vnd_vendorCode2', 'Vendor code (2)'),
     makeMapping('vnd_abbreviation', 'Abbreviation'),
     makeMapping('vnd_address', 'Address'),
     makeMapping('vnd_city', 'City'),
@@ -71,7 +69,6 @@ function makeInventoryMappings(): FieldMapping[] {
     makeMapping('inv_product', 'Product'),
     makeMapping('inv_externalPackageId', 'External package ID'),
     makeMapping('inv_room', 'Room'),
-    makeMapping('inv_available', 'Available'),
     makeMapping('inv_quantityIncAllocated', 'Quantity (including allocated)'),
     makeMapping('inv_cost', 'Cost'),
     makeMapping('inv_thc', 'THC'),
@@ -203,18 +200,18 @@ describe('processReceipts', () => {
 describe('processVendors', () => {
   it('builds distributor address from address parts', () => {
     const vendorRows = [
-      { 'Vendor name': 'Vendor A', 'Address': '123 Main St', 'City': 'LA', 'State': 'CA', 'Postal code': '90001', 'Vendor code': 'LIC-001', 'Vendor code (1)': '', 'Vendor code (2)': '', 'Abbreviation': 'VA', 'Contact phone': '555-1234', 'Contact email': 'a@test.com' },
+      { 'Vendor name': 'Vendor A', 'Address': '123 Main St', 'City': 'LA', 'State': 'CA', 'Postal code': '90001', 'Vendor code': 'LIC-001', 'Abbreviation': 'VA', 'Contact phone': '555-1234', 'Contact email': 'a@test.com' },
     ];
 
     const result = processVendors(vendorRows, makeVendorMappings());
 
     expect(result['Vendor A']).toBeDefined();
-    expect(result['Vendor A'].distributorAddress).toBe('123 Main St, LA, CA 90001');
+    expect(result['Vendor A'].distributorAddress).toBe('123 Main St LA, CA 90001');
   });
 
   it('creates 32 distributor columns', () => {
     const vendorRows = [
-      { 'Vendor name': 'Vendor A', 'Address': '123 Main', 'City': 'LA', 'State': 'CA', 'Postal code': '90001', 'Vendor code': 'LIC-1', 'Vendor code (1)': '', 'Vendor code (2)': '', 'Abbreviation': 'VA', 'Contact phone': '555', 'Contact email': 'a@b.com' },
+      { 'Vendor name': 'Vendor A', 'Address': '123 Main', 'City': 'LA', 'State': 'CA', 'Postal code': '90001', 'Vendor code': 'LIC-1', 'Abbreviation': 'VA', 'Contact phone': '555', 'Contact email': 'a@b.com' },
     ];
 
     const result = processVendors(vendorRows, makeVendorMappings());
@@ -233,7 +230,8 @@ describe('processVendors', () => {
 
   it('enriches license type to "Adult" when license number is present', () => {
     const vendorRows = [
-      { 'Vendor name': 'V', 'Address': '', 'City': '', 'State': '', 'Postal code': '', 'Vendor code': 'LIC-1', 'Vendor code (1)': 'LIC-2', 'Vendor code (2)': '', 'Abbreviation': '', 'Contact phone': '', 'Contact email': '' },
+      { 'Vendor name': 'V', 'Address': '', 'City': '', 'State': '', 'Postal code': '', 'Vendor code': 'LIC-1', 'Abbreviation': '', 'Contact phone': '', 'Contact email': '' },
+      { 'Vendor name': 'V', 'Address': '', 'City': '', 'State': '', 'Postal code': '', 'Vendor code': 'LIC-2', 'Abbreviation': '', 'Contact phone': '', 'Contact email': '' },
     ];
 
     const result = processVendors(vendorRows, makeVendorMappings());
@@ -248,7 +246,7 @@ describe('processVendors', () => {
 
   it('generates license expiration (today + 2 years) for non-empty licenses', () => {
     const vendorRows = [
-      { 'Vendor name': 'V', 'Address': '', 'City': '', 'State': '', 'Postal code': '', 'Vendor code': 'LIC-1', 'Vendor code (1)': '', 'Vendor code (2)': '', 'Abbreviation': '', 'Contact phone': '', 'Contact email': '' },
+      { 'Vendor name': 'V', 'Address': '', 'City': '', 'State': '', 'Postal code': '', 'Vendor code': 'LIC-1', 'Abbreviation': '', 'Contact phone': '', 'Contact email': '' },
     ];
 
     const result = processVendors(vendorRows, makeVendorMappings());
@@ -368,14 +366,14 @@ describe('joinChain', () => {
 // ── Phase E: Final Enrichment ───────────────────────────────────────────────
 
 describe('finalEnrichment', () => {
-  it('replaces blank Units with "0"', () => {
+  it('leaves blank Units empty for receipt-only rows', () => {
     const rows = [
       { ExternalPackageId: 'PKG-1', Units: '', ProductSKU: 'SKU-1', ProductCategory: 'Flower' },
     ];
 
     const result = finalEnrichment(rows as any[], 'LIC-001');
 
-    expect(result[0].units).toBe('0');
+    expect(result[0].units).toBe('');
   });
 
   it('assigns row numbers partitioned by ExternalPackageId', () => {
@@ -477,7 +475,7 @@ describe('runInventoryETL', () => {
       { 'Product SKU': 'SKU-1', 'External Package ID': 'PKG-1', 'Receive Date': '02/11/2026', 'Quantity': '20', 'Total Cost': '200', 'Vendor Name': 'Vendor A', 'Order Title': 'PO-1 - INV001', 'Unit Cost': '10' },
     ]);
     const vendorsFile = makeParsedFile([
-      { 'Vendor name': 'Vendor A', 'Address': '123 Main', 'City': 'LA', 'State': 'CA', 'Postal code': '90001', 'Vendor code': 'LIC-1', 'Vendor code (1)': '', 'Vendor code (2)': '', 'Abbreviation': 'VA', 'Contact phone': '555', 'Contact email': 'a@b.com' },
+      { 'Vendor name': 'Vendor A', 'Address': '123 Main', 'City': 'LA', 'State': 'CA', 'Postal code': '90001', 'Vendor code': 'LIC-1', 'Abbreviation': 'VA', 'Contact phone': '555', 'Contact email': 'a@b.com' },
     ]);
     const catalogFile = makeParsedFile([
       { 'Product Key': 'SKU-1', 'Product Category': 'Flower' },

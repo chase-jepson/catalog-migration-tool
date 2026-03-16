@@ -25,3 +25,14 @@ export function getApiBaseUrl(env: TreezEnv): string {
       return 'https://api-dev.treez.io';
   }
 }
+
+export function getMsoApiBaseUrl(env: TreezEnv): string {
+  switch (env) {
+    case 'production':
+      return 'https://api.mso.treez.io';
+    case 'sandbox':
+      return 'https://api.mso.sandbox.treez.io';
+    case 'dev':
+      return 'https://api-dev.mso.treez.io';
+  }
+}
