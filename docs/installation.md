@@ -1,12 +1,38 @@
 # Installation
 
-## Prerequisites
+## Download & Install (Recommended)
+
+No development tools required -- just Chrome.
+
+1. Go to the [Releases page](https://gitlab.com/chase_jepson/catalog-migration-tool-v2/-/releases) and download the latest ZIP
+2. Create a new folder (e.g., `catalog-migration-tool` on your Desktop)
+3. Extract the ZIP contents **into that folder** -- you should see these files inside:
+   ```
+   catalog-migration-tool/
+   ├── manifest.json
+   ├── background.js
+   └── content-scripts/
+       ├── import-page.js
+       ├── wizard-drawer.js
+       └── wizard-drawer.css
+   ```
+4. Open Chrome and go to `chrome://extensions/`
+5. Enable **Developer mode** using the toggle in the top-right corner
+6. Click **Load unpacked**
+7. Select the folder you created in step 2 (the one containing `manifest.json`)
+8. The extension icon should appear in your Chrome toolbar
+
+> **Important:** Do not delete or move this folder after loading -- Chrome references it directly. If you move it, you'll need to re-load the extension from the new location.
+
+## Build from Source
+
+If you prefer to build from source (or want to contribute):
+
+### Prerequisites
 
 - **Node.js** 18 or later
 - **pnpm** (recommended) or npm
 - **Google Chrome** (the extension requires Manifest V3 APIs)
-
-## Build from Source
 
 ```bash
 # Clone the repository
