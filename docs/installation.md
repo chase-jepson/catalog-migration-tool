@@ -4,7 +4,7 @@
 
 No development tools required -- just Chrome.
 
-1. Go to the [Releases page](https://gitlab.com/chase_jepson/catalog-migration-tool-v2/-/releases) and download the latest ZIP
+1. Download the [latest extension ZIP](https://gitlab.com/chase_jepson/catalog-migration-tool-v2/-/releases/v0.0.1/downloads/catalog-migration-tool-0.0.1-chrome.zip) (do **not** download "Source code" from the releases page -- that's the raw source, not the built extension)
 2. Create a new folder (e.g., `catalog-migration-tool` on your Desktop)
 3. Extract the ZIP contents **into that folder** -- you should see these files inside:
    ```
