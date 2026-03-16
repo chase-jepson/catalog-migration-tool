@@ -21,7 +21,20 @@ Auto-detection and smart column mapping for:
 | Cova | Yes | Yes |
 | Other / Manual | -- | Manual mapping |
 
-## Quick Start
+## Download & Install
+
+1. Download the latest ZIP from the [Releases page](https://gitlab.com/chase_jepson/catalog-migration-tool-v2/-/releases)
+2. Unzip the downloaded file
+3. Open `chrome://extensions/` in Chrome and enable **Developer mode** (top-right toggle)
+4. Click **Load unpacked** and select the unzipped folder
+5. Navigate to `app.treez.io/treez-admin/import/home` -- you should see **Migrate Catalog** and **Migrate Inventory** buttons
+6. Click either button and follow the wizard: Upload your file > Map columns > Review & fix errors > Import
+
+> **Note:** You must be logged into Treez in the same browser. The extension uses your existing session -- no separate login needed.
+
+## Build from Source
+
+If you prefer to build from source (or want to contribute):
 
 ### Prerequisites
 
@@ -38,18 +51,7 @@ pnpm install
 pnpm build
 ```
 
-### Load in Chrome
-
-1. Open `chrome://extensions/`
-2. Enable **Developer mode** (top-right toggle)
-3. Click **Load unpacked**
-4. Select the `.output/chrome-mv3/` directory from the build output
-
-### Use
-
-1. Navigate to the Treez import page (`app.treez.io/treez-admin/import/home`)
-2. Click **Migrate Catalog** or **Migrate Inventory**
-3. Follow the wizard: Upload your file > Map columns > Review & fix errors > Import
+Then load `.output/chrome-mv3/` as an unpacked extension (same steps 3-4 above).
 
 ## Migration Types
 
