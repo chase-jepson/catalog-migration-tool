@@ -476,27 +476,43 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
             'rgba(0,0,0,0.2) 0px 3px 3px -2px, rgba(0,0,0,0.14) 0px 3px 4px 0px, rgba(0,0,0,0.12) 0px 1px 8px 0px',
         }}
       >
-        {currentStep > 0 ? (
-          <button
-            type="button"
-            onClick={() => setCurrentStep((s) => s - 1)}
-            className="btn-treez-text font-[Roboto,sans-serif] font-medium"
+        <div className="flex items-center gap-3">
+          {currentStep > 0 ? (
+            <button
+              type="button"
+              onClick={() => setCurrentStep((s) => s - 1)}
+              className="btn-treez-text font-[Roboto,sans-serif] font-medium"
+              style={{
+                padding: '8px 10px',
+                borderRadius: '16px',
+                border: 'none',
+                color: '#1a4007',
+                fontSize: '15px',
+                height: '40px',
+                letterSpacing: '0.43px',
+                lineHeight: '24px',
+              }}
+            >
+              Back
+            </button>
+          ) : null}
+          <a
+            href="https://gitlab.com/chase_jepson/catalog-migration-tool-v2/-/issues/new?issuable_template=Bug%20Report"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-[Roboto,sans-serif]"
             style={{
-              padding: '8px 10px',
-              borderRadius: '16px',
-              border: 'none',
-              color: '#1a4007',
-              fontSize: '15px',
-              height: '40px',
-              letterSpacing: '0.43px',
-              lineHeight: '24px',
+              fontSize: '12px',
+              color: '#9e9e9e',
+              textDecoration: 'none',
+              letterSpacing: '0.3px',
             }}
+            onMouseEnter={(e) => { (e.target as HTMLAnchorElement).style.color = '#616161'; }}
+            onMouseLeave={(e) => { (e.target as HTMLAnchorElement).style.color = '#9e9e9e'; }}
           >
-            Back
-          </button>
-        ) : (
-          <div />
-        )}
+            Report an issue
+          </a>
+        </div>
         {currentStep < lastStep ? (
           <button
             type="button"
