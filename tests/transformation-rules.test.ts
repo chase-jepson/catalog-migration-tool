@@ -1059,6 +1059,73 @@ describe("status derivation", () => {
   });
 });
 
+// ── Coated/Dusted/Glazed Extract → Flower/Infused Flower ─────────────────────
+
+describe("coated/dusted/glazed overrides Extract → Flower", () => {
+  it("diamond coated → Flower/Infused Flower, not Extract/Diamonds", () => {
+    const result = applyNameOverride("Extract", "Diamonds", "Pink Zkittlez Diamond Coated 3.5g");
+    expect(result.category).toBe("Flower");
+    expect(result.subCategory).toBe("Infused Flower");
+  });
+
+  it("kief dusted → Flower/Infused Flower", () => {
+    const result = applyNameOverride("Extract", "Kief", "OG Kush Kief Dusted Buds 3.5g");
+    expect(result.category).toBe("Flower");
+    expect(result.subCategory).toBe("Infused Flower");
+  });
+
+  it("glazed flower → Flower/Infused Flower", () => {
+    const result = applyNameOverride("Extract", "Extract - General", "Glazed Donut Flower 7g");
+    expect(result.category).toBe("Flower");
+    expect(result.subCategory).toBe("Infused Flower");
+  });
+
+  it("coated does NOT override Flower (already correct)", () => {
+    const result = applyNameOverride("Flower", "Pre-Pack", "Diamond Coated Buds 3.5g");
+    expect(result.category).toBe("Flower");
+  });
+});
+
+// ── Milligram UOM Unknown-Unit Weight → mg ───────────────────────────────────
+
+describe("milligram UOM unknown-unit weight treated as mg", () => {
+  it("Meadow Cannabis Content 1000 → 1000mg amount (not overflow)", () => {
+    const row = derive({
+      SKU: "MG-001",
+      Product: "Mambas Lime Hash Rosin Infused Gummies",
+      Category: "Edible",
+      Weight: "1000",
+      Price: "40",
+    });
+    expect(row.uom).toBe("milligrams");
+    expect(row.amount).toBe(1000);
+  });
+
+  it("unknown-unit weight 500 on milligram product → 500mg", () => {
+    const row = derive({
+      SKU: "MG-002",
+      Product: "Test Edible",
+      Category: "Edible",
+      Weight: "500",
+      Price: "25",
+    });
+    expect(row.uom).toBe("milligrams");
+    expect(row.amount).toBe(500);
+  });
+
+  it("explicit mg unit still works", () => {
+    const row = derive({
+      SKU: "MG-003",
+      Product: "Gummy 100mg",
+      Category: "Edible",
+      Weight: "100mg",
+      Price: "20",
+    });
+    expect(row.uom).toBe("milligrams");
+    expect(row.amount).toBe(100);
+  });
+});
+
 // ── CBD Product THC Reclassification (with THC keyword) ──────────────────────
 
 describe("CBD with THC keyword reclassification", () => {

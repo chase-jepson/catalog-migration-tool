@@ -607,9 +607,16 @@ export function deriveRows(
       const cannaVal = category === "CBD" ? cbd : thc;
       const num = parseFloat(cannaVal);
       amount = !isNaN(num) && num > 0 ? num : 0;
-      // Fallback: use raw weight converted to mg (weightInGrams is zeroed for mg UOM)
-      const rawWeightGrams = getWeightInGramsInternal(parsed);
-      if (amount <= 0 && rawWeightGrams > 0) amount = rawWeightGrams * 1000;
+      // Fallback: use raw weight as mg amount.
+      // For unknown-unit values, treat directly as mg (not grams) to avoid overflow.
+      // E.g., Meadow "Cannabis Content" = 1000 means 1000mg, not 1000g.
+      if (amount <= 0 && parsed.value > 0) {
+        if (parsed.unit === "mg" || parsed.unit === "unknown") {
+          amount = parsed.value;
+        } else {
+          amount = getWeightInGramsInternal(parsed) * 1000;
+        }
+      }
       if (amount <= 0) {
         const mgStr = extractMgFromName(rawName);
         const mgVal = parseFloat(mgStr);

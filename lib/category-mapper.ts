@@ -183,6 +183,14 @@ const STRONG_NAME_OVERRIDES: {
     overrideCategories: ["Flower"],
     category: "Preroll",
   },
+  // "Diamond coated" / "kief dusted" products miscategorized as Extract due to
+  // "diamond" keyword — these are infused flower, not concentrates.
+  {
+    namePattern: /\b(coated|dusted|glazed)\b/i,
+    overrideCategories: ["Extract"],
+    category: "Flower",
+    subCategory: "Infused Flower",
+  },
   {
     namePattern: /\bthc[\s-]?a\b/i,
     overrideCategories: ["Edible"],
