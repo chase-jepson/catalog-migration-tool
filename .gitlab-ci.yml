@@ -1,0 +1,56 @@
+stages:
+  - test
+  - build
+
+variables:
+  NODE_VERSION: "18"
+
+.node_setup: &node_setup
+  image: node:${NODE_VERSION}-alpine
+  before_script:
+    - corepack enable
+    - pnpm install --frozen-lockfile
+
+test:
+  <<: *node_setup
+  stage: test
+  script:
+    - pnpm test
+  rules:
+    - if: $CI_MERGE_REQUEST_IID
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG
+
+build:
+  <<: *node_setup
+  stage: build
+  script:
+    - pnpm build
+    - pnpm zip
+  artifacts:
+    paths:
+      - .output/*.zip
+    expire_in: 30 days
+  rules:
+    - if: $CI_MERGE_REQUEST_IID
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG
+
+release:
+  <<: *node_setup
+  stage: build
+  needs: [test, build]
+  script:
+    - echo "Releasing ${CI_COMMIT_TAG}"
+  artifacts:
+    paths:
+      - .output/*.zip
+  release:
+    tag_name: $CI_COMMIT_TAG
+    description: "Release $CI_COMMIT_TAG"
+    assets:
+      links:
+        - name: "Chrome Extension ZIP"
+          url: "${CI_PROJECT_URL}/-/jobs/${CI_JOB_ID}/artifacts/file/.output/catalog-migration-tool-${CI_COMMIT_TAG#v}-chrome.zip"
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
