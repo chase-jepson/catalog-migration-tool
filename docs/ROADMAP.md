@@ -15,7 +15,7 @@
 - File upload + POS auto-detection (9 systems)
 - Column mapping with POS-specific defaults
 - Basic transformation pipeline (category resolution, weight parsing)
-- CSV generation (brands, products, variants, attributes, images)
+- CSV generation (brands, attributes, products, variants, attribute joins, images)
 - S3 upload + import polling
 
 ### 0.2 — Inventory Migration
@@ -49,6 +49,10 @@
 - [ ] Target: <100 flagged rows across all 44 test files (from 1,736 at start)
 - [ ] Full regression test coverage for all new rules
 
+**Acceptance criteria**:
+- <100 flagged rows AND <5% error rate on validation across all 9 POS systems
+- Every new transformation rule has dedicated test coverage
+
 **Done when**: A migration expert can upload any of the 9 POS exports and the output requires minimal manual corrections.
 
 ---
@@ -63,39 +67,65 @@
 - [ ] Save/load mapping profiles per POS system
 - [ ] UI shows auto-mapped fields as pre-filled with visual indicator of confidence level
 
+**Acceptance criteria**:
+- ≥90% of columns auto-mapped correctly across a test set of 20+ real exports, measured by field-level accuracy
+
 **Done when**: A user uploads a CSV and sees correct mappings pre-filled without needing to touch the mapping step for standard exports.
 
 ---
 
-### 0.6 — In-App Product Review Page
-**Goal**: Dedicated review page inside the extension where users can inspect, edit, and approve products before import.
+### 0.6 — In-App Review + Skipped Products Report
+**Goal**: Dedicated review page inside the extension where users can inspect, edit, and approve products before import, plus clear visibility into what was skipped and why.
 
-- [ ] Table view of all transformed products with inline editing
-- [ ] Filter/sort by category, subcategory, brand, flagged status
-- [ ] Bulk edit operations (select multiple rows, change category/subcategory)
-- [ ] Flag system: auto-flagged (suspicious values) + manual flags (user marks for review)
-- [ ] Side panel product detail view (all fields, original source row, transformation notes)
+#### Review Page (MVP scope)
+- [ ] Table view of flagged/suspicious products with inline editing
+- [ ] Filter/sort by category, subcategory, brand, flag type
 - [ ] Mark rows as reviewed/approved
 - [ ] Exclude individual products from import
-- [ ] Undo/redo for edits
+- [ ] Attribute mapping review (flavors, effects, tags)
 - [ ] Export corrections as JSON (for feeding back into transformation logic)
 
-**Done when**: A migration expert can review, correct, and approve an entire catalog inside the extension without touching a spreadsheet.
+#### Skipped Products Report
+- [ ] "Skipped" tab showing all excluded products with skip reasons
+- [ ] Summary statistics: X skipped out of Y total, grouped by reason
+- [ ] Option to "force include" borderline skips
+- [ ] Downloadable CSV of skipped products with original row data + reason + suggested action
+
+#### Deferred to fast-follow
+- Bulk edit operations (select multiple rows, change category/subcategory)
+- Side panel product detail view
+- Undo/redo for edits
+
+**Acceptance criteria**:
+- Migration expert completes review of a 5,000-product catalog in under 30 minutes using only the in-app review
+- Every skipped product has a visible reason; no products silently disappear
+
+**Done when**: A migration expert can review, correct, and approve an entire catalog inside the extension without touching a spreadsheet, and has a clear audit trail of skipped products.
 
 ---
 
-### 0.7 — Skipped Products Report
-**Goal**: Clear visibility into what didn't make it into the import and why.
+### 0.7 — Core API Import
+**Goal**: Products are created/updated in Treez directly via PMS API — no CSV handoff.
 
-- [ ] Downloadable CSV of all skipped/excluded products with columns:
-  - Original row data
-  - Skip reason (missing required field, excluded category, payment fee, etc.)
-  - Suggested action (add weight, check category, etc.)
-- [ ] Summary statistics: X skipped out of Y total, grouped by reason
-- [ ] In-app banner showing skip count with link to download report
-- [ ] Option to "force include" borderline skips from the review page (0.6)
+- [ ] PMS API client for product CRUD (create, update, read)
+- [ ] Brand creation — auto-create brands that don't exist in target org
+- [ ] Attribute creation — auto-create attributes/attribute joins
+- [ ] Map transformed rows to PMS API payloads
+- [ ] Batch processing with configurable batch size
+- [ ] Progress bar with per-product status (created / updated / failed / skipped)
+- [ ] **Dry run mode**: preview what will be created/changed before committing
+- [ ] Error handling: retry failed products, surface actionable error messages
+- [ ] Transaction log: what was created/updated, timestamped
 
-**Done when**: After every migration, the team has a clear audit trail of what was skipped and why — no products silently disappear.
+**Rollback strategy** (define before building):
+- [ ] Document what "rollback" means for direct API writes (delete created products? revert field changes?)
+- [ ] Decide: soft rollback (mark inactive) vs hard rollback (delete) vs no automated rollback (manual cleanup from transaction log)
+
+**Acceptance criteria**:
+- 100% of non-excluded products exist in PMS with correct category, subcategory, brand, amount, and pricing after import — verified by re-fetching and diffing
+- Dry run mode shows exact create/update counts without writing to PMS
+
+**Done when**: Migration expert uploads a POS export and products appear in Treez — no CSV downloads, no manual uploads, no portal involvement.
 
 ---
 
@@ -103,9 +133,9 @@
 **Goal**: Product images from the source POS are migrated to Treez alongside catalog data.
 
 - [ ] Extract image URLs from source exports (Dutchie, Flowhub, Cova include image columns)
-- [ ] Download images from source URLs
-- [ ] Upload to Treez image storage (S3 via presigned URLs)
-- [ ] Map images to products in the import payload
+- [ ] Download images via background script (handles CORS)
+- [ ] Upload to Treez image storage (S3 via presigned URLs or PMS API)
+- [ ] Map images to variants in the import payload
 - [ ] Handle: missing images, broken URLs, duplicate images, rate limiting
 - [ ] Progress indicator for image download/upload (can be slow for large catalogs)
 - [ ] Fallback: generate image manifest CSV for manual upload if automated path fails
@@ -114,33 +144,16 @@
 
 ---
 
-### 0.9 — Direct API Import
-**Goal**: Products are created/updated in Treez directly via PMS API — no CSV handoff.
+### 0.9 — Error Recovery + Progress Tracking
+**Goal**: Robust handling of large imports and partial failures.
 
-#### 0.9.1 — Core API Integration
-- [ ] PMS API client for product CRUD (create, update, read)
-- [ ] Map transformed rows to PMS API payloads
-- [ ] Batch processing with configurable batch size
-- [ ] Progress bar with per-product status (created / updated / failed / skipped)
-- [ ] Error handling: retry failed products, surface actionable error messages
-- [ ] Transaction log: what was created/updated, with rollback reference
-
-#### 0.9.2 — Delta Detection (Re-sync)
-- [ ] Pull existing products from PMS for the target org
-- [ ] Normalize both sides (transformed source data vs existing PMS data)
-- [ ] Compute diff: new products, changed products, unchanged products
-- [ ] **Source has timestamps**: filter to rows modified since last sync date
-- [ ] **Source has no timestamps**: full diff by product key/SKU/barcode
-- [ ] UI shows diff summary: "42 new, 18 changed, 1,204 unchanged"
-- [ ] User confirms which changes to apply before import executes
-- [ ] Support incremental re-syncs (client sends updated export, we only push changes)
-
-#### 0.9.3 — Error Recovery
 - [ ] Resume interrupted imports from last successful product
 - [ ] Partial import state saved to chrome.storage
 - [ ] Detailed error report: which products failed, why, with retry option
+- [ ] Performance: handle 15,000+ product catalogs without timeout or memory issues
+- [ ] Import history: list of past imports with status, product count, timestamp
 
-**Done when**: Migration expert uploads a POS export and products appear in Treez — no CSV downloads, no manual uploads, no portal involvement. Re-running with an updated export only touches what changed.
+**Done when**: A 15,000 product import that fails at product 8,000 can be resumed from where it stopped, and the user has a clear report of what succeeded and what failed.
 
 ---
 
@@ -172,8 +185,9 @@
 
 ## Post-v1 (v2+)
 
-- **Inventory migration improvements** — Same level of accuracy and API import for inventory
-- **Collections migration** — If needed in the future
-- **Multi-location support** — Split products across locations during import
+- **Delta detection / re-sync** — Compare transformed data against existing PMS data, only import/update products that changed. Supports both timestamp-based filtering and full diff by product key/SKU.
+- **Inventory migration v2** — Same level of accuracy and API import for inventory
 - **Price tier creation** — Auto-create price tiers in Treez from source pricing columns
+- **Per-store entity pricing** — Import store-specific price overrides for multi-location orgs
+- **Bulk edit in review** — Multi-select rows, bulk category/subcategory changes, undo/redo
 - **Audit dashboard** — Historical view of all migrations run through the tool
