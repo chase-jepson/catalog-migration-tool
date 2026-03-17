@@ -33,14 +33,14 @@ const KEYWORD_RULES: KeywordRule[] = [
 
   // Beverage -- BEFORE Edible so "edible (liquid)" maps here
   {
-    keywords: /\b(beverages?|drinks?|seltzer|soda|water|juice|tea|coffee|tonic|elixir|shot)\b/i,
+    keywords: /\b(beverages?|drinks?|sips?|seltzer|soda|water|juice|tea|coffee|tonic|elixir|shot|margarita|lemonade|punch)\b/i,
     category: "Beverage",
   },
   { keywords: /edible\s*\(liquid\)/i, category: "Beverage" },
   { keywords: /\b(dissolvable)\b/i, category: "Beverage", subCategory: "Dissolvable" },
 
   // Cartridge -- "cart" and "vape" both trigger this
-  { keywords: /\b(cartridges?|cart|vapes?|510|ccell)\b/i, category: "Cartridge" },
+  { keywords: /\b(cartridges?|cart|vapes?|vaporizers?|510|ccell)\b/i, category: "Cartridge" },
   { keywords: /\b(pod|reload)\b/i, category: "Cartridge", subCategory: "Pod" },
   {
     keywords: /\b(all[\s-]?in[\s-]?one|aio|disposable|dispo|ready[\s-]?to[\s-]?use|rtu)\b/i,
@@ -165,7 +165,7 @@ const NAME_OVERRIDE_RULES: KeywordRule[] = [
     category: "Cartridge",
     subCategory: "Ready To Use",
   },
-  { keywords: /\b(cart|vape)\b/i, category: "Cartridge" },
+  { keywords: /\b(cart|vape|vaporizers?)\b/i, category: "Cartridge" },
   { keywords: /\b(syrup)\b/i, category: "Tincture", subCategory: "Syrup" },
   { keywords: /\b(tincture)\b/i, category: "Tincture" },
   { keywords: /\b(tablet|tablit)\b/i, category: "Pill" },
@@ -188,6 +188,57 @@ const STRONG_NAME_OVERRIDES: {
     overrideCategories: ["Edible"],
     category: "Extract",
     subCategory: "THC-A",
+  },
+  {
+    namePattern: /\btincture\b/i,
+    overrideCategories: ["Edible", "Misc", "Extract"],
+    category: "Tincture",
+  },
+  // Edible products miscategorized as CBD — name clearly indicates edible type
+  {
+    namePattern: /\b(gumm(y|ies))\b/i,
+    overrideCategories: ["CBD"],
+    category: "Edible",
+    subCategory: "Gummy",
+  },
+  {
+    namePattern: /\b(chocolate)\b/i,
+    overrideCategories: ["CBD"],
+    category: "Edible",
+    subCategory: "Chocolate",
+  },
+  {
+    namePattern: /\b(brownie|cookie|baked)\b/i,
+    overrideCategories: ["CBD"],
+    category: "Edible",
+    subCategory: "Baked Good",
+  },
+  {
+    namePattern: /\b(mint|lozenge)\b/i,
+    overrideCategories: ["CBD"],
+    category: "Edible",
+  },
+  {
+    namePattern: /\b(capsule|softgel)\b/i,
+    overrideCategories: ["CBD"],
+    category: "Pill",
+    subCategory: "Capsule",
+  },
+  {
+    namePattern: /\b(tablet)\b/i,
+    overrideCategories: ["CBD"],
+    category: "Pill",
+    subCategory: "Tablet",
+  },
+  {
+    namePattern: /\b(topical|cream|balm|salve|lotion|patch)\b/i,
+    overrideCategories: ["CBD"],
+    category: "Topical",
+  },
+  {
+    namePattern: /\b(cartridge|cart|vape|vaporizer)\b/i,
+    overrideCategories: ["CBD"],
+    category: "Cartridge",
   },
 ];
 
@@ -263,8 +314,8 @@ const SUBCATEGORY_NAME_RULES: Record<string, SubCategoryNameRule[]> = {
   ],
   Flower: [
     { keywords: /bulk/i, subCategory: "Bulk Flower" },
-    { keywords: /infused/i, subCategory: "Infused Flower" },
-    { keywords: /small/i, subCategory: "Pre-Pack Smalls" },
+    { keywords: /infused|coated|dusted|glazed/i, subCategory: "Infused Flower" },
+    { keywords: /smalls?|popcorn/i, subCategory: "Pre-Pack Smalls" },
   ],
   Merch: [
     { keywords: /battery/i, subCategory: "Battery" },
@@ -481,6 +532,41 @@ export function applyNameOverride(
         getDefaultSubCategory(override.category);
       return { category: override.category, subCategory: sub };
     }
+  }
+
+  // Post-resolution fixes based on product name context
+
+  // CBD category products with THC content → reclassify based on name
+  // (e.g., "CBD Gummy 100mg THC" should be Edible, not CBD)
+  if (currentCategory === "CBD" && /\bthc\b/i.test(productName)) {
+    for (const rule of NAME_OVERRIDE_RULES) {
+      if (rule.keywords.test(productName)) {
+        const newSub =
+          rule.subCategory ??
+          resolveSubCategoryFromName(rule.category, productName) ??
+          getDefaultSubCategory(rule.category);
+        return { category: rule.category, subCategory: newSub };
+      }
+    }
+    // Fallback: use keyword rules
+    for (const rule of KEYWORD_RULES) {
+      if (rule.category !== "CBD" && rule.keywords.test(productName)) {
+        const newSub =
+          rule.subCategory ??
+          resolveSubCategoryFromName(rule.category, productName) ??
+          getDefaultSubCategory(rule.category);
+        return { category: rule.category, subCategory: newSub };
+      }
+    }
+  }
+
+  // Infused merch → Misc: rolling papers, wraps, cones with THC/infused
+  if (
+    currentCategory === "Merch" &&
+    /\b(infused|thc|cannabis)\b/i.test(productName) &&
+    /\b(papers?|wraps?|cones?|rolling|blunt\s*wraps?)\b/i.test(productName)
+  ) {
+    return { category: "Misc", subCategory: "Misc - General" };
   }
 
   // Only apply weak overrides when current resolution is weak
