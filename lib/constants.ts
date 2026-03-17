@@ -221,6 +221,7 @@ export const POS_DEFAULTS: Record<string, Record<string, string>> = {
     brand: "Brand",
     productCategory: "Category",
     productSubCategory: "Cannabis Type",
+    externalCategory: "Custom Weight Type",
     status: "Active",
     strain: "Genetics",
     classification: "Type",

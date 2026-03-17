@@ -15,6 +15,11 @@ import {
   EXCLUDED_CATEGORY,
   type CategoryInput,
 } from "./category-mapper";
+import {
+  lookupBrandCategory,
+  normalizeBrandName,
+  lookupStrainClassification,
+} from "./reference-data";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -92,23 +97,16 @@ function buildBrandCasingMap(brands: string[]): Map<string, string> {
  * Normalize a classification string to a valid Treez classification.
  * Optionally uses productName for name-based fallback.
  */
-export function normalizeClassification(input: string, productName?: string): string {
-  if (!input && !productName) return "";
+export function normalizeClassification(
+  input: string,
+  productName?: string,
+  description?: string,
+): string {
+  if (!input && !productName && !description) return "";
   const lower = (input || "").toLowerCase().trim();
 
-  // Exact matches
-  if (lower === "sativa") return "Sativa";
-  if (lower === "indica") return "Indica";
-  if (lower === "hybrid") return "Hybrid";
-  if (lower === "i/s") return "I/S";
-  if (lower === "s/i") return "S/I";
-  if (lower === "cbd") return "CBD";
-
-  // Dominant abbreviations
-  if (/indica[\s-]?dom/i.test(lower)) return "I/S";
-  if (/sativa[\s-]?dom/i.test(lower)) return "S/I";
-
-  // Name-based fallbacks
+  // 1. Product name takes priority — when it explicitly mentions a classification,
+  //    it's usually more accurate than the mapped column (per review feedback).
   if (productName) {
     const nameLower = productName.toLowerCase();
     if (/indica/i.test(nameLower) && /hybrid/i.test(nameLower)) return "I/S";
@@ -117,6 +115,32 @@ export function normalizeClassification(input: string, productName?: string): st
     if (/\(S\)/i.test(productName) || /\bsativa\b/i.test(productName)) return "Sativa";
     if (/\(H\)/i.test(productName) || /\bhybrid\b/i.test(productName)) return "Hybrid";
     if (/\bcbd\b/i.test(productName)) return "CBD";
+  }
+
+  // 2. Mapped column value — exact matches
+  if (lower === "sativa") return "Sativa";
+  if (lower === "indica") return "Indica";
+  if (lower === "hybrid" || lower === "hbrid") return "Hybrid";
+  if (lower === "i/s") return "I/S";
+  if (lower === "s/i") return "S/I";
+  if (lower === "cbd") return "CBD";
+
+  // 3. Compound classifications (e.g., "Sativa-Hybrid", "Indica-Hybrid", "hybrid-indica")
+  if (/indica[\s-]?hybrid|hybrid[\s-]?indica/i.test(lower)) return "I/S";
+  if (/sativa[\s-]?hybrid|hybrid[\s-]?sativa/i.test(lower)) return "S/I";
+
+  // 4. Dominant abbreviations
+  if (/indica[\s-]?dom/i.test(lower)) return "I/S";
+  if (/sativa[\s-]?dom/i.test(lower)) return "S/I";
+
+  // 5. Description-based fallback
+  if (description) {
+    const descLower = description.toLowerCase();
+    if (/indica/i.test(descLower) && /hybrid/i.test(descLower)) return "I/S";
+    if (/sativa/i.test(descLower) && /hybrid/i.test(descLower)) return "S/I";
+    if (/\bindica\b/i.test(descLower)) return "Indica";
+    if (/\bsativa\b/i.test(descLower)) return "Sativa";
+    if (/\bhybrid\b/i.test(descLower)) return "Hybrid";
   }
 
   return "";
@@ -497,11 +521,27 @@ export function deriveRows(
         extraContext,
       );
 
-    const finalResolution = applyNameOverride(
+    let finalResolution = applyNameOverride(
       baseResolution.category,
       baseResolution.subCategory,
       rawName,
     );
+
+    // Brand→category fallback: when category resolution is weak (Other/Misc/empty),
+    // use production data to infer category from brand name (≥95% confidence)
+    if (
+      (!finalResolution.category || finalResolution.category === "Other" || finalResolution.category === "Misc") &&
+      rawBrand
+    ) {
+      const brandCat = lookupBrandCategory(rawBrand);
+      if (brandCat) {
+        const brandSub =
+          resolveSubCategoryFromName(brandCat, rawName) ??
+          getDefaultSubCategory(brandCat);
+        finalResolution = { category: brandCat, subCategory: brandSub };
+      }
+    }
+
     const category = finalResolution.category;
 
     // Name-based subcategory refinement
@@ -520,21 +560,38 @@ export function deriveRows(
       resolutionMap.set(catKey, { category, subCategory, uom, merchSize });
     }
 
-    const parsed = internalParseWeight(rawWeight);
-    const weightInGrams = getWeightInGramsInternal(parsed);
+    // Weight parsing — use externalCategory as unit hint (e.g., Blaze "Custom Weight Type" = "mg")
+    let parsed = internalParseWeight(rawWeight);
+    if (parsed.unit === "unknown" && parsed.value > 0) {
+      const unitHint = rawExternalCategory.toLowerCase().trim();
+      if (unitHint === "mg" || unitHint === "milligram" || unitHint === "milligrams") {
+        parsed = { value: parsed.value, unit: "mg" };
+      } else if (unitHint === "g" || unitHint === "gram" || unitHint === "grams") {
+        parsed = { value: parsed.value, unit: "g" };
+      }
+      // For gram-based categories: if plain number > 100, likely mg (e.g., Meadow "Cannabis Content" = 1000)
+      if (
+        parsed.unit === "unknown" &&
+        parsed.value > 100 &&
+        (uom === "grams")
+      ) {
+        parsed = { value: parsed.value, unit: "mg" };
+      }
+    }
+    // weightInGrams should be empty when UOM is milligrams (per review feedback)
+    const weightInGrams = uom === "milligrams" ? 0 : getWeightInGramsInternal(parsed);
 
-    // THC/CBD
+    // THC/CBD — only populated for milligram-based products (not grams)
     let thc = "";
     let cbd = "";
     if (uom === "milligrams") {
       if (category !== "CBD") {
-        thc = parseCannaContent(rawTHC, weightInGrams);
+        thc = parseCannaContent(rawTHC, getWeightInGramsInternal(parsed));
         thc = bestCannaValue(thc, rawName);
       }
-      cbd = parseCannaContent(rawCBD, weightInGrams);
+      cbd = parseCannaContent(rawCBD, getWeightInGramsInternal(parsed));
     }
-    thc = blankIfZero(thc);
-    cbd = blankIfZero(cbd);
+    // THC/amount sync happens after amount calculation (below)
 
     // Amount
     const MAX_AMOUNT = 999999.9999;
@@ -550,14 +607,16 @@ export function deriveRows(
       const cannaVal = category === "CBD" ? cbd : thc;
       const num = parseFloat(cannaVal);
       amount = !isNaN(num) && num > 0 ? num : 0;
-      if (amount <= 0 && weightInGrams > 0) amount = weightInGrams * 1000;
+      // Fallback: use raw weight converted to mg (weightInGrams is zeroed for mg UOM)
+      const rawWeightGrams = getWeightInGramsInternal(parsed);
+      if (amount <= 0 && rawWeightGrams > 0) amount = rawWeightGrams * 1000;
       if (amount <= 0) {
         const mgStr = extractMgFromName(rawName);
         const mgVal = parseFloat(mgStr);
         if (!isNaN(mgVal) && mgVal > 0) amount = mgVal;
       }
     } else {
-      amount = category === "Non-Inv" ? 1 : convertAmount(parsed, uom);
+      amount = category === "Non-Inv" || category === "Plant" ? 1 : convertAmount(parsed, uom);
     }
 
     if (amount > MAX_AMOUNT) {
@@ -573,11 +632,29 @@ export function deriveRows(
       }
     }
 
-    // Brand with corrected casing
-    const brand =
+    // Sync THC/CBD with amount for milligram products:
+    // - THC should equal amount for non-CBD cannabis products
+    // - CBD should equal amount for CBD category products
+    // - Both should be blank for gram-based products
+    if (uom === "milligrams" && amount > 0) {
+      if (category !== "CBD" && !thc) {
+        thc = amount.toString();
+      }
+      if (category === "CBD" && !cbd) {
+        cbd = amount.toString();
+      }
+    }
+    thc = blankIfZero(thc);
+    cbd = blankIfZero(cbd);
+
+    // Brand with corrected casing + normalization from production data
+    let brand =
       rawBrand && !PLACEHOLDER_BRANDS.has(rawBrand.toLowerCase())
         ? (brandCasingMap.get(rawBrand.toLowerCase()) ?? rawBrand)
         : "";
+    if (brand) {
+      brand = normalizeBrandName(brand);
+    }
 
     const totalFlowerWeight = blankIfZero(uom === "grams" ? amount.toString() : "");
     const totalConcentrateWeight = blankIfZero(
@@ -593,7 +670,10 @@ export function deriveRows(
       subCategory,
       status: deriveStatus(rawStatus),
       strain: rawStrain,
-      classification: normalizeClassification(rawClassification, rawName),
+      classification:
+        normalizeClassification(rawClassification, rawName, rawDescription) ||
+        lookupStrainClassification(rawStrain) ||
+        "",
       extractionMethod: deriveExtractionMethod(rawName, rawDescription),
       uom,
       amount,
