@@ -559,6 +559,41 @@ export function deriveRows(
       }
     }
 
+    // Non-cannabis flag: some POS exports have an explicit flag (e.g., IndicaOnline "Is MMJ?" = "N").
+    // When present and negative, force to a non-THC category (CBD, Merch, or Non-Inv).
+    const NON_CANNABIS_HEADERS = ["Is MMJ?", "Is MMJ", "is_mmj", "Is Cannabis", "Contains THC"];
+    const NON_CANNABIS_VALUES = new Set(["n", "no", "false", "0"]);
+    const THC_CATEGORIES = new Set(["Flower", "Extract", "Cartridge", "Edible", "Preroll", "Beverage", "Tincture", "Topical", "Pill", "Misc"]);
+
+    let isNonCannabis = false;
+    for (const header of NON_CANNABIS_HEADERS) {
+      const val = (row[header] ?? "").trim().toLowerCase();
+      if (val && NON_CANNABIS_VALUES.has(val)) {
+        isNonCannabis = true;
+        break;
+      }
+    }
+
+    if (isNonCannabis && THC_CATEGORIES.has(finalResolution.category)) {
+      // Re-route to non-THC category based on name/subcategory context
+      const nameLower = rawName.toLowerCase();
+      const subLower = (finalResolution.subCategory || rawSubCategory).toLowerCase();
+      if (/\b(gumm|chocolate|edible|cookie|brownie|mint|chew|candy)\b/i.test(rawName)) {
+        finalResolution = { category: "CBD", subCategory: "Edible" };
+      } else if (/\b(cream|creme|lotion|balm|salve|topical|patch)\b/i.test(rawName)) {
+        finalResolution = { category: "CBD", subCategory: "Topical" };
+      } else if (/\b(tincture|dropper|oil)\b/i.test(rawName)) {
+        finalResolution = { category: "CBD", subCategory: "Tincture" };
+      } else if (/\b(batter(y|ies)|pen|charger)\b/i.test(rawName) || subLower.includes("batter")) {
+        finalResolution = { category: "Merch", subCategory: "Battery" };
+      } else if (/\b(pipe|grinder|paper|cone|tray|lighter|bong|rig|glass)\b/i.test(rawName) || subLower.includes("accessor")) {
+        finalResolution = { category: "Merch", subCategory: resolveSubCategoryFromName("Merch", rawName) ?? "Merch - General" };
+      } else {
+        // Default: CBD - General for non-cannabis products we can't further classify
+        finalResolution = { category: "CBD", subCategory: "CBD - General" };
+      }
+    }
+
     const category = finalResolution.category;
 
     // Name-based subcategory refinement, with brand fallback

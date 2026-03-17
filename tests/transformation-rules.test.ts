@@ -1322,6 +1322,48 @@ describe("Cartridge Diamond subcategory", () => {
   });
 });
 
+// ── Non-Cannabis Flag (Is MMJ? = N) ──────────────────────────────────────────
+
+describe("non-cannabis flag from source row", () => {
+  it("Is MMJ? = N with battery keyword → Merch/Battery", () => {
+    const result = deriveRows(
+      [{ SKU: "NMJ-001", Product: "STIIIZY Battery Starter Kit", Category: "Vaporizers", "Sub-category (L2)": "Batteries", Price: "30", "Is MMJ?": "N" }],
+      baseMappings,
+    );
+    const row = result.derivedRows[0];
+    expect(row.category).toBe("Merch");
+    expect(row.subCategory).toBe("Battery");
+  });
+
+  it("Is MMJ? = N with edible keyword → CBD", () => {
+    const result = deriveRows(
+      [{ SKU: "NMJ-002", Product: "Hemp Gummy Bears 25mg", Category: "Edible", Price: "15", "Is MMJ?": "N" }],
+      baseMappings,
+    );
+    const row = result.derivedRows[0];
+    expect(row.category).toBe("CBD");
+  });
+
+  it("Is MMJ? = Y leaves category unchanged", () => {
+    const result = deriveRows(
+      [{ SKU: "NMJ-003", Product: "Blue Dream 3.5g", Category: "Flower", Weight: "3.5g", Price: "35", "Is MMJ?": "Y" }],
+      baseMappings,
+    );
+    expect(result.derivedRows[0].category).toBe("Flower");
+  });
+
+  it("no Is MMJ? column leaves category unchanged", () => {
+    const row = derive({
+      SKU: "NMJ-004",
+      Product: "Blue Dream 3.5g",
+      Category: "Flower",
+      Weight: "3.5g",
+      Price: "35",
+    });
+    expect(row.category).toBe("Flower");
+  });
+});
+
 // ── Beverage Seltzer Subcategory ─────────────────────────────────────────────
 
 describe("Beverage Seltzer subcategory", () => {
