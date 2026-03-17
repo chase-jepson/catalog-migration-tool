@@ -6,6 +6,7 @@
  * - brand-category-raw.csv → brandCategory (507 brands, ≥95% confidence)
  * - brand-normalization-raw.csv → brandNormalization (4,349 variant→canonical mappings)
  * - strain-classification-raw.csv → strainClassification (427 strains, ≥90% confidence)
+ * - brand-subcategory-raw.csv → brandSubcategory (4,513 brand→subcategory mappings, ≥80% confidence)
  */
 import data from "./reference-data.json";
 
@@ -52,4 +53,23 @@ export function lookupStrainClassification(strain: string): string | null {
   if (!strain) return null;
   const upper = strain.toUpperCase().trim();
   return strainClassMap.get(upper) ?? null;
+}
+
+const brandSubcategoryMap = new Map<string, Record<string, string>>(
+  Object.entries(data.brandSubcategory),
+);
+
+/**
+ * Look up the most likely subcategory for a brand within a given category.
+ * E.g., ("CAMINO", "Edible") → "Gummy", ("COLDFIRE", "Cartridge") → "510 Thread"
+ * Uses production data where the brand has ≥80% of products in that subcategory.
+ */
+export function lookupBrandSubcategory(
+  brand: string,
+  category: string,
+): string | null {
+  if (!brand || !category) return null;
+  const upper = brand.toUpperCase().trim();
+  const catMap = brandSubcategoryMap.get(upper);
+  return catMap?.[category] ?? null;
 }

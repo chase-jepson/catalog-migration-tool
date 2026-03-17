@@ -17,6 +17,7 @@ import {
 } from "./category-mapper";
 import {
   lookupBrandCategory,
+  lookupBrandSubcategory,
   normalizeBrandName,
   lookupStrainClassification,
 } from "./reference-data";
@@ -544,10 +545,13 @@ export function deriveRows(
 
     const category = finalResolution.category;
 
-    // Name-based subcategory refinement
+    // Name-based subcategory refinement, with brand fallback
     const nameSubCat = resolveSubCategoryFromName(category, rawName);
+    const brandSubCat = !nameSubCat && rawBrand
+      ? lookupBrandSubcategory(rawBrand, category)
+      : null;
     const subCategory = normalizeSubCategory(
-      fixSubCategory(category, nameSubCat ?? finalResolution.subCategory),
+      fixSubCategory(category, nameSubCat ?? brandSubCat ?? finalResolution.subCategory),
     );
 
     const isExcluded =

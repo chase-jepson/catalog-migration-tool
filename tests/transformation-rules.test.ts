@@ -13,6 +13,7 @@ import {
 } from "../lib/category-mapper";
 import {
   lookupBrandCategory,
+  lookupBrandSubcategory,
   normalizeBrandName,
   lookupStrainClassification,
 } from "../lib/reference-data";
@@ -220,6 +221,54 @@ describe("brand→category fallback in deriveRows", () => {
     });
     // "Live Resin" in name triggers Extract via keyword rules before brand fallback
     expect(row.category).toBe("Extract");
+  });
+});
+
+// ── Brand→Subcategory Fallback ────────────────────────────────────────────────
+
+describe("brand→subcategory fallback via reference data", () => {
+  it("CAMINO + Edible → Gummy", () => {
+    expect(lookupBrandSubcategory("CAMINO", "Edible")).toBe("Gummy");
+  });
+
+  it("COLDFIRE + Cartridge → 510 Thread", () => {
+    expect(lookupBrandSubcategory("Coldfire", "Cartridge")).toBe("510 Thread");
+  });
+
+  it("returns null for unknown brand", () => {
+    expect(lookupBrandSubcategory("ZZZZZ_UNKNOWN", "Flower")).toBeNull();
+  });
+
+  it("returns null for brand in wrong category", () => {
+    // CAMINO is Edible, not Flower
+    expect(lookupBrandSubcategory("CAMINO", "Flower")).toBeNull();
+  });
+
+  it("refines subcategory in deriveRows when name has no keywords", () => {
+    const row = derive({
+      SKU: "BS-001",
+      Product: "Camino Uplifting Blend",
+      Brand: "CAMINO",
+      Category: "Edible",
+      Weight: "100mg",
+      Price: "25",
+    });
+    // Name has no subcategory keywords, brand fallback → Gummy
+    expect(row.category).toBe("Edible");
+    expect(row.subCategory).toBe("Gummy");
+  });
+
+  it("name-based subcategory wins over brand fallback", () => {
+    const row = derive({
+      SKU: "BS-002",
+      Product: "Camino Chocolate Bar 100mg",
+      Brand: "CAMINO",
+      Category: "Edible",
+      Weight: "100mg",
+      Price: "25",
+    });
+    // "Chocolate" in name → Chocolate, not Gummy from brand
+    expect(row.subCategory).toBe("Chocolate");
   });
 });
 
@@ -1123,6 +1172,21 @@ describe("milligram UOM unknown-unit weight treated as mg", () => {
     });
     expect(row.uom).toBe("milligrams");
     expect(row.amount).toBe(100);
+  });
+});
+
+// ── Field Defaults Fallback ───────────────────────────────────────────────────
+
+describe("no fabricated defaults", () => {
+  it("does NOT fill in amount when source data has no weight", () => {
+    const row = derive({
+      SKU: "FD-001",
+      Product: "Mystery Gummy",
+      Category: "Edible",
+      // No weight provided — amount should stay 0, not fabricate data
+      Price: "20",
+    });
+    expect(row.amount).toBe(0);
   });
 });
 
