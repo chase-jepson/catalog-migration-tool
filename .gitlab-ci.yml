@@ -25,7 +25,8 @@ build:
   <<: *node_setup
   stage: build
   script:
-    - pnpm install --no-frozen-lockfile
+    - pnpm install --frozen-lockfile
+    - pnpm typecheck
     - pnpm build
     - pnpm zip
   artifacts:
