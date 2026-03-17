@@ -3,7 +3,7 @@ stages:
   - build
 
 variables:
-  NODE_VERSION: "18"
+  NODE_VERSION: "20"
 
 .node_setup: &node_setup
   image: node:${NODE_VERSION}
