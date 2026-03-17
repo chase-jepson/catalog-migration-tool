@@ -506,7 +506,9 @@
     "KING LITTLES": "Flower",
     "HERBIVORE": "Flower",
     "AHTI": "Extract",
-    "YUMEEZ": "Edible"
+    "YUMEEZ": "Edible",
+    "LEVEL": "Pill",
+    "LIFT TICKETS": "Misc"
   },
   "brandNormalization": {
     "269": "269 CANNABIS",

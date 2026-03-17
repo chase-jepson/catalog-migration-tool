@@ -234,6 +234,10 @@ function convertAmount(parsed: ParsedWeight, targetUom: string): number {
 
 /** Extract weight in grams from product name */
 function extractGramsFromName(name: string): number {
+  // Word-based weight phrases
+  if (/\bfull\s*gram\b/i.test(name)) return 1;
+  if (/\bhalf\s*gram\b/i.test(name)) return 0.5;
+
   const gramMatch = name.match(/(?:^|[\s\-–—])(\d*\.?\d+)\s*g\b/i);
   if (gramMatch) {
     const val = parseFloat(gramMatch[1]);
@@ -246,6 +250,8 @@ function extractGramsFromName(name: string): number {
     if (!isNaN(mg) && mg >= 100) return mg / 1000;
   }
 
+  // Fractional ounce names
+  if (/\b1\/8\s*(oz|ounce)?\b/i.test(name) || /\beighth\b/i.test(name)) return 3.5;
   if (/\bounces?\b/i.test(name)) return 28;
 
   return 0;
@@ -340,6 +346,16 @@ function parseCannaContent(raw: string, weightInGrams: number): string {
 
 const MIN_CANNA_MG = 1;
 const MAX_CANNA_MG = 5000;
+
+/** Category-specific plausibility ceilings for mg amounts */
+const CATEGORY_MAX_MG: Record<string, number> = {
+  Edible: 1000,
+  Beverage: 200,
+  Topical: 500,
+  Misc: 500,
+  Pill: 500,
+  Tincture: 2000,
+};
 
 function isPlausibleCannaMg(val: number): boolean {
   return val >= MIN_CANNA_MG && val <= MAX_CANNA_MG;
@@ -643,6 +659,21 @@ export function deriveRows(
       }
     }
 
+    // Category-specific plausibility: when amount exceeds category ceiling,
+    // prefer name-extracted mg value. E.g., edible with 5600mg (from weight)
+    // should use 100mg from name instead. Oz-based weights for topicals/misc
+    // are net product weight, not cannabinoid content.
+    const catMax = CATEGORY_MAX_MG[category];
+    if (uom === "milligrams" && catMax && amount > catMax) {
+      const nameMg = parseFloat(extractMgFromName(rawName));
+      if (!isNaN(nameMg) && nameMg > 0 && nameMg <= catMax) {
+        amount = nameMg;
+      } else if (parsed.unit === "oz" || amount > catMax * 5) {
+        // oz weight is liquid volume for topicals/misc, not THC — blank for review
+        amount = 0;
+      }
+    }
+
     // Sync THC/CBD with amount for milligram products:
     // - THC should equal amount for non-CBD cannabis products
     // - CBD should equal amount for CBD category products
@@ -654,6 +685,11 @@ export function deriveRows(
       if (category === "CBD" && !cbd) {
         cbd = amount.toString();
       }
+    }
+    // Ensure THC/CBD are blank for grams-based products (cleanup after category overrides)
+    if (uom === "grams") {
+      thc = "";
+      cbd = "";
     }
     thc = blankIfZero(thc);
     cbd = blankIfZero(cbd);

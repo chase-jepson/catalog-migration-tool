@@ -6,9 +6,24 @@ import * as fs from "fs";
 import * as path from "path";
 
 const OUTPUT_DIR = "/Users/chase/projects/catalog-migration-tool/dev/output";
-const data = JSON.parse(
+const allData = JSON.parse(
   fs.readFileSync(path.join(OUTPUT_DIR, "flagged-summary.json"), "utf-8"),
-).sort((a: any, b: any) => b.flaggedCount - a.flaggedCount);
+) as any[];
+
+// Pick top 2 files per POS system by flagged count
+const byPOS: Record<string, any[]> = {};
+for (const entry of allData) {
+  const pos = entry.posName.split(" - ")[0]; // "Blaze - Blaze" → "Blaze"
+  if (!byPOS[pos]) byPOS[pos] = [];
+  byPOS[pos].push(entry);
+}
+const data: any[] = [];
+for (const entries of Object.values(byPOS)) {
+  entries.sort((a: any, b: any) => b.flaggedCount - a.flaggedCount);
+  const top2 = entries.slice(0, 2).filter((e: any) => e.flaggedCount > 0);
+  data.push(...top2);
+}
+data.sort((a: any, b: any) => b.flaggedCount - a.flaggedCount);
 
 // Import enum values for dropdowns
 const PRODUCT_CATEGORIES = [
@@ -45,13 +60,14 @@ const DERIVED_FIELDS = [
   "thc", "cbd", "status", "strain", "extractionMethod", "unitCount", "skuBarcode",
 ];
 
+// Labels match the actual Treez import CSV column names
 const DERIVED_LABELS: Record<string, string> = {
-  productName: "Product Name", brand: "Brand", category: "Category",
-  subCategory: "Sub Category", classification: "Classification",
-  uom: "UOM", amount: "Amount", weightInGrams: "Weight (g)",
-  merchSize: "Merch Size", basePrice: "Base Price", thc: "THC",
-  cbd: "CBD", status: "Status", strain: "Strain",
-  extractionMethod: "Extraction Method", unitCount: "Unit Count", skuBarcode: "SKU/Barcode",
+  productName: "Product Name", brand: "Brand", category: "Product Category",
+  subCategory: "Product Sub Category", classification: "Classification",
+  uom: "UoM", amount: "Amount", weightInGrams: "Total Flower Weight",
+  merchSize: "Merchandise Size", basePrice: "Base Price", thc: "Total mg THC",
+  cbd: "Total mg CBD", status: "Status", strain: "Strain",
+  extractionMethod: "Extraction Method", unitCount: "Unit Count", skuBarcode: "SKU Barcode",
 };
 
 // Editable fields get dropdowns or text inputs

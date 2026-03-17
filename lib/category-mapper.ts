@@ -33,7 +33,7 @@ const KEYWORD_RULES: KeywordRule[] = [
 
   // Beverage -- BEFORE Edible so "edible (liquid)" maps here
   {
-    keywords: /\b(beverages?|drinks?|sips?|seltzer|soda|water|juice|tea|coffee|tonic|elixir|shot|margarita|lemonade|punch)\b/i,
+    keywords: /\b(beverages?|drinks?|sips?|seltzer|soda|water|juice|tea|coffee|tonic|elixir|shot|margarita|lemonade|punch|enhancer)\b/i,
     category: "Beverage",
   },
   { keywords: /edible\s*\(liquid\)/i, category: "Beverage" },
@@ -135,21 +135,23 @@ const KEYWORD_RULES: KeywordRule[] = [
   { keywords: /\b(spray)\b/i, category: "Tincture", subCategory: "Spray" },
 
   // Topical
-  { keywords: /\b(topicals?)\b/i, category: "Topical" },
+  { keywords: /\b(topicals?|transdermals?)\b|\b(lotions?|salves?|balms?)\b.*\b(lotions?|salves?|balms?)\b/i, category: "Topical" },
   { keywords: /\b(balm)\b/i, category: "Topical", subCategory: "Balm" },
-  { keywords: /\b(cream)\b/i, category: "Topical", subCategory: "Cream" },
+  { keywords: /\b(cream|creme)\b/i, category: "Topical", subCategory: "Cream" },
   { keywords: /\b(lotion)\b/i, category: "Topical", subCategory: "Lotion" },
   { keywords: /\b(patch|transdermal)\b/i, category: "Topical", subCategory: "Patch" },
-  { keywords: /\b(salve)\b/i, category: "Topical", subCategory: "Salve" },
+  { keywords: /\b(salve|compound)\b/i, category: "Topical", subCategory: "Salve" },
   { keywords: /\b(roll[\s-]?on)\b/i, category: "Topical", subCategory: "Roll-On" },
   { keywords: /\b(gel)\b/i, category: "Topical", subCategory: "Gel" },
   { keywords: /\b(lubricant|lube)\b/i, category: "Topical", subCategory: "Lubricant" },
+  { keywords: /\bsensual\b/i, category: "Topical", subCategory: "Oil" },
 
   // Non-Inv
   { keywords: /\b(non[\s-]?inv|gift[\s-]?card|fee|membership)\b/i, category: "Non-Inv" },
 
   // Misc
-  { keywords: /\b(misc|miscellaneous|suppository|bath[\s-]?bomb)\b/i, category: "Misc" },
+  { keywords: /\b(misc|miscellaneous|suppository)\b/i, category: "Misc" },
+  { keywords: /\b(bath)\b/i, category: "Misc", subCategory: "Bath" },
 
   // CBD -- check last since many categories can have CBD products
   { keywords: /\bcbd\b/i, category: "CBD" },
@@ -263,6 +265,7 @@ const SUBCATEGORY_NAME_RULES: Record<string, SubCategoryNameRule[]> = {
     { keywords: /coffee/i, subCategory: "Coffee" },
     { keywords: /elixir/i, subCategory: "Elixir" },
     { keywords: /juice/i, subCategory: "Juice" },
+    { keywords: /seltzer/i, subCategory: "Seltzer" },
     { keywords: /shot/i, subCategory: "Shot" },
     { keywords: /soda/i, subCategory: "Soda" },
     { keywords: /\btea\b/i, subCategory: "Tea" },
@@ -276,6 +279,7 @@ const SUBCATEGORY_NAME_RULES: Record<string, SubCategoryNameRule[]> = {
       keywords: /disp|ready[\s-]?to[\s-]?use|\brtu\b|all[\s-]?in[\s-]?one|\baio\b|all-in-one/i,
       subCategory: "Ready To Use",
     },
+    { keywords: /diamond/i, subCategory: "Diamond" },
   ],
   CBD: [
     { keywords: /capsule/i, subCategory: "Pill" },
@@ -354,7 +358,7 @@ const SUBCATEGORY_NAME_RULES: Record<string, SubCategoryNameRule[]> = {
   ],
   Topical: [
     { keywords: /balm/i, subCategory: "Balm" },
-    { keywords: /cream|creme/i, subCategory: "Cream" },
+    { keywords: /cream|creme|compound/i, subCategory: "Cream" },
     { keywords: /lotion/i, subCategory: "Lotion" },
     { keywords: /patch/i, subCategory: "Patch" },
     { keywords: /spray/i, subCategory: "Spray" },

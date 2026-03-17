@@ -1190,6 +1190,147 @@ describe("no fabricated defaults", () => {
   });
 });
 
+// ── Full Gram / Half Gram Name Parsing ────────────────────────────────────────
+
+describe("Full Gram / Half Gram in product name", () => {
+  it('"Full Gram" → 1g amount', () => {
+    const row = derive({
+      SKU: "FG-001",
+      Product: "Stiiizy Full Gram Pod",
+      Category: "Cartridge",
+      Price: "50",
+    });
+    expect(row.amount).toBe(1);
+  });
+
+  it('"Half Gram" → 0.5g amount', () => {
+    const row = derive({
+      SKU: "FG-002",
+      Product: "Friendly Farms Half Gram Cart",
+      Category: "Cartridge",
+      Price: "35",
+    });
+    expect(row.amount).toBe(0.5);
+  });
+});
+
+// ── Topical Keywords (creme, compound, sensual) ──────────────────────────────
+
+describe("topical keyword expansion", () => {
+  it('"creme" resolves to Topical/Cream', () => {
+    const res = resolveCategory("", "", "CBD Pain Creme 500mg");
+    expect(res.category).toBe("Topical");
+    expect(res.subCategory).toBe("Cream");
+  });
+
+  it('"compound" resolves to Topical/Salve', () => {
+    const res = resolveCategory("", "", "THC Compound 100mg");
+    expect(res.category).toBe("Topical");
+  });
+
+  it('"sensual oil" resolves to Topical/Oil', () => {
+    const res = resolveCategory("", "", "Sensual Body Oil 100mg");
+    expect(res.category).toBe("Topical");
+    expect(res.subCategory).toBe("Oil");
+  });
+
+  it('"Lotions Salves Balms" in source category resolves to Topical', () => {
+    const res = resolveCategory("Lotions- Salves- Balms", "", "Test Product");
+    expect(res.category).toBe("Topical");
+  });
+});
+
+// ── Bath Keyword Broadened ───────────────────────────────────────────────────
+
+describe("bath keyword", () => {
+  it('"bath soak" resolves to Misc/Bath', () => {
+    const res = resolveCategory("", "", "CBD Bath Soak 100mg");
+    expect(res.category).toBe("Misc");
+    expect(res.subCategory).toBe("Bath");
+  });
+
+  it('"bath salt" resolves to Misc/Bath', () => {
+    const res = resolveCategory("Bath", "", "Infused Bath Salt");
+    expect(res.category).toBe("Misc");
+    expect(res.subCategory).toBe("Bath");
+  });
+});
+
+// ── Beverage Enhancer Keyword ────────────────────────────────────────────────
+
+describe("beverage enhancer keyword", () => {
+  it('"enhancer" resolves to Beverage', () => {
+    const res = resolveCategory("", "", "Cannabis Beverage Enhancer 90mg");
+    expect(res.category).toBe("Beverage");
+  });
+});
+
+// ── Category-Specific Amount Plausibility ────────────────────────────────────
+
+describe("category-specific amount plausibility ceilings", () => {
+  it("edible with 5600mg weight prefers 100mg from name", () => {
+    const row = derive({
+      SKU: "PL-001",
+      Product: "Kiva Terra Bites 100mg",
+      Category: "Edible",
+      Weight: "5.6g",
+      Price: "25",
+    });
+    expect(row.uom).toBe("milligrams");
+    expect(row.amount).toBe(100);
+  });
+
+  it("topical oz weight blanked (net weight, not THC)", () => {
+    const row = derive({
+      SKU: "PL-002",
+      Product: "Pain Relief Cream 2oz",
+      Category: "Topical",
+      Weight: "2oz",
+      Price: "40",
+    });
+    expect(row.uom).toBe("milligrams");
+    // 2oz = 56700mg, way over ceiling → should be 0 (flagged for review)
+    expect(row.amount).toBe(0);
+  });
+});
+
+// ── Grams-Based Category THC/CBD Cleanup ─────────────────────────────────────
+
+describe("THC/CBD cleanup after category override", () => {
+  it("cartridge (grams) has blank THC and CBD", () => {
+    const row = derive({
+      SKU: "CL-001",
+      Product: "Live Resin Cart 0.5g",
+      Category: "Cartridge",
+      Weight: "0.5g",
+      Price: "40",
+      THC: "85",
+      CBD: "5",
+    });
+    expect(row.uom).toBe("grams");
+    expect(row.thc).toBe("");
+    expect(row.cbd).toBe("");
+  });
+});
+
+// ── Cartridge Diamond Subcategory ────────────────────────────────────────────
+
+describe("Cartridge Diamond subcategory", () => {
+  it('"diamond" in cartridge name → Diamond subcategory', () => {
+    const sub = resolveSubCategoryFromName("Cartridge", "Diamond Live Resin Cart 1g");
+    expect(sub).toBe("Diamond");
+  });
+});
+
+// ── Beverage Seltzer Subcategory ─────────────────────────────────────────────
+
+describe("Beverage Seltzer subcategory", () => {
+  it('"seltzer" in beverage name → Seltzer subcategory', () => {
+    const sub = resolveSubCategoryFromName("Beverage", "PBR Infused Seltzer 10mg");
+    expect(sub).toBe("Seltzer");
+  });
+});
+
 // ── CBD Product THC Reclassification (with THC keyword) ──────────────────────
 
 describe("CBD with THC keyword reclassification", () => {
