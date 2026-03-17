@@ -1,19 +1,19 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState } from "react";
 import type {
   ParsedFile,
   POSDetectionResult,
   StoreInfo,
   InventoryFileAssignment,
   InventoryFileRole,
-} from '../../lib/types';
-import { validateFile, parseFile, getSheetNames } from '../../lib/parser';
-import { detectPOS } from '../../lib/pos-detection';
-import { formatFileSize } from '../../lib/parser';
-import { FileDropZone } from '../upload/FileDropZone';
-import { SheetSelector, getDefaultSheet } from '../upload/SheetSelector';
-import { INVENTORY_FILE_ROLES } from '../../lib/inventory-constants';
+} from "../../lib/types";
+import { validateFile, parseFile, getSheetNames } from "../../lib/parser";
+import { detectPOS } from "../../lib/pos-detection";
+import { formatFileSize } from "../../lib/parser";
+import { FileDropZone } from "../upload/FileDropZone";
+import { SheetSelector, getDefaultSheet } from "../upload/SheetSelector";
+import { INVENTORY_FILE_ROLES } from "../../lib/inventory-constants";
 
-type ParsingStatus = 'idle' | 'parsing' | 'done' | 'error';
+type ParsingStatus = "idle" | "parsing" | "done" | "error";
 
 interface InventoryUploadStepProps {
   onCanProceed: (canProceed: boolean) => void;
@@ -46,16 +46,16 @@ function autoDetectRole(file: ParsedFile): InventoryFileRole | null {
   const headers = new Set(file.headers.map((h) => h.toLowerCase()));
 
   // Filename heuristics
-  if (name.includes('adjustment')) return 'adjustments';
-  if (name.includes('receipt')) return 'receipts';
-  if (name.includes('vendor')) return 'vendors';
-  if (name.includes('inventory')) return 'inventory';
-  if (name.includes('catalog')) return 'catalog_export';
+  if (name.includes("adjustment")) return "adjustments";
+  if (name.includes("receipt")) return "receipts";
+  if (name.includes("vendor")) return "vendors";
+  if (name.includes("inventory")) return "inventory";
+  if (name.includes("catalog")) return "catalog_export";
 
   // Header heuristics
-  if (headers.has('external package id') && headers.has('receive date')) return 'receipts';
-  if (headers.has('vendor name') && headers.has('vendor code')) return 'vendors';
-  if (headers.has('product key') && headers.has('product category')) return 'catalog_export';
+  if (headers.has("external package id") && headers.has("receive date")) return "receipts";
+  if (headers.has("vendor name") && headers.has("vendor code")) return "vendors";
+  if (headers.has("product key") && headers.has("product category")) return "catalog_export";
 
   return null;
 }
@@ -74,17 +74,20 @@ export function InventoryUploadStep({
   dispensaryLicense,
   onDispensaryLicenseChange,
 }: InventoryUploadStepProps) {
-  const [status, setStatus] = useState<ParsingStatus>(
-    parsedFiles.length > 0 ? 'done' : 'idle',
-  );
+  const [status, setStatus] = useState<ParsingStatus>(parsedFiles.length > 0 ? "done" : "idle");
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [pendingSheet, setPendingSheet] = useState<PendingSheet | null>(null);
 
   const computeCanProceed = useCallback(
-    (assignments: InventoryFileAssignment[], pos: string, store: StoreInfo | null, license: string) => {
-      const hasInventoryFile = assignments.some((a) => a.role === 'inventory');
-      return hasInventoryFile && pos !== '' && store !== null && license.trim() !== '';
+    (
+      assignments: InventoryFileAssignment[],
+      pos: string,
+      store: StoreInfo | null,
+      license: string,
+    ) => {
+      const hasInventoryFile = assignments.some((a) => a.role === "inventory");
+      return hasInventoryFile && pos !== "" && store !== null && license.trim() !== "";
     },
     [],
   );
@@ -106,7 +109,14 @@ export function InventoryUploadStep({
       const effectivePOS = result.detected || selectedPOS;
       onCanProceed(computeCanProceed(assignments, effectivePOS, selectedStore, license));
     },
-    [onDetectedPOSChange, onSelectedPOSChange, onCanProceed, selectedPOS, selectedStore, computeCanProceed],
+    [
+      onDetectedPOSChange,
+      onSelectedPOSChange,
+      onCanProceed,
+      selectedPOS,
+      selectedStore,
+      computeCanProceed,
+    ],
   );
 
   const handleFilesSelected = useCallback(
@@ -115,7 +125,9 @@ export function InventoryUploadStep({
 
       // Check file limit
       if (parsedFiles.length + rawFiles.length > MAX_FILES) {
-        setError(`Maximum ${MAX_FILES} files allowed. You have ${parsedFiles.length} file(s) already.`);
+        setError(
+          `Maximum ${MAX_FILES} files allowed. You have ${parsedFiles.length} file(s) already.`,
+        );
         return;
       }
 
@@ -130,8 +142,8 @@ export function InventoryUploadStep({
       // Check for multi-sheet XLSX
       if (rawFiles.length === 1) {
         const file = rawFiles[0];
-        const ext = file.name.split('.').pop()?.toLowerCase();
-        if (ext === 'xlsx' || ext === 'xls') {
+        const ext = file.name.split(".").pop()?.toLowerCase();
+        if (ext === "xlsx" || ext === "xls") {
           const sheets = await getSheetNames(file);
           if (sheets.length > 1) {
             const defaultSheet = getDefaultSheet(sheets);
@@ -149,7 +161,7 @@ export function InventoryUploadStep({
 
   const parseFiles = useCallback(
     async (rawFiles: File[], sheetName?: string) => {
-      setStatus('parsing');
+      setStatus("parsing");
       setProgress({ current: 0, total: rawFiles.length });
 
       try {
@@ -171,22 +183,27 @@ export function InventoryUploadStep({
             newAssignments.push({ file, role: detectedRole });
           } else {
             // Default to inventory if no other detection
-            newAssignments.push({ file, role: 'inventory' });
+            newAssignments.push({ file, role: "inventory" });
           }
         }
         onFileAssignmentsChange(newAssignments);
 
-        setStatus('done');
+        setStatus("done");
         setPendingSheet(null);
         runDetection(allFiles, newAssignments, dispensaryLicense);
       } catch (err) {
-        setStatus('error');
-        setError(
-          err instanceof Error ? err.message : 'Failed to parse file(s)',
-        );
+        setStatus("error");
+        setError(err instanceof Error ? err.message : "Failed to parse file(s)");
       }
     },
-    [parsedFiles, onParsedFilesChange, fileAssignments, onFileAssignmentsChange, runDetection, dispensaryLicense],
+    [
+      parsedFiles,
+      onParsedFilesChange,
+      fileAssignments,
+      onFileAssignmentsChange,
+      runDetection,
+      dispensaryLicense,
+    ],
   );
 
   const handleSheetConfirm = useCallback(() => {
@@ -201,14 +218,23 @@ export function InventoryUploadStep({
       onParsedFilesChange(updated);
       onFileAssignmentsChange(updatedAssignments);
       if (updated.length === 0) {
-        setStatus('idle');
+        setStatus("idle");
         onCanProceed(false);
         onDetectedPOSChange({ detected: null, confidence: 0, disagreement: false });
       } else {
         runDetection(updated, updatedAssignments, dispensaryLicense);
       }
     },
-    [parsedFiles, fileAssignments, onParsedFilesChange, onFileAssignmentsChange, onCanProceed, onDetectedPOSChange, runDetection, dispensaryLicense],
+    [
+      parsedFiles,
+      fileAssignments,
+      onParsedFilesChange,
+      onFileAssignmentsChange,
+      onCanProceed,
+      onDetectedPOSChange,
+      runDetection,
+      dispensaryLicense,
+    ],
   );
 
   const handleRoleChange = useCallback(
@@ -227,7 +253,14 @@ export function InventoryUploadStep({
       onSelectedPOSChange(pos);
       onCanProceed(computeCanProceed(fileAssignments, pos, selectedStore, dispensaryLicense));
     },
-    [fileAssignments, selectedStore, dispensaryLicense, onSelectedPOSChange, onCanProceed, computeCanProceed],
+    [
+      fileAssignments,
+      selectedStore,
+      dispensaryLicense,
+      onSelectedPOSChange,
+      onCanProceed,
+      computeCanProceed,
+    ],
   );
 
   const handleLicenseChange = useCallback(
@@ -271,12 +304,12 @@ export function InventoryUploadStep({
       {parsedFiles.length < MAX_FILES && (
         <FileDropZone
           onFilesSelected={handleFilesSelected}
-          disabled={status === 'parsing' || !selectedStore}
+          disabled={status === "parsing" || !selectedStore}
         />
       )}
 
       {/* Parsing progress */}
-      {status === 'parsing' && (
+      {status === "parsing" && (
         <div className="rounded-lg border border-gray-200 bg-white p-4">
           <div className="flex items-center gap-3">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-treez-primary border-t-transparent" />
@@ -308,22 +341,20 @@ export function InventoryUploadStep({
           <SheetSelector
             sheets={pendingSheet.sheets}
             selected={pendingSheet.selectedSheet}
-            onSelect={(sheet) =>
-              setPendingSheet({ ...pendingSheet, selectedSheet: sheet })
-            }
+            onSelect={(sheet) => setPendingSheet({ ...pendingSheet, selectedSheet: sheet })}
           />
           <button
             type="button"
             onClick={handleSheetConfirm}
             className="btn-treez-green font-[Roboto,sans-serif] font-medium"
             style={{
-              padding: '0 16px',
-              borderRadius: '15px',
-              border: 'none',
-              color: '#0f1709',
-              fontSize: '14px',
-              height: '36px',
-              letterSpacing: '0.4px',
+              padding: "0 16px",
+              borderRadius: "15px",
+              border: "none",
+              color: "#0f1709",
+              fontSize: "14px",
+              height: "36px",
+              letterSpacing: "0.4px",
             }}
           >
             Parse selected sheet
@@ -332,11 +363,11 @@ export function InventoryUploadStep({
       )}
 
       {/* File cards with role assignment */}
-      {parsedFiles.length > 0 && status === 'done' && (
+      {parsedFiles.length > 0 && status === "done" && (
         <div className="space-y-3">
           {parsedFiles.map((file, idx) => {
             const assignment = fileAssignments.find((a) => a.file.fileName === file.fileName);
-            const currentRole = assignment?.role ?? 'inventory';
+            const currentRole = assignment?.role ?? "inventory";
             const duplicateFiles = roleCounts.get(currentRole) ?? [];
             const hasDuplicate = duplicateFiles.length > 1;
             const otherFileName = hasDuplicate
@@ -351,9 +382,7 @@ export function InventoryUploadStep({
                 <div className="flex items-start justify-between gap-2">
                   {/* File info */}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-gray-900">
-                      {file.fileName}
-                    </p>
+                    <p className="truncate text-sm font-medium text-gray-900">{file.fileName}</p>
                     <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-500">
                       <span>{formatFileSize(file.fileSize)}</span>
                       <span>{file.rowCount.toLocaleString()} rows</span>
@@ -381,17 +410,18 @@ export function InventoryUploadStep({
 
                 {/* Role dropdown */}
                 <div className="mt-2">
-                  <label className="block text-xs font-medium text-gray-600">
-                    File role
-                  </label>
+                  <label className="block text-xs font-medium text-gray-600">File role</label>
                   <select
                     value={currentRole}
-                    onChange={(e) => handleRoleChange(file.fileName, e.target.value as InventoryFileRole)}
+                    onChange={(e) =>
+                      handleRoleChange(file.fileName, e.target.value as InventoryFileRole)
+                    }
                     className="mt-1 w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-700 focus:border-treez-accent-muted0 focus:outline-none focus:ring-1 focus:ring-treez-accent-muted0"
                   >
                     {INVENTORY_FILE_ROLES.map((r) => (
                       <option key={r.role} value={r.role}>
-                        {r.label}{r.required ? ' (required)' : ''}
+                        {r.label}
+                        {r.required ? " (required)" : ""}
                       </option>
                     ))}
                   </select>
@@ -411,8 +441,7 @@ export function InventoryUploadStep({
                     <div className="flex items-center gap-2 text-sm">
                       {selectedPOS ? (
                         <span className="text-gray-600">
-                          POS:{' '}
-                          <span className="font-medium text-gray-900">{selectedPOS}</span>
+                          POS: <span className="font-medium text-gray-900">{selectedPOS}</span>
                         </span>
                       ) : (
                         <span className="text-amber-600">POS not detected</span>
@@ -427,7 +456,7 @@ export function InventoryUploadStep({
       )}
 
       {/* Role status summary */}
-      {fileAssignments.length > 0 && status === 'done' && (
+      {fileAssignments.length > 0 && status === "done" && (
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
           <p className="mb-2 text-xs font-medium text-gray-700">Role Status</p>
           <div className="flex flex-wrap gap-x-3 gap-y-1">
@@ -438,20 +467,24 @@ export function InventoryUploadStep({
                 <span
                   key={roleDef.role}
                   className={`inline-flex items-center gap-1 text-xs ${
-                    isAssigned
-                      ? 'text-green-700'
-                      : isMissing
-                        ? 'text-red-600'
-                        : 'text-gray-400'
+                    isAssigned ? "text-green-700" : isMissing ? "text-red-600" : "text-gray-400"
                   }`}
                 >
                   {isAssigned ? (
                     <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   ) : isMissing ? (
                     <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      <path
+                        fillRule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   ) : (
                     <span className="inline-block h-3.5 w-3.5 text-center leading-3">--</span>

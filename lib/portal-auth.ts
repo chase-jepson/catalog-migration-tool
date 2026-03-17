@@ -3,9 +3,9 @@
  * Stores/retrieves portal token from chrome.storage.session.
  */
 
-import type { PortalAuthState } from './types';
+import type { PortalAuthState } from "./types";
 
-const STORAGE_KEY = 'portalAuth';
+const STORAGE_KEY = "portalAuth";
 
 export async function getPortalAuth(): Promise<PortalAuthState | null> {
   try {

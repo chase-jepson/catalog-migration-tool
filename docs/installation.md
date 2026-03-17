@@ -89,10 +89,10 @@ This generates a ZIP in the `.output/` directory that can be shared with other u
 
 The extension works across all Treez environments without reconfiguration:
 
-| Environment | URL |
-|------------|-----|
-| Production | `app.treez.io` |
-| Sandbox | `app.sandbox.treez.io` |
-| Dev | `app.dev.treez.io` |
+| Environment | URL                    |
+| ----------- | ---------------------- |
+| Production  | `app.treez.io`         |
+| Sandbox     | `app.sandbox.treez.io` |
+| Dev         | `app.dev.treez.io`     |
 
 The extension automatically detects which environment you're on and uses the correct API endpoints.

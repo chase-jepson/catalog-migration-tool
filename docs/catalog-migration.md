@@ -18,6 +18,7 @@ This guide walks you through migrating your product catalog from another POS sys
 6. If your file has multiple sheets (XLSX), select the sheet containing your product data.
 
 **What the tool checks:**
+
 - File format is CSV or XLSX
 - File size is under 100 MB
 - Column headers are present in the first row
@@ -37,6 +38,7 @@ The mapping step shows your source columns on the left and Treez target fields o
    - Price
 
 **Tips:**
+
 - Fields are grouped by category: Product Info, Cannabis Details, Pricing, Attributes, Display & Media
 - You can search the column dropdown by typing
 - If your source doesn't have a particular field, leave it unmapped -- the tool handles missing optional fields gracefully

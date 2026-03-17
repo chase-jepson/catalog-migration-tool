@@ -1,4 +1,4 @@
-import { decodeJwtPayload } from '../entrypoints/background/auth';
+import { decodeJwtPayload } from "../entrypoints/background/auth";
 
 /**
  * Extract organization and entity claims from a JWT token.
@@ -11,7 +11,7 @@ export function extractStoreClaimsFromToken(
   if (!payload) return null;
 
   const { orgId, entityIds } = payload;
-  if (typeof orgId !== 'string' || !Array.isArray(entityIds)) return null;
+  if (typeof orgId !== "string" || !Array.isArray(entityIds)) return null;
 
   return { orgId, entityIds: entityIds as string[] };
 }

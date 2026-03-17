@@ -27,7 +27,7 @@ export function MappingRow({
     <div
       id={`mapping-row-${fieldKey}`}
       className={`flex items-start justify-between gap-3 rounded-md border px-3 py-2 transition-colors duration-300 ${
-        highlighted ? 'bg-treez-accent-muted border-treez-accent' : 'border-gray-200 bg-white'
+        highlighted ? "bg-treez-accent-muted border-treez-accent" : "border-gray-200 bg-white"
       }`}
     >
       {/* Target field */}
@@ -35,9 +35,7 @@ export function MappingRow({
         <div className="flex items-center gap-1.5">
           <span className="text-sm font-medium text-gray-800">{label}</span>
           {required && (
-            <span className="text-[10px] font-semibold uppercase text-red-500">
-              req
-            </span>
+            <span className="text-[10px] font-semibold uppercase text-red-500">req</span>
           )}
         </div>
         <p className="truncate text-xs text-gray-400">{description}</p>
@@ -46,14 +44,10 @@ export function MappingRow({
       {/* Source column dropdown + sample */}
       <div className="flex flex-col items-end gap-1">
         <select
-          value={sourceHeader ?? ''}
-          onChange={(e) =>
-            onMappingChange(fieldKey, e.target.value || null)
-          }
+          value={sourceHeader ?? ""}
+          onChange={(e) => onMappingChange(fieldKey, e.target.value || null)}
           className={`w-44 rounded border px-2 py-1 text-sm ${
-            unmapped
-              ? 'ring-2 ring-red-400 border-red-300'
-              : 'border-gray-300'
+            unmapped ? "ring-2 ring-red-400 border-red-300" : "border-gray-300"
           }`}
         >
           <option value="">-- Select column --</option>
@@ -64,9 +58,7 @@ export function MappingRow({
           ))}
         </select>
         {sourceHeader && sampleValue && (
-          <span className="max-w-[11rem] truncate text-xs text-gray-400">
-            e.g. {sampleValue}
-          </span>
+          <span className="max-w-[11rem] truncate text-xs text-gray-400">e.g. {sampleValue}</span>
         )}
       </div>
     </div>

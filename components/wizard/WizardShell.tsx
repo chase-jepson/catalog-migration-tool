@@ -1,39 +1,39 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { STEP_LABELS } from '../../lib/constants';
-import { StepIndicator } from './StepIndicator';
-import { StepPlaceholder } from './StepPlaceholder';
-import { UploadStep } from '../upload/UploadStep';
-import { MappingStep } from '../mapping/MappingStep';
-import { ReviewStep } from '../review/ReviewStep';
-import { ImportStep } from '../import/ImportStep';
-import { StoreSelector } from '../inventory/StoreSelector';
-import { InventoryUploadStep } from '../inventory/InventoryUploadStep';
-import { InventoryMappingStep } from '../inventory/InventoryMappingStep';
-import { InventoryReviewStep } from '../inventory/InventoryReviewStep';
-import { InventoryImportStep } from '../inventory/InventoryImportStep';
-import { mergeFiles } from '../../lib/parser';
-import { applyPOSDefaults } from '../../lib/mapping-engine';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { STEP_LABELS } from "../../lib/constants";
+import { StepIndicator } from "./StepIndicator";
+import { StepPlaceholder } from "./StepPlaceholder";
+import { UploadStep } from "../upload/UploadStep";
+import { MappingStep } from "../mapping/MappingStep";
+import { ReviewStep } from "../review/ReviewStep";
+import { ImportStep } from "../import/ImportStep";
+import { StoreSelector } from "../inventory/StoreSelector";
+import { InventoryUploadStep } from "../inventory/InventoryUploadStep";
+import { InventoryMappingStep } from "../inventory/InventoryMappingStep";
+import { InventoryReviewStep } from "../inventory/InventoryReviewStep";
+import { InventoryImportStep } from "../inventory/InventoryImportStep";
+import { mergeFiles } from "../../lib/parser";
+import { applyPOSDefaults } from "../../lib/mapping-engine";
 import {
   saveMigrationState,
   loadMigrationState,
   clearMigrationState,
-} from '../../lib/migration-store';
+} from "../../lib/migration-store";
 import {
   saveInventoryState,
   loadInventoryState,
   clearInventoryState,
-} from '../../lib/inventory-migration-store';
+} from "../../lib/inventory-migration-store";
 import {
   createEmptyInventoryMappings,
   INVENTORY_POS_DEFAULTS,
   INVENTORY_MAPPING_FIELDS,
   INVENTORY_ROLE_POS_DEFAULTS,
   INVENTORY_ROLE_FIELDS,
-} from '../../lib/inventory-constants';
-import { extractStoreClaimsFromToken } from '../../lib/store-api';
-import { sendMessage } from '../../lib/messaging';
-import { detectEnvironment, getMsoApiBaseUrl } from '../../lib/env';
-import type { PerRoleMappings } from '../../lib/inventory-transformer';
+} from "../../lib/inventory-constants";
+import { extractStoreClaimsFromToken } from "../../lib/store-api";
+import { sendMessage } from "../../lib/messaging";
+import { detectEnvironment, getMsoApiBaseUrl } from "../../lib/env";
+import type { PerRoleMappings } from "../../lib/inventory-transformer";
 import type {
   ParsedFile,
   FieldMapping,
@@ -45,10 +45,10 @@ import type {
   InventoryFileAssignment,
   InventoryFileRole,
   PerRoleMappingsState,
-} from '../../lib/types';
+} from "../../lib/types";
 
 interface WizardShellProps {
-  wizardType: 'catalog' | 'inventory';
+  wizardType: "catalog" | "inventory";
   onClose?: () => void;
 }
 
@@ -64,10 +64,8 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [parsedFiles, setParsedFiles] = useState<ParsedFile[]>([]);
   const [mergedFile, setMergedFile] = useState<ParsedFile | null>(null);
-  const [selectedPOS, setSelectedPOS] = useState('');
-  const [detectedPOS, setDetectedPOS] = useState<POSDetectionResult | null>(
-    null,
-  );
+  const [selectedPOS, setSelectedPOS] = useState("");
+  const [detectedPOS, setDetectedPOS] = useState<POSDetectionResult | null>(null);
   const [mappings, setMappings] = useState<FieldMapping[]>([]);
   const [fixes, setFixes] = useState<RowFix[]>([]);
   const [derivedRows, setDerivedRows] = useState<DerivedRow[]>([]);
@@ -84,20 +82,19 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
   const [portalJobId, setPortalJobId] = useState<string | null>(null);
   const [portalStoreId, setPortalStoreId] = useState<string | null>(null);
   const [fileAssignments, setFileAssignments] = useState<InventoryFileAssignment[]>([]);
-  const [dispensaryLicense, setDispensaryLicense] = useState('TEMP-C00-00000000-LIC');
-  const [perRoleMappings, setPerRoleMappings] = useState<PerRoleMappingsState>(
-    { ...EMPTY_PER_ROLE_MAPPINGS },
-  );
+  const [dispensaryLicense, setDispensaryLicense] = useState("TEMP-C00-00000000-LIC");
+  const [perRoleMappings, setPerRoleMappings] = useState<PerRoleMappingsState>({
+    ...EMPTY_PER_ROLE_MAPPINGS,
+  });
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const title =
-    wizardType === 'catalog' ? 'Migrate Catalog' : 'Migrate Inventory';
+  const title = wizardType === "catalog" ? "Migrate Catalog" : "Migrate Inventory";
   const lastStep = STEP_LABELS.length - 1;
 
   // ── Fetch stores on mount (inventory mode only) ─────────────────────────
   useEffect(() => {
-    if (wizardType !== 'inventory') return;
+    if (wizardType !== "inventory") return;
 
     let cancelled = false;
     setStoresLoading(true);
@@ -106,33 +103,35 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
     (async () => {
       try {
         // Get current page URL — works in both side panel and content script contexts
-        let tabUrl = '';
+        let tabUrl = "";
         try {
           const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-          tabUrl = tab?.url ?? '';
+          tabUrl = tab?.url ?? "";
         } catch {
           // Content scripts can't use chrome.tabs — use page location directly
           tabUrl = window.location.href;
         }
-        const { token } = await sendMessage('getAuthToken', { appUrl: tabUrl });
+        const { token } = await sendMessage("getAuthToken", { appUrl: tabUrl });
         if (!token) {
-          throw new Error('No auth token available. Please refresh the Treez page.');
+          throw new Error("No auth token available. Please refresh the Treez page.");
         }
 
         // Extract org/entity claims from JWT
         const claims = extractStoreClaimsFromToken(token);
         if (!claims) {
-          throw new Error('Could not extract store claims from token. JWT may be missing required fields.');
+          throw new Error(
+            "Could not extract store claims from token. JWT may be missing required fields.",
+          );
         }
 
         // Detect environment for MSO API URL
         const env = detectEnvironment(tabUrl);
         if (!env) {
-          throw new Error('Could not detect Treez environment from current page.');
+          throw new Error("Could not detect Treez environment from current page.");
         }
 
         const apiBaseUrl = getMsoApiBaseUrl(env);
-        const storeList = await sendMessage('fetchStores', {
+        const storeList = await sendMessage("fetchStores", {
           apiBaseUrl,
           token,
           orgId: claims.orgId,
@@ -145,18 +144,20 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
         }
       } catch (err) {
         if (!cancelled) {
-          setStoresError(err instanceof Error ? err.message : 'Failed to fetch stores');
+          setStoresError(err instanceof Error ? err.message : "Failed to fetch stores");
           setStoresLoading(false);
         }
       }
     })();
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [wizardType]);
 
   // ── Clear persisted state on mount (always start fresh) ─────────────────
   useEffect(() => {
-    if (wizardType === 'inventory') {
+    if (wizardType === "inventory") {
       clearInventoryState();
     } else {
       clearMigrationState();
@@ -170,7 +171,7 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
 
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
-      if (wizardType === 'inventory') {
+      if (wizardType === "inventory") {
         saveInventoryState({
           parsedFiles,
           mergedHeaders: mergedFile?.headers ?? [],
@@ -200,7 +201,20 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [parsedFiles, mergedFile, selectedPOS, selectedStore, mappings, perRoleMappings, fixes, currentStep, restored, wizardType, fileAssignments, dispensaryLicense]);
+  }, [
+    parsedFiles,
+    mergedFile,
+    selectedPOS,
+    selectedStore,
+    mappings,
+    perRoleMappings,
+    fixes,
+    currentStep,
+    restored,
+    wizardType,
+    fileAssignments,
+    dispensaryLicense,
+  ]);
 
   // ── Re-merge when files change ──────────────────────────────────────────
   const handleParsedFilesChange = useCallback((files: ParsedFile[]) => {
@@ -219,7 +233,7 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
       // Only auto-apply POS defaults if all mappings are currently empty
       const allEmpty = mappings.every((m) => m.sourceHeader === null);
       if (allEmpty || mappings.length === 0) {
-        if (wizardType === 'inventory') {
+        if (wizardType === "inventory") {
           const defaults = INVENTORY_POS_DEFAULTS[pos];
           setMappings(
             INVENTORY_MAPPING_FIELDS.map((field) => ({
@@ -234,9 +248,11 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
       }
 
       // Auto-apply per-role POS defaults if all per-role mappings are empty
-      if (wizardType === 'inventory') {
+      if (wizardType === "inventory") {
         const allPerRoleEmpty = Object.values(perRoleMappings).every(
-          (roleMappings: FieldMapping[]) => roleMappings.length === 0 || roleMappings.every((m: FieldMapping) => m.sourceHeader === null),
+          (roleMappings: FieldMapping[]) =>
+            roleMappings.length === 0 ||
+            roleMappings.every((m: FieldMapping) => m.sourceHeader === null),
         );
         if (allPerRoleEmpty) {
           const posDefaults = INVENTORY_ROLE_POS_DEFAULTS[pos];
@@ -259,36 +275,33 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
   );
 
   // ── Store change handler (inventory mode) ──────────────────────────────
-  const handleStoreChange = useCallback(
-    (store: StoreInfo | null) => {
-      setSelectedStore(store);
-      // Reset wizard state on store change
-      setParsedFiles([]);
-      setMergedFile(null);
-      setSelectedPOS('');
-      setDetectedPOS(null);
-      setMappings([]);
-      setFixes([]);
-      setInventoryDerivedRows([]);
-      setFileAssignments([]);
-      setDispensaryLicense('TEMP-C00-00000000-LIC');
-      setPerRoleMappings({ ...EMPTY_PER_ROLE_MAPPINGS });
-      setCanProceed(false);
-            setCurrentStep(0);
-    },
-    [],
-  );
+  const handleStoreChange = useCallback((store: StoreInfo | null) => {
+    setSelectedStore(store);
+    // Reset wizard state on store change
+    setParsedFiles([]);
+    setMergedFile(null);
+    setSelectedPOS("");
+    setDetectedPOS(null);
+    setMappings([]);
+    setFixes([]);
+    setInventoryDerivedRows([]);
+    setFileAssignments([]);
+    setDispensaryLicense("TEMP-C00-00000000-LIC");
+    setPerRoleMappings({ ...EMPTY_PER_ROLE_MAPPINGS });
+    setCanProceed(false);
+    setCurrentStep(0);
+  }, []);
 
   // ── Start New Migration (clears all state, resets wizard) ──────────────
   const handleStartNew = useCallback(async () => {
-    if (wizardType === 'inventory') {
+    if (wizardType === "inventory") {
       await clearInventoryState();
     } else {
       await clearMigrationState();
     }
     setParsedFiles([]);
     setMergedFile(null);
-    setSelectedPOS('');
+    setSelectedPOS("");
     setDetectedPOS(null);
     setMappings([]);
     setFixes([]);
@@ -296,18 +309,18 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
     setInventoryDerivedRows([]);
     setSelectedStore(null);
     setFileAssignments([]);
-    setDispensaryLicense('TEMP-C00-00000000-LIC');
+    setDispensaryLicense("TEMP-C00-00000000-LIC");
     setPerRoleMappings({ ...EMPTY_PER_ROLE_MAPPINGS });
     setCanProceed(false);
-        setCurrentStep(0);
+    setCurrentStep(0);
   }, [wizardType]);
 
-  const nextButtonLabel = 'Next';
+  const nextButtonLabel = "Next";
 
   // ── Render step content ─────────────────────────────────────────────────
   const renderStep = () => {
     // Inventory branch
-    if (wizardType === 'inventory') {
+    if (wizardType === "inventory") {
       switch (currentStep) {
         case 0:
           return (
@@ -425,9 +438,12 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
     <div className="flex h-full flex-col font-[Roboto,sans-serif]">
       {/* Header — matches Treez drawer header (24px 32px 16px padding) */}
       <div className="bg-white">
-        <div className="flex items-center justify-between" style={{ padding: '24px 32px 16px' }}>
+        <div className="flex items-center justify-between" style={{ padding: "24px 32px 16px" }}>
           <div className="min-w-0 flex-1">
-            <h1 className="font-[Roboto,sans-serif] font-normal" style={{ color: '#0f1709', fontSize: '18px' }}>
+            <h1
+              className="font-[Roboto,sans-serif] font-normal"
+              style={{ color: "#0f1709", fontSize: "18px" }}
+            >
               {title}
             </h1>
           </div>
@@ -435,15 +451,28 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
           <button
             type="button"
             onClick={() => {
-              chrome.storage.session.remove('wizardType');
-              if (onClose) { onClose(); } else { try { window.close(); } catch (_) { /* side panel fallback */ } }
+              chrome.storage.session.remove("wizardType");
+              if (onClose) {
+                onClose();
+              } else {
+                try {
+                  window.close();
+                } catch (_) {
+                  /* side panel fallback */
+                }
+              }
             }}
             className="ml-2 flex shrink-0 items-center justify-center hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0"
-            style={{ color: '#1a1a1a' }}
+            style={{ color: "#1a1a1a" }}
             aria-label="Close"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style={{ width: '20px', height: '20px' }}>
-              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              style={{ width: "20px", height: "20px" }}
+            >
+              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
             </svg>
           </button>
         </div>
@@ -451,7 +480,7 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
       </div>
 
       {/* Store selector banner (inventory mode only) */}
-      {wizardType === 'inventory' && (
+      {wizardType === "inventory" && (
         <StoreSelector
           selectedStore={selectedStore}
           onStoreChange={handleStoreChange}
@@ -462,18 +491,16 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
       )}
 
       {/* Main content */}
-      <div className="flex flex-1 overflow-auto bg-gray-50">
-        {renderStep()}
-      </div>
+      <div className="flex flex-1 overflow-auto bg-gray-50">{renderStep()}</div>
 
       {/* Footer — matches Treez drawer elevated bottom bar */}
       <div
         className="flex items-center justify-between bg-white"
         style={{
-          padding: '16px 24px',
-          borderTop: '1px solid #e0e0e0',
+          padding: "16px 24px",
+          borderTop: "1px solid #e0e0e0",
           boxShadow:
-            'rgba(0,0,0,0.2) 0px 3px 3px -2px, rgba(0,0,0,0.14) 0px 3px 4px 0px, rgba(0,0,0,0.12) 0px 1px 8px 0px',
+            "rgba(0,0,0,0.2) 0px 3px 3px -2px, rgba(0,0,0,0.14) 0px 3px 4px 0px, rgba(0,0,0,0.12) 0px 1px 8px 0px",
         }}
       >
         <div className="flex items-center gap-3">
@@ -483,14 +510,14 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
               onClick={() => setCurrentStep((s) => s - 1)}
               className="btn-treez-text font-[Roboto,sans-serif] font-medium"
               style={{
-                padding: '8px 10px',
-                borderRadius: '16px',
-                border: 'none',
-                color: '#1a4007',
-                fontSize: '15px',
-                height: '40px',
-                letterSpacing: '0.43px',
-                lineHeight: '24px',
+                padding: "8px 10px",
+                borderRadius: "16px",
+                border: "none",
+                color: "#1a4007",
+                fontSize: "15px",
+                height: "40px",
+                letterSpacing: "0.43px",
+                lineHeight: "24px",
               }}
             >
               Back
@@ -502,13 +529,17 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
             rel="noopener noreferrer"
             className="font-[Roboto,sans-serif]"
             style={{
-              fontSize: '12px',
-              color: '#9e9e9e',
-              textDecoration: 'none',
-              letterSpacing: '0.3px',
+              fontSize: "12px",
+              color: "#9e9e9e",
+              textDecoration: "none",
+              letterSpacing: "0.3px",
             }}
-            onMouseEnter={(e) => { (e.target as HTMLAnchorElement).style.color = '#616161'; }}
-            onMouseLeave={(e) => { (e.target as HTMLAnchorElement).style.color = '#9e9e9e'; }}
+            onMouseEnter={(e) => {
+              (e.target as HTMLAnchorElement).style.color = "#616161";
+            }}
+            onMouseLeave={(e) => {
+              (e.target as HTMLAnchorElement).style.color = "#9e9e9e";
+            }}
           >
             Report an issue
           </a>
@@ -520,14 +551,14 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
             onClick={() => setCurrentStep((s) => s + 1)}
             className="btn-treez-green font-[Roboto,sans-serif] font-medium disabled:cursor-not-allowed disabled:opacity-40"
             style={{
-              padding: '0 20px',
-              borderRadius: '15px',
-              border: 'none',
-              color: '#0f1709',
-              fontSize: '14px',
-              height: '40px',
-              letterSpacing: '0.4px',
-              lineHeight: '24px',
+              padding: "0 20px",
+              borderRadius: "15px",
+              border: "none",
+              color: "#0f1709",
+              fontSize: "14px",
+              height: "40px",
+              letterSpacing: "0.4px",
+              lineHeight: "24px",
             }}
           >
             {nextButtonLabel}
@@ -536,19 +567,27 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
           <button
             type="button"
             onClick={() => {
-              chrome.storage.session.remove('wizardType');
-              if (onClose) { onClose(); } else { try { window.close(); } catch (_) { /* side panel fallback */ } }
+              chrome.storage.session.remove("wizardType");
+              if (onClose) {
+                onClose();
+              } else {
+                try {
+                  window.close();
+                } catch (_) {
+                  /* side panel fallback */
+                }
+              }
             }}
             className="btn-treez-green font-[Roboto,sans-serif] font-medium"
             style={{
-              padding: '0 20px',
-              borderRadius: '15px',
-              border: 'none',
-              color: '#0f1709',
-              fontSize: '14px',
-              height: '40px',
-              letterSpacing: '0.4px',
-              lineHeight: '24px',
+              padding: "0 20px",
+              borderRadius: "15px",
+              border: "none",
+              color: "#0f1709",
+              fontSize: "14px",
+              height: "40px",
+              letterSpacing: "0.4px",
+              lineHeight: "24px",
             }}
           >
             Done

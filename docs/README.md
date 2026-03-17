@@ -4,14 +4,14 @@ Welcome to the Catalog Migration Tool wiki. This extension helps you migrate pro
 
 ## Guides
 
-| Guide | Description |
-|-------|-------------|
-| [Installation](installation.md) | Prerequisites, building, loading the extension |
-| [Catalog Migration](catalog-migration.md) | Step-by-step catalog migration walkthrough |
-| [Inventory Migration](inventory-migration.md) | Step-by-step inventory migration walkthrough |
+| Guide                                             | Description                                          |
+| ------------------------------------------------- | ---------------------------------------------------- |
+| [Installation](installation.md)                   | Prerequisites, building, loading the extension       |
+| [Catalog Migration](catalog-migration.md)         | Step-by-step catalog migration walkthrough           |
+| [Inventory Migration](inventory-migration.md)     | Step-by-step inventory migration walkthrough         |
 | [Supported POS Systems](supported-pos-systems.md) | Per-POS export instructions and auto-mapping details |
-| [Troubleshooting](troubleshooting.md) | Common issues and solutions |
-| [Reporting Issues](reporting-issues.md) | How to file bug reports and feature requests |
+| [Troubleshooting](troubleshooting.md)             | Common issues and solutions                          |
+| [Reporting Issues](reporting-issues.md)           | How to file bug reports and feature requests         |
 
 ## How It Works
 

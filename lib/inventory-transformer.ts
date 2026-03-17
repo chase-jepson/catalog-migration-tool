@@ -1,8 +1,4 @@
-import type {
-  ParsedFile,
-  FieldMapping,
-  InventoryDerivedRow,
-} from './types';
+import type { ParsedFile, FieldMapping, InventoryDerivedRow } from "./types";
 import {
   groupBy,
   sumByGroup,
@@ -16,7 +12,7 @@ import {
   deriveLocationIsSellable,
   deriveLocationDefaultReceiving,
   deriveLocationInventoryType,
-} from './inventory-etl-helpers';
+} from "./inventory-etl-helpers";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -89,56 +85,56 @@ function getVal(
   fieldKey: string,
 ): string {
   const col = fieldMap[fieldKey];
-  if (!col) return '';
-  return (row[col] ?? '').trim();
+  if (!col) return "";
+  return (row[col] ?? "").trim();
 }
 
 /** Format a numeric value to up to 2 decimal places (strip trailing zeros), or return '' if blank/NaN */
 function formatDecimal2(val: any): string {
-  if (val === undefined || val === null || val === '') return '';
+  if (val === undefined || val === null || val === "") return "";
   const num = Number(val);
   if (Number.isNaN(num)) return String(val);
   // Use toFixed(2) then strip trailing zeros after decimal point
   const fixed = num.toFixed(2);
-  return fixed.replace(/\.?0+$/, '') || '0';
+  return fixed.replace(/\.?0+$/, "") || "0";
 }
 
 function emptyDistributor(): DistributorInfo {
   return {
-    distributorName: '',
-    distributorDBA: '',
-    distributorAddress: '',
-    distributorPhoneNumber: '',
-    distributorEmail: '',
-    distributorType: '',
-    distributorDefaultPaymentTerm: '',
-    distributorLeadTime: '',
-    distributorDeliveryDays: '',
-    distributorPreferredPaymentMethod: '',
-    distributorLicense1Type: '',
-    distributorLicense1Number: '',
-    distributorLicense1ExpirationDate: '',
-    distributorLicense2Type: '',
-    distributorLicense2Number: '',
-    distributorLicense2ExpirationDate: '',
-    distributorLicense3Type: '',
-    distributorLicense3Number: '',
-    distributorLicense3ExpirationDate: '',
-    distributorRep1Name: '',
-    distributorRep1Phone: '',
-    distributorRep1Email: '',
-    distributorRep1Role: '',
-    distributorRep1Notes: '',
-    distributorRep2Name: '',
-    distributorRep2Phone: '',
-    distributorRep2Email: '',
-    distributorRep2Role: '',
-    distributorRep2Notes: '',
-    distributorRep3Name: '',
-    distributorRep3Phone: '',
-    distributorRep3Email: '',
-    distributorRep3Role: '',
-    distributorRep3Notes: '',
+    distributorName: "",
+    distributorDBA: "",
+    distributorAddress: "",
+    distributorPhoneNumber: "",
+    distributorEmail: "",
+    distributorType: "",
+    distributorDefaultPaymentTerm: "",
+    distributorLeadTime: "",
+    distributorDeliveryDays: "",
+    distributorPreferredPaymentMethod: "",
+    distributorLicense1Type: "",
+    distributorLicense1Number: "",
+    distributorLicense1ExpirationDate: "",
+    distributorLicense2Type: "",
+    distributorLicense2Number: "",
+    distributorLicense2ExpirationDate: "",
+    distributorLicense3Type: "",
+    distributorLicense3Number: "",
+    distributorLicense3ExpirationDate: "",
+    distributorRep1Name: "",
+    distributorRep1Phone: "",
+    distributorRep1Email: "",
+    distributorRep1Role: "",
+    distributorRep1Notes: "",
+    distributorRep2Name: "",
+    distributorRep2Phone: "",
+    distributorRep2Email: "",
+    distributorRep2Role: "",
+    distributorRep2Notes: "",
+    distributorRep3Name: "",
+    distributorRep3Phone: "",
+    distributorRep3Email: "",
+    distributorRep3Role: "",
+    distributorRep3Notes: "",
   };
 }
 
@@ -171,35 +167,31 @@ export function processReceipts(
 
   // A1: Extract receipt subset columns
   const receiptSubset = receiptRows.map((row) => ({
-    ProductSKU: getVal(row, rcptMap, 'rcpt_productSKU'),
-    ExternalPackageId: getVal(row, rcptMap, 'rcpt_externalPackageId'),
-    ReceiveDate: getVal(row, rcptMap, 'rcpt_receiveDate'),
-    Quantity: getVal(row, rcptMap, 'rcpt_quantity'),
-    TotalCost: getVal(row, rcptMap, 'rcpt_totalCost'),
-    VendorName: getVal(row, rcptMap, 'rcpt_vendorName'),
-    OrderTitle: getVal(row, rcptMap, 'rcpt_orderTitle'),
+    ProductSKU: getVal(row, rcptMap, "rcpt_productSKU"),
+    ExternalPackageId: getVal(row, rcptMap, "rcpt_externalPackageId"),
+    ReceiveDate: getVal(row, rcptMap, "rcpt_receiveDate"),
+    Quantity: getVal(row, rcptMap, "rcpt_quantity"),
+    TotalCost: getVal(row, rcptMap, "rcpt_totalCost"),
+    VendorName: getVal(row, rcptMap, "rcpt_vendorName"),
+    OrderTitle: getVal(row, rcptMap, "rcpt_orderTitle"),
   }));
 
   // A1 Step 3: Sum receipts by group
   // Use \0 separator to avoid collision with pipe-separated vendor names
-  const SEP = '\0';
+  const SEP = "\0";
   const receiptSummed = sumByGroup(
     receiptSubset,
     (r) => [r.ProductSKU, r.ReceiveDate, r.ExternalPackageId, r.VendorName, r.OrderTitle].join(SEP),
-    ['Quantity', 'TotalCost'],
+    ["Quantity", "TotalCost"],
   );
 
   // A1 Step 5: Sum adjustments by ExternalPackageId
   const adjSubset = adjustmentRows.map((row) => ({
-    ExternalPackageId: getVal(row, adjMap, 'adj_externalPackageId'),
-    Quantity: getVal(row, adjMap, 'adj_quantity'),
-    TotalCost: getVal(row, adjMap, 'adj_cost'),
+    ExternalPackageId: getVal(row, adjMap, "adj_externalPackageId"),
+    Quantity: getVal(row, adjMap, "adj_quantity"),
+    TotalCost: getVal(row, adjMap, "adj_cost"),
   }));
-  const adjSummed = sumByGroup(
-    adjSubset,
-    (r) => r.ExternalPackageId,
-    ['Quantity', 'TotalCost'],
-  );
+  const adjSummed = sumByGroup(adjSubset, (r) => r.ExternalPackageId, ["Quantity", "TotalCost"]);
 
   // A1 Step 6: Stack tables -- convert both to common format for re-sum
   const stackedForSum: { ExternalPackageId: string; Quantity: string; TotalCost: string }[] = [];
@@ -222,11 +214,10 @@ export function processReceipts(
   }
 
   // A1 Step 7: Re-sum by ExternalPackageId
-  const combinedTotals = sumByGroup(
-    stackedForSum,
-    (r) => r.ExternalPackageId,
-    ['Quantity', 'TotalCost'],
-  );
+  const combinedTotals = sumByGroup(stackedForSum, (r) => r.ExternalPackageId, [
+    "Quantity",
+    "TotalCost",
+  ]);
   const totalsMap = new Map<string, { Quantity: number; TotalCost: number }>();
   for (const t of combinedTotals) {
     totalsMap.set(t._groupKey, {
@@ -258,7 +249,7 @@ export function processReceipts(
     return b.Quantity - a.Quantity; // descending
   });
 
-  const dedupKey = (r: typeof summedDescriptive[0]) =>
+  const dedupKey = (r: (typeof summedDescriptive)[0]) =>
     `${r.ExternalPackageId}|${r.VendorName}|${r.ReceiveDate}|${r.OrderTitle}`;
   const seenDedupKeys = new Set<string>();
   const deduped = summedDescriptive.filter((r) => {
@@ -285,7 +276,7 @@ export function processReceipts(
       ReceiveDate: info.ReceiveDate,
       Quantity: String(quantity),
       TotalCost: String(totalCost),
-      UnitCost: unitCost.toFixed(2).replace(/\.?0+$/, '') || '0',
+      UnitCost: unitCost.toFixed(2).replace(/\.?0+$/, "") || "0",
       VendorName: info.VendorName,
       OrderTitle: info.OrderTitle,
       InvoiceId: invoiceId,
@@ -331,16 +322,19 @@ export function processVendors(
   // Generate expiration date: today + 2 years
   const now = new Date();
   const expDate = new Date(now.getFullYear() + 2, now.getMonth(), now.getDate());
-  const expStr = `${expDate.getFullYear()}-${String(expDate.getMonth() + 1).padStart(2, '0')}-${String(expDate.getDate()).padStart(2, '0')}`;
+  const expStr = `${expDate.getFullYear()}-${String(expDate.getMonth() + 1).padStart(2, "0")}-${String(expDate.getDate()).padStart(2, "0")}`;
 
   // Step 1: Group rows by vendor name, merge vendor codes (dedup, skip blanks)
-  const vendorGroups = new Map<string, {
-    codes: Set<string>;
-    rows: Record<string, string>[];
-  }>();
+  const vendorGroups = new Map<
+    string,
+    {
+      codes: Set<string>;
+      rows: Record<string, string>[];
+    }
+  >();
 
   for (const row of vendorRows) {
-    const name = getVal(row, fm, 'vnd_vendorName');
+    const name = getVal(row, fm, "vnd_vendorName");
     if (!name) continue;
 
     let group = vendorGroups.get(name);
@@ -350,10 +344,10 @@ export function processVendors(
     }
     group.rows.push(row);
 
-    const code = getVal(row, fm, 'vnd_vendorCode');
+    const code = getVal(row, fm, "vnd_vendorCode");
     if (code) {
       // Handle comma-separated codes in a single cell too
-      for (const c of code.split(',')) {
+      for (const c of code.split(",")) {
         const trimmed = c.trim();
         if (trimmed) group.codes.add(trimmed);
       }
@@ -367,11 +361,11 @@ export function processVendors(
     const codes = Array.from(group.codes);
 
     // Build address — Parabola-style if/else (first match wins)
-    const street = getVal(row, fm, 'vnd_address');
-    const city = getVal(row, fm, 'vnd_city');
-    const state = getVal(row, fm, 'vnd_state');
-    const zip = getVal(row, fm, 'vnd_postalCode');
-    let address = '';
+    const street = getVal(row, fm, "vnd_address");
+    const city = getVal(row, fm, "vnd_city");
+    const state = getVal(row, fm, "vnd_state");
+    const zip = getVal(row, fm, "vnd_postalCode");
+    let address = "";
     if (street && city && state && zip) {
       address = `${street} ${city}, ${state} ${zip}`;
     } else if (street && city && state && !zip) {
@@ -389,45 +383,45 @@ export function processVendors(
     }
 
     // Split codes into up to 3 licenses
-    const lic1 = codes[0] ?? '';
-    const lic2 = codes[1] ?? '';
-    const lic3 = codes[2] ?? '';
+    const lic1 = codes[0] ?? "";
+    const lic2 = codes[1] ?? "";
+    const lic3 = codes[2] ?? "";
 
     result[name] = {
       distributorName: name,
-      distributorDBA: getVal(row, fm, 'vnd_abbreviation'),
+      distributorDBA: getVal(row, fm, "vnd_abbreviation"),
       distributorAddress: address,
-      distributorPhoneNumber: getVal(row, fm, 'vnd_contactPhone'),
-      distributorEmail: getVal(row, fm, 'vnd_contactEmail'),
-      distributorType: 'Non-Arms Length',
-      distributorDefaultPaymentTerm: '',
-      distributorLeadTime: '',
-      distributorDeliveryDays: '',
-      distributorPreferredPaymentMethod: '',
-      distributorLicense1Type: lic1 ? 'Adult' : '',
+      distributorPhoneNumber: getVal(row, fm, "vnd_contactPhone"),
+      distributorEmail: getVal(row, fm, "vnd_contactEmail"),
+      distributorType: "Non-Arms Length",
+      distributorDefaultPaymentTerm: "",
+      distributorLeadTime: "",
+      distributorDeliveryDays: "",
+      distributorPreferredPaymentMethod: "",
+      distributorLicense1Type: lic1 ? "Adult" : "",
       distributorLicense1Number: lic1,
-      distributorLicense1ExpirationDate: lic1 ? expStr : '',
-      distributorLicense2Type: lic2 ? 'Adult' : '',
+      distributorLicense1ExpirationDate: lic1 ? expStr : "",
+      distributorLicense2Type: lic2 ? "Adult" : "",
       distributorLicense2Number: lic2,
-      distributorLicense2ExpirationDate: lic2 ? expStr : '',
-      distributorLicense3Type: lic3 ? 'Adult' : '',
+      distributorLicense2ExpirationDate: lic2 ? expStr : "",
+      distributorLicense3Type: lic3 ? "Adult" : "",
       distributorLicense3Number: lic3,
-      distributorLicense3ExpirationDate: lic3 ? expStr : '',
-      distributorRep1Name: '',
-      distributorRep1Phone: '',
-      distributorRep1Email: '',
-      distributorRep1Role: '',
-      distributorRep1Notes: '',
-      distributorRep2Name: '',
-      distributorRep2Phone: '',
-      distributorRep2Email: '',
-      distributorRep2Role: '',
-      distributorRep2Notes: '',
-      distributorRep3Name: '',
-      distributorRep3Phone: '',
-      distributorRep3Email: '',
-      distributorRep3Role: '',
-      distributorRep3Notes: '',
+      distributorLicense3ExpirationDate: lic3 ? expStr : "",
+      distributorRep1Name: "",
+      distributorRep1Phone: "",
+      distributorRep1Email: "",
+      distributorRep1Role: "",
+      distributorRep1Notes: "",
+      distributorRep2Name: "",
+      distributorRep2Phone: "",
+      distributorRep2Email: "",
+      distributorRep2Role: "",
+      distributorRep2Notes: "",
+      distributorRep3Name: "",
+      distributorRep3Phone: "",
+      distributorRep3Email: "",
+      distributorRep3Role: "",
+      distributorRep3Notes: "",
     };
   }
 
@@ -464,28 +458,28 @@ export function processInventory(
   const fm = buildFieldMap(inventoryMappings);
 
   return inventoryRows.map((row) => {
-    const thcRaw = getVal(row, fm, 'inv_thc');
-    const cbdRaw = getVal(row, fm, 'inv_cbd');
+    const thcRaw = getVal(row, fm, "inv_thc");
+    const cbdRaw = getVal(row, fm, "inv_cbd");
     const thc = splitPotency(thcRaw);
     const cbd = splitPotency(cbdRaw);
     // UoM is required when amount is present — must be "%" or "mg", default to "mg"
-    if (thc.amount && (thc.uom !== '%' && thc.uom !== 'mg')) thc.uom = 'mg';
-    if (cbd.amount && (cbd.uom !== '%' && cbd.uom !== 'mg')) cbd.uom = 'mg';
-    const availableFor = getVal(row, fm, 'inv_availableFor');
-    const room = getVal(row, fm, 'inv_room');
+    if (thc.amount && thc.uom !== "%" && thc.uom !== "mg") thc.uom = "mg";
+    if (cbd.amount && cbd.uom !== "%" && cbd.uom !== "mg") cbd.uom = "mg";
+    const availableFor = getVal(row, fm, "inv_availableFor");
+    const room = getVal(row, fm, "inv_room");
     const custType = deriveCustomerType(availableFor);
     const locPath = deriveLocationPath(room);
 
     return {
-      ProductSKU: getVal(row, fm, 'inv_sku'),
-      ProductName: getVal(row, fm, 'inv_product'),
-      ExternalPackageId: getVal(row, fm, 'inv_externalPackageId'),
-      Units: getVal(row, fm, 'inv_quantityIncAllocated'),
-      Cost: getVal(row, fm, 'inv_cost'),
-      Category: getVal(row, fm, 'inv_category'),
-      HarvestDate: getVal(row, fm, 'inv_harvestDate'),
-      ExpirationDate: getVal(row, fm, 'inv_expirationDate'),
-      PackagedDate: getVal(row, fm, 'inv_packagingDate'),
+      ProductSKU: getVal(row, fm, "inv_sku"),
+      ProductName: getVal(row, fm, "inv_product"),
+      ExternalPackageId: getVal(row, fm, "inv_externalPackageId"),
+      Units: getVal(row, fm, "inv_quantityIncAllocated"),
+      Cost: getVal(row, fm, "inv_cost"),
+      Category: getVal(row, fm, "inv_category"),
+      HarvestDate: getVal(row, fm, "inv_harvestDate"),
+      ExpirationDate: getVal(row, fm, "inv_expirationDate"),
+      PackagedDate: getVal(row, fm, "inv_packagingDate"),
       thcAmount: thc.amount,
       thcUom: thc.uom,
       cbdAmount: cbd.amount,
@@ -525,12 +519,12 @@ export function joinChain(
   // Try exact match first, then match on each pipe-separated part.
   if (Object.keys(distributorData).length > 0) {
     result = result.map((row) => {
-      const vendorName = row.VendorName ?? '';
+      const vendorName = row.VendorName ?? "";
       // Try exact match
       let distInfo = distributorData[vendorName];
       // Try pipe-separated parts
-      if (!distInfo && vendorName.includes('|')) {
-        const parts = vendorName.split('|').map((p: string) => p.trim());
+      if (!distInfo && vendorName.includes("|")) {
+        const parts = vendorName.split("|").map((p: string) => p.trim());
         for (const part of parts) {
           distInfo = distributorData[part];
           if (distInfo) break;
@@ -568,7 +562,7 @@ export function finalEnrichment(
   // Step 1: Leave blank Units empty (receipt-only rows have no inventory quantity)
 
   // Step 2: Row numbers partitioned by ExternalPackageId
-  const partitions = groupBy(joinedRows, (r) => r.ExternalPackageId ?? '');
+  const partitions = groupBy(joinedRows, (r) => r.ExternalPackageId ?? "");
   for (const [, rows] of partitions) {
     let num = 1;
     for (const row of rows) {
@@ -578,92 +572,90 @@ export function finalEnrichment(
 
   // Steps 3-6: Build final InventoryDerivedRow for each row
   return joinedRows.map((row) => {
-    const extPkgId = row.ExternalPackageId ?? '';
-    const productCategory = row.ProductCategory ?? row.Category ?? '';
-    const isMerch = productCategory === 'Merch';
+    const extPkgId = row.ExternalPackageId ?? "";
+    const productCategory = row.ProductCategory ?? row.Category ?? "";
+    const isMerch = productCategory === "Merch";
     const rowNum = row._rowNumber ?? 1;
 
     // TraceTreezId
-    const traceTreezId = isMerch
-      ? `${extPkgId}-${rowNum}`
-      : extPkgId;
+    const traceTreezId = isMerch ? `${extPkgId}-${rowNum}` : extPkgId;
 
     // InventoryBarcodes
-    const inventoryBarcodes = isMerch ? '' : extPkgId;
+    const inventoryBarcodes = isMerch ? "" : extPkgId;
 
     // Date formatting
-    const receiveDate = formatDateToISO(row.ReceiveDate ?? '');
-    const harvestDate = formatDateToISO(row.HarvestDate ?? '');
-    const expirationDate = formatDateToISO(row.ExpirationDate ?? '');
-    const packagedDate = formatDateToISO(row.PackagedDate ?? '');
+    const receiveDate = formatDateToISO(row.ReceiveDate ?? "");
+    const harvestDate = formatDateToISO(row.HarvestDate ?? "");
+    const expirationDate = formatDateToISO(row.ExpirationDate ?? "");
+    const packagedDate = formatDateToISO(row.PackagedDate ?? "");
 
-    const productSKU = row.ProductSKU ?? '';
+    const productSKU = row.ProductSKU ?? "";
 
     return {
       // Identity
-      treezVariantId: '',
+      treezVariantId: "",
       variantReferenceId: `V-${productSKU}`,
       dispensaryLicense,
       // Invoice
-      invoiceId: row.InvoiceIdDate ?? '',
+      invoiceId: row.InvoiceIdDate ?? "",
       invoiceCreatedDate: receiveDate,
-      manifestNumber: '',
+      manifestNumber: "",
       // Trace
       traceTreezId,
       inventoryBarcodes,
       // Quantities
       originalUnitCount: formatDecimal2(row.Quantity),
-      units: row.Units ?? '',
-      unitCost: row.UnitCost ?? '',
+      units: row.Units ?? "",
+      unitCost: row.UnitCost ?? "",
       // Dates
       harvestDate,
       expirationDate,
       packagedDate,
       // Customer / Location
-      customerType: row.customerType || 'ADULT',
-      thcAmount: row.thcAmount ?? '',
-      thcUom: row.thcUom ?? '',
-      cbdAmount: row.cbdAmount ?? '',
-      cbdUom: row.cbdUom ?? '',
-      locationPath: row.locationPath ?? '',
-      locationInventoryType: row.locationInventoryType ?? '',
-      locationIsSellable: row.locationIsSellable ?? '',
-      locationDefaultReceivingLocation: row.locationDefaultReceivingLocation ?? '',
+      customerType: row.customerType || "ADULT",
+      thcAmount: row.thcAmount ?? "",
+      thcUom: row.thcUom ?? "",
+      cbdAmount: row.cbdAmount ?? "",
+      cbdUom: row.cbdUom ?? "",
+      locationPath: row.locationPath ?? "",
+      locationInventoryType: row.locationInventoryType ?? "",
+      locationIsSellable: row.locationIsSellable ?? "",
+      locationDefaultReceivingLocation: row.locationDefaultReceivingLocation ?? "",
       // Distributor
-      distributorName: row.distributorName ?? '',
-      distributorDBA: row.distributorDBA ?? '',
-      distributorAddress: row.distributorAddress ?? '',
-      distributorPhoneNumber: row.distributorPhoneNumber ?? '',
-      distributorEmail: row.distributorEmail ?? '',
-      distributorType: row.distributorType ?? '',
-      distributorDefaultPaymentTerm: row.distributorDefaultPaymentTerm ?? '',
-      distributorLeadTime: row.distributorLeadTime ?? '',
-      distributorDeliveryDays: row.distributorDeliveryDays ?? '',
-      distributorPreferredPaymentMethod: row.distributorPreferredPaymentMethod ?? '',
-      distributorLicense1Type: row.distributorLicense1Type ?? '',
-      distributorLicense1Number: row.distributorLicense1Number ?? '',
-      distributorLicense1ExpirationDate: row.distributorLicense1ExpirationDate ?? '',
-      distributorLicense2Type: row.distributorLicense2Type ?? '',
-      distributorLicense2Number: row.distributorLicense2Number ?? '',
-      distributorLicense2ExpirationDate: row.distributorLicense2ExpirationDate ?? '',
-      distributorLicense3Type: row.distributorLicense3Type ?? '',
-      distributorLicense3Number: row.distributorLicense3Number ?? '',
-      distributorLicense3ExpirationDate: row.distributorLicense3ExpirationDate ?? '',
-      distributorRep1Name: row.distributorRep1Name ?? '',
-      distributorRep1Phone: row.distributorRep1Phone ?? '',
-      distributorRep1Email: row.distributorRep1Email ?? '',
-      distributorRep1Role: row.distributorRep1Role ?? '',
-      distributorRep1Notes: row.distributorRep1Notes ?? '',
-      distributorRep2Name: row.distributorRep2Name ?? '',
-      distributorRep2Phone: row.distributorRep2Phone ?? '',
-      distributorRep2Email: row.distributorRep2Email ?? '',
-      distributorRep2Role: row.distributorRep2Role ?? '',
-      distributorRep2Notes: row.distributorRep2Notes ?? '',
-      distributorRep3Name: row.distributorRep3Name ?? '',
-      distributorRep3Phone: row.distributorRep3Phone ?? '',
-      distributorRep3Email: row.distributorRep3Email ?? '',
-      distributorRep3Role: row.distributorRep3Role ?? '',
-      distributorRep3Notes: row.distributorRep3Notes ?? '',
+      distributorName: row.distributorName ?? "",
+      distributorDBA: row.distributorDBA ?? "",
+      distributorAddress: row.distributorAddress ?? "",
+      distributorPhoneNumber: row.distributorPhoneNumber ?? "",
+      distributorEmail: row.distributorEmail ?? "",
+      distributorType: row.distributorType ?? "",
+      distributorDefaultPaymentTerm: row.distributorDefaultPaymentTerm ?? "",
+      distributorLeadTime: row.distributorLeadTime ?? "",
+      distributorDeliveryDays: row.distributorDeliveryDays ?? "",
+      distributorPreferredPaymentMethod: row.distributorPreferredPaymentMethod ?? "",
+      distributorLicense1Type: row.distributorLicense1Type ?? "",
+      distributorLicense1Number: row.distributorLicense1Number ?? "",
+      distributorLicense1ExpirationDate: row.distributorLicense1ExpirationDate ?? "",
+      distributorLicense2Type: row.distributorLicense2Type ?? "",
+      distributorLicense2Number: row.distributorLicense2Number ?? "",
+      distributorLicense2ExpirationDate: row.distributorLicense2ExpirationDate ?? "",
+      distributorLicense3Type: row.distributorLicense3Type ?? "",
+      distributorLicense3Number: row.distributorLicense3Number ?? "",
+      distributorLicense3ExpirationDate: row.distributorLicense3ExpirationDate ?? "",
+      distributorRep1Name: row.distributorRep1Name ?? "",
+      distributorRep1Phone: row.distributorRep1Phone ?? "",
+      distributorRep1Email: row.distributorRep1Email ?? "",
+      distributorRep1Role: row.distributorRep1Role ?? "",
+      distributorRep1Notes: row.distributorRep1Notes ?? "",
+      distributorRep2Name: row.distributorRep2Name ?? "",
+      distributorRep2Phone: row.distributorRep2Phone ?? "",
+      distributorRep2Email: row.distributorRep2Email ?? "",
+      distributorRep2Role: row.distributorRep2Role ?? "",
+      distributorRep2Notes: row.distributorRep2Notes ?? "",
+      distributorRep3Name: row.distributorRep3Name ?? "",
+      distributorRep3Phone: row.distributorRep3Phone ?? "",
+      distributorRep3Email: row.distributorRep3Email ?? "",
+      distributorRep3Role: row.distributorRep3Role ?? "",
+      distributorRep3Notes: row.distributorRep3Notes ?? "",
       // Internal
       productSKU,
       externalPackageId: extPkgId,
@@ -711,8 +703,8 @@ export function runInventoryETL(
   if (input.catalogFile && input.catalogFile.rows.length > 0) {
     const catMap = buildFieldMap(mappings.catalog_export);
     catalogData = input.catalogFile.rows.map((row) => ({
-      ProductKey: getVal(row, catMap, 'cat_productKey'),
-      ProductCategory: getVal(row, catMap, 'cat_productCategory'),
+      ProductKey: getVal(row, catMap, "cat_productKey"),
+      ProductCategory: getVal(row, catMap, "cat_productCategory"),
     }));
   }
 

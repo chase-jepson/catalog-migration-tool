@@ -1,13 +1,13 @@
-import type { DerivedRow, RowValidationError, ValidationResult, ErrorGroup } from './types';
+import type { DerivedRow, RowValidationError, ValidationResult, ErrorGroup } from "./types";
 import {
   PRODUCT_CATEGORIES,
   PRODUCT_SUBCATEGORIES,
   VALID_CLASSIFICATIONS,
   EACH_UOM_CATEGORIES,
-} from './constants';
+} from "./constants";
 
-const VALID_STATUSES = ['draft', 'active', 'inactive'];
-const VALID_UOMS = ['each', 'grams', 'kilograms', 'milligrams', 'ounces', 'pounds'];
+const VALID_STATUSES = ["draft", "active", "inactive"];
+const VALID_UOMS = ["each", "grams", "kilograms", "milligrams", "ounces", "pounds"];
 
 /**
  * Validate derived rows against Treez import schema rules.
@@ -28,11 +28,11 @@ export function validateDerivedRows(derived: DerivedRow[]): ValidationResult {
     if (!row.productName.trim()) {
       errors.push({
         rowIndex: i,
-        field: 'productName',
+        field: "productName",
         currentValue: row.productName,
-        message: 'Product name is empty',
-        fixType: 'text',
-        severity: 'error',
+        message: "Product name is empty",
+        fixType: "text",
+        severity: "error",
       });
     }
 
@@ -40,12 +40,12 @@ export function validateDerivedRows(derived: DerivedRow[]): ValidationResult {
     if (!PRODUCT_CATEGORIES.includes(row.category as (typeof PRODUCT_CATEGORIES)[number])) {
       errors.push({
         rowIndex: i,
-        field: 'category',
+        field: "category",
         currentValue: row.category,
         message: `Invalid category: "${row.category}"`,
-        fixType: 'dropdown',
+        fixType: "dropdown",
         dropdownOptions: [...PRODUCT_CATEGORIES],
-        severity: 'error',
+        severity: "error",
       });
     }
 
@@ -54,12 +54,12 @@ export function validateDerivedRows(derived: DerivedRow[]): ValidationResult {
     if (validSubs && row.subCategory && !validSubs.includes(row.subCategory)) {
       errors.push({
         rowIndex: i,
-        field: 'subCategory',
+        field: "subCategory",
         currentValue: row.subCategory,
         message: `Invalid sub-category "${row.subCategory}" for ${row.category}`,
-        fixType: 'dropdown',
+        fixType: "dropdown",
         dropdownOptions: validSubs,
-        severity: 'error',
+        severity: "error",
       });
     }
 
@@ -67,12 +67,12 @@ export function validateDerivedRows(derived: DerivedRow[]): ValidationResult {
     if (!VALID_STATUSES.includes(row.status)) {
       errors.push({
         rowIndex: i,
-        field: 'status',
+        field: "status",
         currentValue: row.status,
         message: `Invalid status: "${row.status}"`,
-        fixType: 'dropdown',
+        fixType: "dropdown",
         dropdownOptions: VALID_STATUSES,
-        severity: 'error',
+        severity: "error",
       });
     }
 
@@ -80,12 +80,12 @@ export function validateDerivedRows(derived: DerivedRow[]): ValidationResult {
     if (!VALID_UOMS.includes(row.uom)) {
       errors.push({
         rowIndex: i,
-        field: 'uom',
+        field: "uom",
         currentValue: row.uom,
         message: `Invalid UoM: "${row.uom}"`,
-        fixType: 'dropdown',
+        fixType: "dropdown",
         dropdownOptions: VALID_UOMS,
-        severity: 'error',
+        severity: "error",
       });
     }
 
@@ -94,58 +94,62 @@ export function validateDerivedRows(derived: DerivedRow[]): ValidationResult {
       if (!row.amount || row.amount < 0.0001) {
         errors.push({
           rowIndex: i,
-          field: 'amount',
+          field: "amount",
           currentValue: String(row.amount || 0),
           message: `Amount is required for ${row.category} variants`,
-          fixType: 'text',
-          severity: 'error',
+          fixType: "text",
+          severity: "error",
         });
       } else if (row.amount > 999999.9999) {
         errors.push({
           rowIndex: i,
-          field: 'amount',
+          field: "amount",
           currentValue: String(row.amount),
           message: `Amount must be <= 999,999.9999 (got ${row.amount.toLocaleString()})`,
-          fixType: 'text',
-          severity: 'error',
+          fixType: "text",
+          severity: "error",
         });
       }
     }
 
     // basePrice: required (non-empty)
-    if (!row.basePrice || row.basePrice === '0') {
+    if (!row.basePrice || row.basePrice === "0") {
       errors.push({
         rowIndex: i,
-        field: 'basePrice',
+        field: "basePrice",
         currentValue: row.basePrice,
-        message: 'Base price is required',
-        fixType: 'text',
-        severity: 'error',
+        message: "Base price is required",
+        fixType: "text",
+        severity: "error",
       });
     }
 
     // classification: error if non-empty and invalid, warning if empty
     if (row.classification) {
-      if (!VALID_CLASSIFICATIONS.includes(row.classification as (typeof VALID_CLASSIFICATIONS)[number])) {
+      if (
+        !VALID_CLASSIFICATIONS.includes(
+          row.classification as (typeof VALID_CLASSIFICATIONS)[number],
+        )
+      ) {
         errors.push({
           rowIndex: i,
-          field: 'classification',
+          field: "classification",
           currentValue: row.classification,
           message: `Invalid classification: "${row.classification}"`,
-          fixType: 'dropdown',
+          fixType: "dropdown",
           dropdownOptions: [...VALID_CLASSIFICATIONS],
-          severity: 'error',
+          severity: "error",
         });
       }
     } else {
       errors.push({
         rowIndex: i,
-        field: 'classification',
-        currentValue: '',
-        message: 'Classification is empty',
-        fixType: 'dropdown',
+        field: "classification",
+        currentValue: "",
+        message: "Classification is empty",
+        fixType: "dropdown",
         dropdownOptions: [...VALID_CLASSIFICATIONS],
-        severity: 'warning',
+        severity: "warning",
       });
     }
 
@@ -155,11 +159,11 @@ export function validateDerivedRows(derived: DerivedRow[]): ValidationResult {
     if (!row.strain?.trim()) {
       errors.push({
         rowIndex: i,
-        field: 'strain',
-        currentValue: row.strain || '',
-        message: 'Strain is empty',
-        fixType: 'text',
-        severity: 'warning',
+        field: "strain",
+        currentValue: row.strain || "",
+        message: "Strain is empty",
+        fixType: "text",
+        severity: "warning",
       });
     }
 
@@ -167,11 +171,11 @@ export function validateDerivedRows(derived: DerivedRow[]): ValidationResult {
     if (!row.description?.trim()) {
       errors.push({
         rowIndex: i,
-        field: 'description',
-        currentValue: row.description || '',
-        message: 'Description is empty',
-        fixType: 'text',
-        severity: 'warning',
+        field: "description",
+        currentValue: row.description || "",
+        message: "Description is empty",
+        fixType: "text",
+        severity: "warning",
       });
     }
   }
@@ -183,7 +187,7 @@ export function validateDerivedRows(derived: DerivedRow[]): ValidationResult {
   let warningCount = 0;
 
   for (const err of errors) {
-    if (err.severity === 'error') {
+    if (err.severity === "error") {
       errorRowIndices.add(err.rowIndex);
       errorCount++;
     } else {

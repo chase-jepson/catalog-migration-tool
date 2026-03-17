@@ -2,13 +2,9 @@
 
 <!-- Describe the issue clearly. What did you see? -->
 
-
-
 ## What did you expect to happen?
 
 <!-- What should have happened instead? -->
-
-
 
 ## Steps to reproduce
 
@@ -47,4 +43,3 @@ Paste console errors here
 ## Additional context
 
 <!-- Anything else that might help diagnose the issue. -->
-

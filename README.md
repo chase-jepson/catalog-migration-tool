@@ -11,15 +11,15 @@ A Chrome extension that guides cannabis retailers through migrating product cata
 
 Auto-detection and smart column mapping for:
 
-| POS System | Auto-detect | Column Mapping |
-|------------|:-----------:|:--------------:|
-| Dutchie | Yes | Yes |
-| Blaze | Yes | Yes |
-| Flowhub | Yes | Yes |
-| IndicaOnline | Yes | Yes |
-| Meadow | Yes | Yes |
-| Cova | Yes | Yes |
-| Other / Manual | -- | Manual mapping |
+| POS System     | Auto-detect | Column Mapping |
+| -------------- | :---------: | :------------: |
+| Dutchie        |     Yes     |      Yes       |
+| Blaze          |     Yes     |      Yes       |
+| Flowhub        |     Yes     |      Yes       |
+| IndicaOnline   |     Yes     |      Yes       |
+| Meadow         |     Yes     |      Yes       |
+| Cova           |     Yes     |      Yes       |
+| Other / Manual |     --      | Manual mapping |
 
 ## Download & Install
 

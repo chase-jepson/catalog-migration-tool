@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import type { ErrorGroup } from '../../lib/types';
+import { useState } from "react";
+import type { ErrorGroup } from "../../lib/types";
 
 interface ErrorBatchRowProps {
   group: ErrorGroup;
@@ -7,14 +7,14 @@ interface ErrorBatchRowProps {
 }
 
 export function ErrorBatchRow({ group, onFix }: ErrorBatchRowProps) {
-  const [fixValue, setFixValue] = useState('');
+  const [fixValue, setFixValue] = useState("");
   const rowIndices = group.rows.map((r) => r.rowIndex);
-  const sampleValue = group.rows[0]?.currentValue ?? '';
+  const sampleValue = group.rows[0]?.currentValue ?? "";
 
   const handleApply = () => {
     if (!fixValue) return;
     onFix(rowIndices, group.field, fixValue);
-    setFixValue('');
+    setFixValue("");
   };
 
   return (
@@ -22,19 +22,19 @@ export function ErrorBatchRow({ group, onFix }: ErrorBatchRowProps) {
       <div className="flex items-center justify-between">
         <span className="text-sm text-gray-600">
           <span
-            className={`font-medium ${group.severity === 'error' ? 'text-red-600' : 'text-amber-600'}`}
+            className={`font-medium ${group.severity === "error" ? "text-red-600" : "text-amber-600"}`}
           >
-            &quot;{sampleValue || '(empty)'}&quot;
-          </span>{' '}
+            &quot;{sampleValue || "(empty)"}&quot;
+          </span>{" "}
           <span className="text-gray-400">
-            ({group.rows.length} row{group.rows.length !== 1 ? 's' : ''})
+            ({group.rows.length} row{group.rows.length !== 1 ? "s" : ""})
           </span>
         </span>
       </div>
 
       <div className="flex items-center gap-2">
         <span className="text-gray-400 text-xs">&rarr;</span>
-        {group.fixType === 'dropdown' && group.dropdownOptions ? (
+        {group.fixType === "dropdown" && group.dropdownOptions ? (
           <select
             value={fixValue}
             onChange={(e) => setFixValue(e.target.value)}

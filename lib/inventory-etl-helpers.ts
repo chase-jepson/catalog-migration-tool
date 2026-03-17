@@ -1,4 +1,4 @@
-import { ROOM_TO_LOCATION_PATH } from './inventory-constants';
+import { ROOM_TO_LOCATION_PATH } from "./inventory-constants";
 
 // ── groupBy ─────────────────────────────────────────────────────────────────
 
@@ -42,7 +42,7 @@ export function sumByGroup<T extends Record<string, any>>(
     for (const field of sumFields) {
       let total = 0;
       for (const row of rows) {
-        const val = Number(String(row[field]).replace(/,/g, ''));
+        const val = Number(String(row[field]).replace(/,/g, ""));
         if (!Number.isNaN(val)) {
           total += val;
         }
@@ -91,7 +91,7 @@ export function leftJoin<L extends Record<string, any>, R extends Record<string,
     const emptyRight: Record<string, string> = {};
     for (const field of rightFieldNames) {
       if (!(field in l)) {
-        emptyRight[field] = '';
+        emptyRight[field] = "";
       }
     }
     return { ...l, ...emptyRight };
@@ -133,7 +133,7 @@ export function fullJoin<L extends Record<string, any>, R extends Record<string,
       const emptyRight: Record<string, string> = {};
       for (const field of rightFieldNames) {
         if (!(field in l)) {
-          emptyRight[field] = '';
+          emptyRight[field] = "";
         }
       }
       result.push({ ...l, ...emptyRight });
@@ -148,7 +148,7 @@ export function fullJoin<L extends Record<string, any>, R extends Record<string,
       const emptyLeft: Record<string, string> = {};
       for (const field of leftFieldNames) {
         if (!(field in r)) {
-          emptyLeft[field] = '';
+          emptyLeft[field] = "";
         }
       }
       result.push({ ...emptyLeft, ...r });
@@ -171,9 +171,9 @@ export function fullJoin<L extends Record<string, any>, R extends Record<string,
  * Returns empty string for empty, null, or undefined input.
  */
 export function formatDateToISO(dateStr: string): string {
-  if (!dateStr) return '';
+  if (!dateStr) return "";
   const trimmed = dateStr.trim();
-  if (!trimmed) return '';
+  if (!trimmed) return "";
 
   // Already ISO: yyyy-MM-dd
   if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
@@ -183,8 +183,8 @@ export function formatDateToISO(dateStr: string): string {
   // M/d/yyyy or MM/dd/yyyy
   const slashMatch4 = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (slashMatch4) {
-    const month = slashMatch4[1].padStart(2, '0');
-    const day = slashMatch4[2].padStart(2, '0');
+    const month = slashMatch4[1].padStart(2, "0");
+    const day = slashMatch4[2].padStart(2, "0");
     const year = slashMatch4[3];
     return `${year}-${month}-${day}`;
   }
@@ -192,8 +192,8 @@ export function formatDateToISO(dateStr: string): string {
   // M/d/yy (2-digit year — assume 2000s)
   const slashMatch2 = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
   if (slashMatch2) {
-    const month = slashMatch2[1].padStart(2, '0');
-    const day = slashMatch2[2].padStart(2, '0');
+    const month = slashMatch2[1].padStart(2, "0");
+    const day = slashMatch2[2].padStart(2, "0");
     const year = `20${slashMatch2[3]}`;
     return `${year}-${month}-${day}`;
   }
@@ -209,15 +209,24 @@ export function formatDateToISO(dateStr: string): string {
 
   // MMM d, yyyy (e.g., "Jan 15, 2024")
   const monthNames: Record<string, string> = {
-    jan: '01', feb: '02', mar: '03', apr: '04',
-    may: '05', jun: '06', jul: '07', aug: '08',
-    sep: '09', oct: '10', nov: '11', dec: '12',
+    jan: "01",
+    feb: "02",
+    mar: "03",
+    apr: "04",
+    may: "05",
+    jun: "06",
+    jul: "07",
+    aug: "08",
+    sep: "09",
+    oct: "10",
+    nov: "11",
+    dec: "12",
   };
   const namedMatch = trimmed.match(/^([A-Za-z]{3})\s+(\d{1,2}),?\s+(\d{4})$/);
   if (namedMatch) {
     const monthNum = monthNames[namedMatch[1].toLowerCase()];
     if (monthNum) {
-      const day = namedMatch[2].padStart(2, '0');
+      const day = namedMatch[2].padStart(2, "0");
       const year = namedMatch[3];
       return `${year}-${monthNum}-${day}`;
     }
@@ -232,8 +241,8 @@ export function formatDateToISO(dateStr: string): string {
     const ms = excelEpoch.getTime() + serial * 86400000;
     const date = new Date(ms);
     const y = date.getUTCFullYear();
-    const m = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const d = String(date.getUTCDate()).padStart(2, '0');
+    const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+    const d = String(date.getUTCDate()).padStart(2, "0");
     return `${y}-${m}-${d}`;
   }
 
@@ -247,12 +256,12 @@ export function formatDateToISO(dateStr: string): string {
  * Cleans "0.00 mg" / "0.00 %" to empty. Removes "mg/g" substring first.
  */
 export function splitPotency(raw: string | null | undefined): { amount: string; uom: string } {
-  const empty = { amount: '', uom: '' };
+  const empty = { amount: "", uom: "" };
   if (!raw) return empty;
 
   // Strip "mg/g" substring (not a usable unit) then continue parsing
   const hadMgPerG = /mg\/g/i.test(raw);
-  let cleaned = raw.replace(/mg\/g/gi, '').trim();
+  const cleaned = raw.replace(/mg\/g/gi, "").trim();
   if (!cleaned) return empty;
 
   // Split on space
@@ -261,15 +270,15 @@ export function splitPotency(raw: string | null | undefined): { amount: string; 
     // Single value with no unit — if mg/g was the only unit, value is unusable
     if (hadMgPerG) return empty;
     const amount = parts[0];
-    if (amount === '0.00' || amount === '0') return empty;
-    return { amount, uom: '' };
+    if (amount === "0.00" || amount === "0") return empty;
+    return { amount, uom: "" };
   }
 
   const amount = parts[0];
   const uom = parts[1];
 
   // Clean "0.00 mg" and "0.00 %" to empty
-  if (amount === '0.00' || amount === '0') {
+  if (amount === "0.00" || amount === "0") {
     return empty;
   }
 
@@ -285,9 +294,9 @@ export function splitPotency(raw: string | null | undefined): { amount: string; 
  * If no " - " is present, returns the full string.
  */
 export function extractInvoiceId(orderTitle: string): string {
-  if (!orderTitle) return '';
+  if (!orderTitle) return "";
 
-  const lastDashIndex = orderTitle.lastIndexOf(' - ');
+  const lastDashIndex = orderTitle.lastIndexOf(" - ");
   if (lastDashIndex === -1) return orderTitle;
 
   const lastPart = orderTitle.substring(lastDashIndex + 3).trim();
@@ -295,7 +304,7 @@ export function extractInvoiceId(orderTitle: string): string {
   if (/^\d+$/.test(lastPart)) return lastPart;
 
   // Otherwise use first part (format: "0010255782 - Stick.e.vape - Tradecraft Farms")
-  const firstDashIndex = orderTitle.indexOf(' - ');
+  const firstDashIndex = orderTitle.indexOf(" - ");
   const firstPart = orderTitle.substring(0, firstDashIndex).trim();
   if (/^\d+$/.test(firstPart)) return firstPart;
 
@@ -310,10 +319,10 @@ export function extractInvoiceId(orderTitle: string): string {
  * "All enabled customer types" or "Adult" or blank -> "ADULT"; else "MEDICAL"
  */
 export function deriveCustomerType(availableFor: string): string {
-  if (!availableFor || availableFor.trim() === '') return 'ADULT';
+  if (!availableFor || availableFor.trim() === "") return "ADULT";
   const lower = availableFor.toLowerCase();
-  if (lower.includes('all enabled customer types') || lower === 'adult') return 'ADULT';
-  return 'MEDICAL';
+  if (lower.includes("all enabled customer types") || lower === "adult") return "ADULT";
+  return "MEDICAL";
 }
 
 // ── deriveLocationPath ──────────────────────────────────────────────────────
@@ -322,8 +331,8 @@ export function deriveCustomerType(availableFor: string): string {
  * Map room names to Treez location paths per spec.
  */
 export function deriveLocationPath(room: string): string {
-  if (!room) return '';
-  return ROOM_TO_LOCATION_PATH[room] ?? '';
+  if (!room) return "";
+  return ROOM_TO_LOCATION_PATH[room] ?? "";
 }
 
 // ── deriveLocationIsSellable ────────────────────────────────────────────────
@@ -332,7 +341,7 @@ export function deriveLocationPath(room: string): string {
  * "TRUE" if Location Path contains "Front of House"; else "FALSE"
  */
 export function deriveLocationIsSellable(locationPath: string): string {
-  return locationPath.includes('Front of House') ? 'TRUE' : 'FALSE';
+  return locationPath.includes("Front of House") ? "TRUE" : "FALSE";
 }
 
 // ── deriveLocationDefaultReceiving ──────────────────────────────────────────
@@ -341,7 +350,7 @@ export function deriveLocationIsSellable(locationPath: string): string {
  * "TRUE" if Location Path equals "Back of House, Back Stock"; else "FALSE"
  */
 export function deriveLocationDefaultReceiving(locationPath: string): string {
-  return locationPath === 'Back of House, Back Stock' ? 'TRUE' : 'FALSE';
+  return locationPath === "Back of House, Back Stock" ? "TRUE" : "FALSE";
 }
 
 // ── deriveLocationInventoryType ─────────────────────────────────────────────
@@ -350,5 +359,5 @@ export function deriveLocationDefaultReceiving(locationPath: string): string {
  * "Medical" if customerType = "MEDICAL"; else "All Types"
  */
 export function deriveLocationInventoryType(customerType: string): string {
-  return customerType === 'MEDICAL' ? 'Medical' : 'All Types';
+  return customerType === "MEDICAL" ? "Medical" : "All Types";
 }

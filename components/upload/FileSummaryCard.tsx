@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { formatFileSize } from '../../lib/parser';
-import { POS_SYSTEMS } from '../../lib/constants';
-import type { ParsedFile, POSDetectionResult } from '../../lib/types';
+import { useState } from "react";
+import { formatFileSize } from "../../lib/parser";
+import { POS_SYSTEMS } from "../../lib/constants";
+import type { ParsedFile, POSDetectionResult } from "../../lib/types";
 
 interface FileSummaryCardProps {
   file: ParsedFile;
@@ -12,7 +12,7 @@ interface FileSummaryCardProps {
   showPOS?: boolean;
 }
 
-const POS_OPTIONS = [...POS_SYSTEMS, 'Other'] as const;
+const POS_OPTIONS = [...POS_SYSTEMS, "Other"] as const;
 
 export function FileSummaryCard({
   file,
@@ -47,9 +47,7 @@ export function FileSummaryCard({
 
           {/* File info */}
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-gray-900">
-              {file.fileName}
-            </p>
+            <p className="truncate text-sm font-medium text-gray-900">{file.fileName}</p>
             <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-500">
               <span>{formatFileSize(file.fileSize)}</span>
               <span>{file.rowCount.toLocaleString()} rows</span>
@@ -83,8 +81,7 @@ export function FileSummaryCard({
             {selectedPOS ? (
               <>
                 <span className="text-gray-600">
-                  POS:{' '}
-                  <span className="font-medium text-gray-900">{selectedPOS}</span>
+                  POS: <span className="font-medium text-gray-900">{selectedPOS}</span>
                 </span>
                 <button
                   type="button"
@@ -109,9 +106,7 @@ export function FileSummaryCard({
           </div>
 
           {detectedPOS?.disagreement && (
-            <p className="mt-1 text-xs text-amber-600">
-              Files suggest different POS systems
-            </p>
+            <p className="mt-1 text-xs text-amber-600">Files suggest different POS systems</p>
           )}
 
           {showPOSDropdown && (
@@ -133,7 +128,6 @@ export function FileSummaryCard({
           )}
         </div>
       )}
-
     </div>
   );
 }

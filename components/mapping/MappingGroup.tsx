@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { MappingRow } from './MappingRow';
-import { getSampleValue } from '../../lib/mapping-engine';
-import { MAPPING_FIELDS } from '../../lib/constants';
-import type { FieldMapping, MappingGroup as MappingGroupType } from '../../lib/types';
+import { useState } from "react";
+import { MappingRow } from "./MappingRow";
+import { getSampleValue } from "../../lib/mapping-engine";
+import { MAPPING_FIELDS } from "../../lib/constants";
+import type { FieldMapping, MappingGroup as MappingGroupType } from "../../lib/types";
 
 interface MappingGroupProps {
   groupName: MappingGroupType;
@@ -24,14 +24,10 @@ export function MappingGroup({
   const fieldDefs = new Map(MAPPING_FIELDS.map((f) => [f.key, f]));
 
   const requiredKeys = new Set(
-    mappings
-      .filter((m) => fieldDefs.get(m.fieldKey)?.required)
-      .map((m) => m.fieldKey),
+    mappings.filter((m) => fieldDefs.get(m.fieldKey)?.required).map((m) => m.fieldKey),
   );
 
-  const unmappedRequired = mappings.filter(
-    (m) => requiredKeys.has(m.fieldKey) && !m.sourceHeader,
-  );
+  const unmappedRequired = mappings.filter((m) => requiredKeys.has(m.fieldKey) && !m.sourceHeader);
 
   const hasUnmapped = unmappedRequired.length > 0;
   const [open, setOpen] = useState(hasUnmapped);
@@ -46,7 +42,7 @@ export function MappingGroup({
       >
         <div className="flex items-center gap-2">
           <svg
-            className={`h-4 w-4 text-gray-500 transition-transform ${open ? 'rotate-90' : ''}`}
+            className={`h-4 w-4 text-gray-500 transition-transform ${open ? "rotate-90" : ""}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -61,7 +57,12 @@ export function MappingGroup({
             {unmappedRequired.length} unmapped
           </span>
         ) : (
-          <svg className="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg
+            className="h-4 w-4 text-green-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         )}
@@ -77,13 +78,11 @@ export function MappingGroup({
                 key={m.fieldKey}
                 fieldKey={m.fieldKey}
                 label={m.label}
-                description={def?.description ?? ''}
+                description={def?.description ?? ""}
                 required={!!def?.required}
                 sourceHeader={m.sourceHeader}
                 sourceColumns={sourceColumns}
-                sampleValue={
-                  m.sourceHeader ? getSampleValue(rows, m.sourceHeader) : ''
-                }
+                sampleValue={m.sourceHeader ? getSampleValue(rows, m.sourceHeader) : ""}
                 onMappingChange={onMappingChange}
                 highlighted={highlightedField === m.fieldKey}
               />

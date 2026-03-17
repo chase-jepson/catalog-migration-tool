@@ -1,16 +1,16 @@
-import ReactDOM from 'react-dom/client';
-import { DrawerApp } from './DrawerApp';
-import { IMPORT_PAGE_PATTERNS } from '../../lib/constants';
-import './style.css';
+import ReactDOM from "react-dom/client";
+import { DrawerApp } from "./DrawerApp";
+import { IMPORT_PAGE_PATTERNS } from "../../lib/constants";
+import "./style.css";
 
-const DRAWER_ID = 'cmt-wizard-drawer';
+const DRAWER_ID = "cmt-wizard-drawer";
 
-type WizardType = 'catalog' | 'inventory';
+type WizardType = "catalog" | "inventory";
 
 export default defineContentScript({
   matches: IMPORT_PAGE_PATTERNS,
-  runAt: 'document_idle',
-  cssInjectionMode: 'ui',
+  runAt: "document_idle",
+  cssInjectionMode: "ui",
 
   async main(ctx) {
     let root: ReactDOM.Root | null = null;
@@ -18,8 +18,8 @@ export default defineContentScript({
     let currentWizardType: WizardType | null = null;
 
     const ui = await createShadowRootUi(ctx, {
-      name: 'cmt-wizard-drawer',
-      position: 'inline',
+      name: "cmt-wizard-drawer",
+      position: "inline",
       anchor: document.body,
       onMount(container) {
         container.id = DRAWER_ID;
@@ -36,12 +36,7 @@ export default defineContentScript({
     function render() {
       if (!root) return;
       if (currentWizardType) {
-        root.render(
-          <DrawerApp
-            wizardType={currentWizardType}
-            onClose={hideDrawer}
-          />,
-        );
+        root.render(<DrawerApp wizardType={currentWizardType} onClose={hideDrawer} />);
       } else {
         root.render(<></>);
       }
@@ -61,7 +56,7 @@ export default defineContentScript({
 
     function hideDrawer() {
       currentWizardType = null;
-      chrome.storage.session.remove('wizardType');
+      chrome.storage.session.remove("wizardType");
       render();
     }
 
@@ -70,7 +65,7 @@ export default defineContentScript({
     mounted = true;
 
     // Listen for open events from the button content script
-    document.addEventListener('cmt:open-wizard', ((e: CustomEvent) => {
+    document.addEventListener("cmt:open-wizard", ((e: CustomEvent) => {
       const { wizardType } = e.detail ?? {};
       if (wizardType) {
         showDrawer(wizardType as WizardType);
@@ -79,7 +74,7 @@ export default defineContentScript({
 
     // Listen for messages from the background script (extension icon click)
     chrome.runtime.onMessage.addListener((message) => {
-      if (message.type === 'openDrawer' && message.wizardType) {
+      if (message.type === "openDrawer" && message.wizardType) {
         showDrawer(message.wizardType as WizardType);
       }
     });

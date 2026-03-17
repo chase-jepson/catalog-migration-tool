@@ -1,18 +1,16 @@
-import type { PersistedMigrationState } from './types';
+import type { PersistedMigrationState } from "./types";
 
-const STORAGE_KEY = 'migrationState';
+const STORAGE_KEY = "migrationState";
 
 /**
  * Save migration state to chrome.storage.local.
  * Uses the 'migrationState' key for persistence across sessions.
  */
-export async function saveMigrationState(
-  state: PersistedMigrationState,
-): Promise<void> {
+export async function saveMigrationState(state: PersistedMigrationState): Promise<void> {
   try {
     await chrome.storage.local.set({ [STORAGE_KEY]: state });
   } catch (err) {
-    console.error('[migration-store] Failed to save state:', err);
+    console.error("[migration-store] Failed to save state:", err);
   }
 }
 
@@ -25,7 +23,7 @@ export async function loadMigrationState(): Promise<PersistedMigrationState | nu
     const result = await chrome.storage.local.get(STORAGE_KEY);
     return (result[STORAGE_KEY] as PersistedMigrationState) ?? null;
   } catch (err) {
-    console.error('[migration-store] Failed to load state:', err);
+    console.error("[migration-store] Failed to load state:", err);
     return null;
   }
 }
@@ -37,6 +35,6 @@ export async function clearMigrationState(): Promise<void> {
   try {
     await chrome.storage.local.remove(STORAGE_KEY);
   } catch (err) {
-    console.error('[migration-store] Failed to clear state:', err);
+    console.error("[migration-store] Failed to clear state:", err);
   }
 }

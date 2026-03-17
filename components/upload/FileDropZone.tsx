@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from "react";
 
 interface FileDropZoneProps {
   onFilesSelected: (files: File[]) => void;
@@ -43,7 +43,7 @@ export function FileDropZone({ onFilesSelected, disabled }: FileDropZoneProps) {
         onFilesSelected(files);
       }
       // Reset input so same file can be re-selected
-      if (inputRef.current) inputRef.current.value = '';
+      if (inputRef.current) inputRef.current.value = "";
     },
     [onFilesSelected],
   );
@@ -54,10 +54,8 @@ export function FileDropZone({ onFilesSelected, disabled }: FileDropZoneProps) {
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       className={`flex items-center gap-3 rounded-lg border-2 border-dashed p-4 transition-colors ${
-        isDragOver
-          ? 'border-treez-accent-muted0 bg-treez-accent-muted'
-          : 'border-gray-300 bg-white'
-      } ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
+        isDragOver ? "border-treez-accent-muted0 bg-treez-accent-muted" : "border-gray-300 bg-white"
+      } ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
     >
       {/* File icon */}
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100">
@@ -84,14 +82,14 @@ export function FileDropZone({ onFilesSelected, disabled }: FileDropZoneProps) {
             onClick={() => inputRef.current?.click()}
             className="btn-treez-green font-[Roboto,sans-serif] font-medium disabled:cursor-not-allowed disabled:opacity-50"
             style={{
-              padding: '0 16px',
-              borderRadius: '15px',
-              border: 'none',
-              color: '#0f1709',
-              fontSize: '14px',
-              height: '36px',
-              letterSpacing: '0.4px',
-              lineHeight: '24px',
+              padding: "0 16px",
+              borderRadius: "15px",
+              border: "none",
+              color: "#0f1709",
+              fontSize: "14px",
+              height: "36px",
+              letterSpacing: "0.4px",
+              lineHeight: "24px",
             }}
           >
             Choose file

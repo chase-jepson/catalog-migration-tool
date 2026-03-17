@@ -1,43 +1,41 @@
 const buttonStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  position: 'relative',
-  boxSizing: 'border-box',
-  WebkitTapHighlightColor: 'transparent',
-  outline: '0px',
-  border: '0px',
-  margin: '0px',
-  cursor: 'pointer',
-  userSelect: 'none',
-  verticalAlign: 'middle',
-  appearance: 'none',
-  textDecoration: 'none',
-  textTransform: 'none',
-  letterSpacing: '0.02857em',
-  minWidth: '64px',
-  height: '2.5rem',
-  padding: '0.5rem 1.25rem',
-  borderRadius: '1rem',
-  color: 'rgb(15, 23, 9)',
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  position: "relative",
+  boxSizing: "border-box",
+  WebkitTapHighlightColor: "transparent",
+  outline: "0px",
+  border: "0px",
+  margin: "0px",
+  cursor: "pointer",
+  userSelect: "none",
+  verticalAlign: "middle",
+  appearance: "none",
+  textDecoration: "none",
+  textTransform: "none",
+  letterSpacing: "0.02857em",
+  minWidth: "64px",
+  height: "2.5rem",
+  padding: "0.5rem 1.25rem",
+  borderRadius: "1rem",
+  color: "rgb(15, 23, 9)",
   fontWeight: 500,
-  fontSize: '0.938rem',
-  lineHeight: '1.5rem',
-  fontFamily: 'Roboto',
-  transition: '0.2s',
-  backgroundColor: 'rgb(169, 224, 121)',
-  whiteSpace: 'nowrap',
+  fontSize: "0.938rem",
+  lineHeight: "1.5rem",
+  fontFamily: "Roboto",
+  transition: "0.2s",
+  backgroundColor: "rgb(169, 224, 121)",
+  whiteSpace: "nowrap",
 };
 
 const containerStyle: React.CSSProperties = {
-  display: 'contents',
+  display: "contents",
 };
 
-function handleClick(wizardType: 'catalog' | 'inventory') {
+function handleClick(wizardType: "catalog" | "inventory") {
   // Dispatch custom event for the wizard-drawer content script
-  document.dispatchEvent(
-    new CustomEvent('cmt:open-wizard', { detail: { wizardType } }),
-  );
+  document.dispatchEvent(new CustomEvent("cmt:open-wizard", { detail: { wizardType } }));
 }
 
 export default function App() {
@@ -47,12 +45,12 @@ export default function App() {
         type="button"
         style={buttonStyle}
         onMouseEnter={(e) => {
-          (e.target as HTMLButtonElement).style.backgroundColor = 'rgb(145, 200, 100)';
+          (e.target as HTMLButtonElement).style.backgroundColor = "rgb(145, 200, 100)";
         }}
         onMouseLeave={(e) => {
-          (e.target as HTMLButtonElement).style.backgroundColor = 'rgb(169, 224, 121)';
+          (e.target as HTMLButtonElement).style.backgroundColor = "rgb(169, 224, 121)";
         }}
-        onClick={() => handleClick('catalog')}
+        onClick={() => handleClick("catalog")}
       >
         Migrate Catalog
       </button>
@@ -60,12 +58,12 @@ export default function App() {
         type="button"
         style={buttonStyle}
         onMouseEnter={(e) => {
-          (e.target as HTMLButtonElement).style.backgroundColor = 'rgb(145, 200, 100)';
+          (e.target as HTMLButtonElement).style.backgroundColor = "rgb(145, 200, 100)";
         }}
         onMouseLeave={(e) => {
-          (e.target as HTMLButtonElement).style.backgroundColor = 'rgb(169, 224, 121)';
+          (e.target as HTMLButtonElement).style.backgroundColor = "rgb(169, 224, 121)";
         }}
-        onClick={() => handleClick('inventory')}
+        onClick={() => handleClick("inventory")}
       >
         Migrate Inventory
       </button>

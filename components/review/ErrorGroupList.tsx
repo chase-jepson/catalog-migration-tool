@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import type { ErrorGroup } from '../../lib/types';
-import { ErrorBatchRow } from './ErrorBatchRow';
+import { useState } from "react";
+import type { ErrorGroup } from "../../lib/types";
+import { ErrorBatchRow } from "./ErrorBatchRow";
 
 interface ErrorGroupListProps {
   groups: ErrorGroup[];
@@ -8,20 +8,20 @@ interface ErrorGroupListProps {
 }
 
 const FIELD_LABELS: Record<string, string> = {
-  category: 'Category',
-  subCategory: 'Sub-Category',
-  classification: 'Classification',
-  status: 'Status',
-  uom: 'UoM',
-  merchSize: 'Merch Size',
-  productName: 'Product Name',
-  productId: 'Product ID',
-  amount: 'Amount',
-  basePrice: 'Price',
-  description: 'Description',
-  strain: 'Strain',
-  thc: 'THC',
-  cbd: 'CBD',
+  category: "Category",
+  subCategory: "Sub-Category",
+  classification: "Classification",
+  status: "Status",
+  uom: "UoM",
+  merchSize: "Merch Size",
+  productName: "Product Name",
+  productId: "Product ID",
+  amount: "Amount",
+  basePrice: "Price",
+  description: "Description",
+  strain: "Strain",
+  thc: "THC",
+  cbd: "CBD",
 };
 
 export function ErrorGroupList({ groups, onFix }: ErrorGroupListProps) {
@@ -30,7 +30,7 @@ export function ErrorGroupList({ groups, onFix }: ErrorGroupListProps) {
   // Sort: errors before warnings, then by row count descending
   const sorted = [...groups].sort((a, b) => {
     if (a.severity !== b.severity) {
-      return a.severity === 'error' ? -1 : 1;
+      return a.severity === "error" ? -1 : 1;
     }
     return b.rows.length - a.rows.length;
   });
@@ -53,9 +53,7 @@ export function ErrorGroupList({ groups, onFix }: ErrorGroupListProps) {
         const isCollapsed = collapsedFields.has(groupKey);
         const label = FIELD_LABELS[group.field] ?? group.field;
         const badgeColor =
-          group.severity === 'error'
-            ? 'bg-red-100 text-red-700'
-            : 'bg-amber-100 text-amber-700';
+          group.severity === "error" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700";
 
         return (
           <div key={groupKey} className="rounded-lg border border-gray-200 bg-white">
@@ -65,14 +63,16 @@ export function ErrorGroupList({ groups, onFix }: ErrorGroupListProps) {
               className="flex w-full items-center justify-between px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
               <span className="flex items-center gap-2">
-                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${badgeColor}`}>
-                  {group.severity === 'error' ? 'Error' : 'Warning'}
+                <span
+                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${badgeColor}`}
+                >
+                  {group.severity === "error" ? "Error" : "Warning"}
                 </span>
                 <span>
-                  {label}: {group.rows.length} row{group.rows.length !== 1 ? 's' : ''}
+                  {label}: {group.rows.length} row{group.rows.length !== 1 ? "s" : ""}
                 </span>
               </span>
-              <span className="text-gray-400 text-xs">{isCollapsed ? '+' : '\u2212'}</span>
+              <span className="text-gray-400 text-xs">{isCollapsed ? "+" : "\u2212"}</span>
             </button>
 
             {!isCollapsed && (

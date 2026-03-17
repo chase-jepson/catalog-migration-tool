@@ -1,15 +1,12 @@
-import type { ParsedFile, POSDetectionResult } from './types';
-import { POS_SYSTEMS, POS_DEFAULTS } from './constants';
+import type { ParsedFile, POSDetectionResult } from "./types";
+import { POS_SYSTEMS, POS_DEFAULTS } from "./constants";
 
 /**
  * Score how well a POS system's default mappings match the given file headers.
  * Returns { matched, total } where matched is the count of default columns
  * found in headers and total is the number of default columns for that POS.
  */
-export function scorePOS(
-  pos: string,
-  headers: Set<string>,
-): { matched: number; total: number } {
+export function scorePOS(pos: string, headers: Set<string>): { matched: number; total: number } {
   const defaults = POS_DEFAULTS[pos];
   if (!defaults) return { matched: 0, total: 0 };
 

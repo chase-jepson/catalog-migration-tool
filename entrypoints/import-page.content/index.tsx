@@ -1,13 +1,13 @@
-import ReactDOM from 'react-dom/client';
-import App from './App';
-import { IMPORT_PAGE_PATTERNS } from '../../lib/constants';
+import ReactDOM from "react-dom/client";
+import App from "./App";
+import { IMPORT_PAGE_PATTERNS } from "../../lib/constants";
 
 // Guard against double-mounting (SPA navigation can re-trigger)
-const MOUNT_ID = 'cmt-migrate-buttons';
+const MOUNT_ID = "cmt-migrate-buttons";
 
 export default defineContentScript({
   matches: IMPORT_PAGE_PATTERNS,
-  runAt: 'document_idle',
+  runAt: "document_idle",
 
   main(ctx) {
     const MOUNT_TIMEOUT = 10_000;
@@ -29,12 +29,12 @@ export default defineContentScript({
       // The button sits inside a flex-column parent. Wrap the button
       // and our migrate buttons together in an inline row.
       const parent = anchor.parentElement!;
-      const wrapper = document.createElement('div');
-      wrapper.style.display = 'flex';
-      wrapper.style.flexDirection = 'row';
-      wrapper.style.alignItems = 'center';
-      wrapper.style.gap = '12px';
-      wrapper.style.flexWrap = 'wrap';
+      const wrapper = document.createElement("div");
+      wrapper.style.display = "flex";
+      wrapper.style.flexDirection = "row";
+      wrapper.style.alignItems = "center";
+      wrapper.style.gap = "12px";
+      wrapper.style.flexWrap = "wrap";
 
       // Move the wizard button into the wrapper, then insert wrapper
       // where the button was
@@ -43,14 +43,14 @@ export default defineContentScript({
 
       // Mount our buttons inside the wrapper, after the wizard button
       const ui = createIntegratedUi(ctx, {
-        position: 'inline',
-        tag: 'span',
+        position: "inline",
+        tag: "span",
         anchor: wrapper,
         onMount: (container) => {
           container.id = MOUNT_ID;
-          container.style.display = 'inline-flex';
-          container.style.gap = '12px';
-          container.style.alignItems = 'center';
+          container.style.display = "inline-flex";
+          container.style.gap = "12px";
+          container.style.alignItems = "center";
           const root = ReactDOM.createRoot(container);
           root.render(<App />);
           return root;

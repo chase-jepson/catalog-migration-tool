@@ -22,29 +22,29 @@ export interface FieldMapping {
 // ── Mapping Field Definitions ───────────────────────────────────────────────
 
 export type MappingGroup =
-  | 'Product Info'
-  | 'Cannabis Details'
-  | 'Pricing'
-  | 'Attributes'
-  | 'Display & Media'
-  | 'Product Matching'
-  | 'Inventory Data'
-  | 'Location'
-  | 'Customer Type'
-  | 'Dates'
-  | 'Distributor'
-  | 'Invoice';
+  | "Product Info"
+  | "Cannabis Details"
+  | "Pricing"
+  | "Attributes"
+  | "Display & Media"
+  | "Product Matching"
+  | "Inventory Data"
+  | "Location"
+  | "Customer Type"
+  | "Dates"
+  | "Distributor"
+  | "Invoice";
 
 export type InventoryMappingGroup =
-  | 'Product Matching'
-  | 'Inventory Data'
-  | 'Location'
-  | 'Cannabis Details'
-  | 'Customer Type'
-  | 'Dates'
-  | 'Distributor'
-  | 'Invoice'
-  | 'Product Info';
+  | "Product Matching"
+  | "Inventory Data"
+  | "Location"
+  | "Cannabis Details"
+  | "Customer Type"
+  | "Dates"
+  | "Distributor"
+  | "Invoice"
+  | "Product Info";
 
 export interface MappingFieldDef {
   key: string;
@@ -69,7 +69,7 @@ export interface POSDetectionResult {
 // ── Persisted Migration State ───────────────────────────────────────────────
 
 interface ImportProgress {
-  status: 'idle' | 'uploading' | 'complete' | 'error';
+  status: "idle" | "uploading" | "complete" | "error";
   message?: string;
 }
 
@@ -86,7 +86,7 @@ export interface PersistedMigrationState {
 
 // ── Phase 3: Derived Row ────────────────────────────────────────────────────
 
-import type { ProductCategory } from './constants';
+import type { ProductCategory } from "./constants";
 
 export interface DerivedRow {
   excluded: boolean;
@@ -145,9 +145,9 @@ export interface RowValidationError {
   field: string;
   currentValue: string;
   message: string;
-  fixType: 'dropdown' | 'text';
+  fixType: "dropdown" | "text";
   dropdownOptions?: string[];
-  severity: 'error' | 'warning';
+  severity: "error" | "warning";
 }
 
 export interface ValidationResult {
@@ -160,16 +160,22 @@ export interface ValidationResult {
 export interface ErrorGroup {
   field: string;
   message: string;
-  severity: 'error' | 'warning';
-  fixType: 'dropdown' | 'text';
+  severity: "error" | "warning";
+  fixType: "dropdown" | "text";
   dropdownOptions?: string[];
   rows: { rowIndex: number; currentValue: string }[];
 }
 
 // ── Phase 3: Import Types ─────────────────────────────────────────────────
 
-type FileStatus = 'pending' | 'uploading' | 'processing' | 'done' | 'failed' | 'done_with_warnings';
-export type ImportObjectType = 'brands' | 'attributes' | 'products' | 'variants' | 'attributeJoins' | 'images';
+type FileStatus = "pending" | "uploading" | "processing" | "done" | "failed" | "done_with_warnings";
+export type ImportObjectType =
+  | "brands"
+  | "attributes"
+  | "products"
+  | "variants"
+  | "attributeJoins"
+  | "images";
 
 export interface ImportFileState {
   key: ImportObjectType;
@@ -192,16 +198,21 @@ export interface ImportJob {
 }
 
 export const OUTPUT_FILE_ORDER: ImportObjectType[] = [
-  'brands', 'attributes', 'products', 'variants', 'attributeJoins', 'images',
+  "brands",
+  "attributes",
+  "products",
+  "variants",
+  "attributeJoins",
+  "images",
 ];
 
 export const OUTPUT_FILE_LABELS: Record<ImportObjectType, string> = {
-  brands: 'Brands',
-  attributes: 'Attributes',
-  products: 'Products',
-  variants: 'Variants',
-  attributeJoins: 'Attribute Joins',
-  images: 'Images',
+  brands: "Brands",
+  attributes: "Attributes",
+  products: "Products",
+  variants: "Variants",
+  attributeJoins: "Attribute Joins",
+  images: "Images",
 };
 
 // ── Phase 3: Output CSVs ─────────────────────────────────────────────────
@@ -230,7 +241,12 @@ export interface StoreInfo {
 }
 
 /** File roles for multi-file inventory upload */
-export type InventoryFileRole = 'inventory' | 'receipts' | 'vendors' | 'adjustments' | 'catalog_export';
+export type InventoryFileRole =
+  | "inventory"
+  | "receipts"
+  | "vendors"
+  | "adjustments"
+  | "catalog_export";
 
 export interface InventoryFileAssignment {
   file: ParsedFile;
@@ -339,7 +355,7 @@ export interface PortalValidationIssue {
 
 export interface PortalValidationResult {
   job_id: string;
-  status: 'VALIDATED' | 'FAILED';
+  status: "VALIDATED" | "FAILED";
   summary: {
     total_rows: number;
     total_invoices: number;

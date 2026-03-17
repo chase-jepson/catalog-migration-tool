@@ -3,9 +3,9 @@
  */
 
 const TERMINAL_STATUSES = new Set([
-  'FINISHED',
-  'FINISHED_WITH_FAILURES',
-  'FINISHED_AND_STOPPED_EARLY',
+  "FINISHED",
+  "FINISHED_WITH_FAILURES",
+  "FINISHED_AND_STOPPED_EARLY",
 ]);
 
 /**
@@ -25,7 +25,7 @@ export function calculateETA(
 ): string {
   const effectiveCompleted = completedFiles + currentFileProgress;
 
-  if (effectiveCompleted <= 0) return 'Calculating...';
+  if (effectiveCompleted <= 0) return "Calculating...";
 
   const elapsed = Date.now() - startTime;
   const msPerFile = elapsed / effectiveCompleted;
@@ -33,7 +33,7 @@ export function calculateETA(
   const remainingMs = remaining * msPerFile;
 
   const totalSec = Math.ceil(remainingMs / 1000);
-  if (totalSec <= 0) return 'Almost done...';
+  if (totalSec <= 0) return "Almost done...";
 
   const minutes = Math.floor(totalSec / 60);
   const seconds = totalSec % 60;

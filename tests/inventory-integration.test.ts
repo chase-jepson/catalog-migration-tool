@@ -2,57 +2,59 @@
  * Integration test: runs the full inventory ETL pipeline against
  * real Dutchie export files and compares with the expected CSV output.
  */
-import { describe, it, expect } from 'vitest';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as XLSX from 'xlsx';
-import { detectHeaderRow } from '../lib/parser';
+import { describe, it, expect } from "vitest";
+import * as fs from "fs";
+import * as path from "path";
+import * as XLSX from "xlsx";
+import { detectHeaderRow } from "../lib/parser";
 import {
   runInventoryETL,
   processReceipts,
   processVendors,
   processInventory,
-} from '../lib/inventory-transformer';
-import type { PerRoleMappings } from '../lib/inventory-transformer';
-import { buildInventoryCSV, INVENTORY_OUTPUT_COLUMNS } from '../lib/inventory-csv-generator';
-import { INVENTORY_ROLE_POS_DEFAULTS, INVENTORY_ROLE_FIELDS } from '../lib/inventory-constants';
-import type { ParsedFile, FieldMapping, InventoryFileRole } from '../lib/types';
+} from "../lib/inventory-transformer";
+import type { PerRoleMappings } from "../lib/inventory-transformer";
+import { buildInventoryCSV, INVENTORY_OUTPUT_COLUMNS } from "../lib/inventory-csv-generator";
+import { INVENTORY_ROLE_POS_DEFAULTS, INVENTORY_ROLE_FIELDS } from "../lib/inventory-constants";
+import type { ParsedFile, FieldMapping, InventoryFileRole } from "../lib/types";
 
 // ── Paths ────────────────────────────────────────────────────────────────────
 
-const EXPORTS_DIR = '/Users/chase/Downloads/CS Import Tool/Exports';
-const EXPECTED_CSV = '/Users/chase/Downloads/CS Import Tool/Ethan Working/CS Tool - Inventory Import (Working).csv';
+const EXPORTS_DIR = "/Users/chase/Downloads/CS Import Tool/Exports";
+const EXPECTED_CSV =
+  "/Users/chase/Downloads/CS Import Tool/Ethan Working/CS Tool - Inventory Import (Working).csv";
 
 const FILES = {
-  inventory: path.join(EXPORTS_DIR, '2026-02-11-Inventory.csv'),
-  receipts: path.join(EXPORTS_DIR, 'Inventory Receipt Report - Detail 2_4_2020-2_11_2026.xlsx'),
-  vendors: path.join(EXPORTS_DIR, '2026-02-06-Vendors.csv'),
-  adjustments: path.join(EXPORTS_DIR, 'Inventory Adjustments - Adjust 2_4_2020-2_11_2026.xlsx'),
-  catalog: path.join(EXPORTS_DIR, 'Treez Catalog Export.csv'),
+  inventory: path.join(EXPORTS_DIR, "2026-02-11-Inventory.csv"),
+  receipts: path.join(EXPORTS_DIR, "Inventory Receipt Report - Detail 2_4_2020-2_11_2026.xlsx"),
+  vendors: path.join(EXPORTS_DIR, "2026-02-06-Vendors.csv"),
+  adjustments: path.join(EXPORTS_DIR, "Inventory Adjustments - Adjust 2_4_2020-2_11_2026.xlsx"),
+  catalog: path.join(EXPORTS_DIR, "Treez Catalog Export.csv"),
 };
 
 // Check files exist before running
-const filesExist = Object.values(FILES).every((f) => fs.existsSync(f)) && fs.existsSync(EXPECTED_CSV);
+const filesExist =
+  Object.values(FILES).every((f) => fs.existsSync(f)) && fs.existsSync(EXPECTED_CSV);
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function parseFileSync(filePath: string): ParsedFile {
   const ext = path.extname(filePath).toLowerCase();
   const buffer = fs.readFileSync(filePath);
-  const workbook = XLSX.read(buffer, { type: 'buffer' });
+  const workbook = XLSX.read(buffer, { type: "buffer" });
 
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
 
   const headerRow = detectHeaderRow(sheet);
   if (headerRow > 0) {
-    const range = XLSX.utils.decode_range(sheet['!ref'] ?? 'A1');
+    const range = XLSX.utils.decode_range(sheet["!ref"] ?? "A1");
     range.s.r = headerRow;
-    sheet['!ref'] = XLSX.utils.encode_range(range);
+    sheet["!ref"] = XLSX.utils.encode_range(range);
   }
 
   const jsonData = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, {
-    defval: '',
+    defval: "",
     raw: false,
   });
 
@@ -69,7 +71,7 @@ function parseFileSync(filePath: string): ParsedFile {
 }
 
 function buildDutchieMappings(): PerRoleMappings {
-  const posDefaults = INVENTORY_ROLE_POS_DEFAULTS['Dutchie']!;
+  const posDefaults = INVENTORY_ROLE_POS_DEFAULTS["Dutchie"]!;
   const result: PerRoleMappings = {} as any;
 
   for (const role of Object.keys(INVENTORY_ROLE_FIELDS) as InventoryFileRole[]) {
@@ -86,10 +88,10 @@ function buildDutchieMappings(): PerRoleMappings {
 
 function parseExpectedCSV(): { headers: string[]; rows: Record<string, string>[] } {
   const buffer = fs.readFileSync(EXPECTED_CSV);
-  const workbook = XLSX.read(buffer, { type: 'buffer' });
+  const workbook = XLSX.read(buffer, { type: "buffer" });
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const jsonData = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, {
-    defval: '',
+    defval: "",
     raw: false,
   });
   const headers = jsonData.length > 0 ? Object.keys(jsonData[0]) : [];
@@ -98,7 +100,7 @@ function parseExpectedCSV(): { headers: string[]; rows: Record<string, string>[]
 
 // ── Tests ────────────────────────────────────────────────────────────────────
 
-describe.skipIf(!filesExist)('Integration: Real Dutchie files → expected CSV', () => {
+describe.skipIf(!filesExist)("Integration: Real Dutchie files → expected CSV", () => {
   // Parse all files once
   let inventoryFile: ParsedFile;
   let receiptsFile: ParsedFile;
@@ -120,24 +122,24 @@ describe.skipIf(!filesExist)('Integration: Real Dutchie files → expected CSV',
     expected = parseExpectedCSV();
   }
 
-  it('XLSX header detection skips metadata rows in receipts', () => {
+  it("XLSX header detection skips metadata rows in receipts", () => {
     ensureParsed();
     // Receipts should have ~18208 data rows, not include the 4 metadata rows
     expect(receiptsFile.rowCount).toBeGreaterThan(18000);
-    expect(receiptsFile.headers).toContain('Product SKU');
-    expect(receiptsFile.headers).toContain('Receive Date');
+    expect(receiptsFile.headers).toContain("Product SKU");
+    expect(receiptsFile.headers).toContain("Receive Date");
     // Should NOT contain metadata-like headers
-    expect(receiptsFile.headers).not.toContain('Export Date: 02/11/2026 05:24 PM');
+    expect(receiptsFile.headers).not.toContain("Export Date: 02/11/2026 05:24 PM");
   });
 
-  it('XLSX header detection skips metadata rows in adjustments', () => {
+  it("XLSX header detection skips metadata rows in adjustments", () => {
     ensureParsed();
     expect(adjustmentsFile.rowCount).toBeGreaterThan(7000);
-    expect(adjustmentsFile.headers).toContain('SerialNumber');
-    expect(adjustmentsFile.headers).toContain('qty');
+    expect(adjustmentsFile.headers).toContain("SerialNumber");
+    expect(adjustmentsFile.headers).toContain("qty");
   });
 
-  it('Dutchie POS defaults match real inventory headers', () => {
+  it("Dutchie POS defaults match real inventory headers", () => {
     ensureParsed();
     const invMappings = mappings.inventory;
     const invHeaders = new Set(inventoryFile.headers);
@@ -150,7 +152,7 @@ describe.skipIf(!filesExist)('Integration: Real Dutchie files → expected CSV',
     }
   });
 
-  it('Dutchie POS defaults match real receipt headers', () => {
+  it("Dutchie POS defaults match real receipt headers", () => {
     ensureParsed();
     const rcptMappings = mappings.receipts;
     const rcptHeaders = new Set(receiptsFile.headers);
@@ -162,15 +164,15 @@ describe.skipIf(!filesExist)('Integration: Real Dutchie files → expected CSV',
     }
   });
 
-  it('column headers match expected output exactly', () => {
+  it("column headers match expected output exactly", () => {
     ensureParsed();
     // Our INVENTORY_OUTPUT_COLUMNS should match the expected CSV headers
     expect(INVENTORY_OUTPUT_COLUMNS).toEqual(expected.headers);
   });
 
-  it('produces the correct number of output rows', () => {
+  it("produces the correct number of output rows", () => {
     ensureParsed();
-    const dispensaryLicense = 'C12-0000331-LIC';
+    const dispensaryLicense = "C12-0000331-LIC";
 
     const result = runInventoryETL(
       { inventoryFile, receiptsFile, vendorsFile, adjustmentsFile, catalogFile },
@@ -185,9 +187,9 @@ describe.skipIf(!filesExist)('Integration: Real Dutchie files → expected CSV',
     expect(diff).toBeLessThanOrEqual(20);
   });
 
-  it('Invoice IDs are just numbers, not full invoiceIdDate strings', () => {
+  it("Invoice IDs are just numbers, not full invoiceIdDate strings", () => {
     ensureParsed();
-    const dispensaryLicense = 'C12-0000331-LIC';
+    const dispensaryLicense = "C12-0000331-LIC";
 
     const result = runInventoryETL(
       { inventoryFile, receiptsFile, vendorsFile, adjustmentsFile, catalogFile },
@@ -196,17 +198,17 @@ describe.skipIf(!filesExist)('Integration: Real Dutchie files → expected CSV',
     );
 
     // Invoice IDs should NOT contain " - " separators
-    const withInvoice = result.filter((r) => r.invoiceId !== '');
+    const withInvoice = result.filter((r) => r.invoiceId !== "");
     for (const row of withInvoice.slice(0, 50)) {
-      expect(row.invoiceId).not.toContain(' - ');
+      expect(row.invoiceId).not.toContain(" - ");
       // Should be numeric
       expect(/^\d+$/.test(row.invoiceId)).toBe(true);
     }
   });
 
-  it('Unit Cost is formatted to 2 decimal places', () => {
+  it("Unit Cost is formatted to 2 decimal places", () => {
     ensureParsed();
-    const dispensaryLicense = 'C12-0000331-LIC';
+    const dispensaryLicense = "C12-0000331-LIC";
 
     const result = runInventoryETL(
       { inventoryFile, receiptsFile, vendorsFile, adjustmentsFile, catalogFile },
@@ -215,15 +217,15 @@ describe.skipIf(!filesExist)('Integration: Real Dutchie files → expected CSV',
     );
 
     // Check that UnitCost from receipt rows has 2 decimal places
-    const withCost = result.filter((r) => r.unitCost !== '');
+    const withCost = result.filter((r) => r.unitCost !== "");
     for (const row of withCost.slice(0, 50)) {
       expect(row.unitCost).toMatch(/^\d+\.\d{2}$/);
     }
   });
 
-  it('Original Unit Count is formatted to 2 decimal places', () => {
+  it("Original Unit Count is formatted to 2 decimal places", () => {
     ensureParsed();
-    const dispensaryLicense = 'C12-0000331-LIC';
+    const dispensaryLicense = "C12-0000331-LIC";
 
     const result = runInventoryETL(
       { inventoryFile, receiptsFile, vendorsFile, adjustmentsFile, catalogFile },
@@ -231,7 +233,7 @@ describe.skipIf(!filesExist)('Integration: Real Dutchie files → expected CSV',
       dispensaryLicense,
     );
 
-    const withOUC = result.filter((r) => r.originalUnitCount !== '');
+    const withOUC = result.filter((r) => r.originalUnitCount !== "");
     for (const row of withOUC.slice(0, 50)) {
       expect(row.originalUnitCount).toMatch(/^-?\d+\.\d{2}$/);
     }
@@ -239,7 +241,7 @@ describe.skipIf(!filesExist)('Integration: Real Dutchie files → expected CSV',
 
   it('receipt-only rows have empty Units (not "0")', () => {
     ensureParsed();
-    const dispensaryLicense = 'C12-0000331-LIC';
+    const dispensaryLicense = "C12-0000331-LIC";
 
     const result = runInventoryETL(
       { inventoryFile, receiptsFile, vendorsFile, adjustmentsFile, catalogFile },
@@ -247,13 +249,13 @@ describe.skipIf(!filesExist)('Integration: Real Dutchie files → expected CSV',
       dispensaryLicense,
     );
 
-    const emptyUnits = result.filter((r) => r.units === '');
-    const zeroUnits = result.filter((r) => r.units === '0');
-    const withUnits = result.filter((r) => r.units !== '' && r.units !== '0');
+    const emptyUnits = result.filter((r) => r.units === "");
+    const zeroUnits = result.filter((r) => r.units === "0");
+    const withUnits = result.filter((r) => r.units !== "" && r.units !== "0");
 
     // Expected: 1880 empty, 1561 with values
-    const expectedEmpty = expected.rows.filter((r) => r['Units'] === '').length;
-    const expectedWithUnits = expected.rows.filter((r) => r['Units'] !== '').length;
+    const expectedEmpty = expected.rows.filter((r) => r["Units"] === "").length;
+    const expectedWithUnits = expected.rows.filter((r) => r["Units"] !== "").length;
 
     // Verify receipt-only rows get empty Units (not "0")
     // Note: exact counts differ due to 1:N join producing extra receipt-only rows
@@ -263,9 +265,9 @@ describe.skipIf(!filesExist)('Integration: Real Dutchie files → expected CSV',
     expect(zeroUnits.length).toBeLessThanOrEqual(20);
   });
 
-  it('Customer Type defaults to ADULT for all rows', () => {
+  it("Customer Type defaults to ADULT for all rows", () => {
     ensureParsed();
-    const dispensaryLicense = 'C12-0000331-LIC';
+    const dispensaryLicense = "C12-0000331-LIC";
 
     const result = runInventoryETL(
       { inventoryFile, receiptsFile, vendorsFile, adjustmentsFile, catalogFile },
@@ -274,13 +276,13 @@ describe.skipIf(!filesExist)('Integration: Real Dutchie files → expected CSV',
     );
 
     for (const row of result) {
-      expect(row.customerType).toBe('ADULT');
+      expect(row.customerType).toBe("ADULT");
     }
   });
 
-  it('Dispensary License is set on all rows', () => {
+  it("Dispensary License is set on all rows", () => {
     ensureParsed();
-    const dispensaryLicense = 'C12-0000331-LIC';
+    const dispensaryLicense = "C12-0000331-LIC";
 
     const result = runInventoryETL(
       { inventoryFile, receiptsFile, vendorsFile, adjustmentsFile, catalogFile },
@@ -289,13 +291,13 @@ describe.skipIf(!filesExist)('Integration: Real Dutchie files → expected CSV',
     );
 
     for (const row of result) {
-      expect(row.dispensaryLicense).toBe('C12-0000331-LIC');
+      expect(row.dispensaryLicense).toBe("C12-0000331-LIC");
     }
   });
 
-  it('VariantReferenceId follows V-{SKU} pattern', () => {
+  it("VariantReferenceId follows V-{SKU} pattern", () => {
     ensureParsed();
-    const dispensaryLicense = 'C12-0000331-LIC';
+    const dispensaryLicense = "C12-0000331-LIC";
 
     const result = runInventoryETL(
       { inventoryFile, receiptsFile, vendorsFile, adjustmentsFile, catalogFile },
@@ -308,9 +310,9 @@ describe.skipIf(!filesExist)('Integration: Real Dutchie files → expected CSV',
     }
   });
 
-  it('distributor license numbers are populated from vendor data', () => {
+  it("distributor license numbers are populated from vendor data", () => {
     ensureParsed();
-    const dispensaryLicense = 'C12-0000331-LIC';
+    const dispensaryLicense = "C12-0000331-LIC";
 
     const result = runInventoryETL(
       { inventoryFile, receiptsFile, vendorsFile, adjustmentsFile, catalogFile },
@@ -319,18 +321,18 @@ describe.skipIf(!filesExist)('Integration: Real Dutchie files → expected CSV',
     );
 
     // Find rows with a known distributor
-    const vinoRows = result.filter((r) => r.distributorName === 'VINO & CIGARRO, LLC');
+    const vinoRows = result.filter((r) => r.distributorName === "VINO & CIGARRO, LLC");
     expect(vinoRows.length).toBeGreaterThan(0);
 
     // Check that license is populated
     for (const row of vinoRows.slice(0, 5)) {
-      expect(row.distributorLicense1Number).not.toBe('');
+      expect(row.distributorLicense1Number).not.toBe("");
     }
   });
 
-  it('CSV output matches expected first row values', () => {
+  it("CSV output matches expected first row values", () => {
     ensureParsed();
-    const dispensaryLicense = 'C12-0000331-LIC';
+    const dispensaryLicense = "C12-0000331-LIC";
 
     const result = runInventoryETL(
       { inventoryFile, receiptsFile, vendorsFile, adjustmentsFile, catalogFile },
@@ -351,6 +353,6 @@ describe.skipIf(!filesExist)('Integration: Real Dutchie files → expected CSV',
     const colIdx = (name: string) => expected.headers.indexOf(name);
 
     // Check specific values from first expected row
-    expect(firstActualRow[colIdx('Dispensary License')]).toBe(firstExpected['Dispensary License']);
+    expect(firstActualRow[colIdx("Dispensary License")]).toBe(firstExpected["Dispensary License"]);
   });
 });
