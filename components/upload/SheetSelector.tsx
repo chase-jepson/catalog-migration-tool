@@ -11,9 +11,7 @@ interface SheetSelectorProps {
 export function SheetSelector({ sheets, selected, onSelect }: SheetSelectorProps) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-3">
-      <label className="mb-1 block text-xs font-medium text-gray-600">
-        Select sheet
-      </label>
+      <label className="mb-1 block text-xs font-medium text-gray-600">Select sheet</label>
       <select
         value={selected}
         onChange={(e) => onSelect(e.target.value)}
@@ -34,6 +32,6 @@ export function SheetSelector({ sheets, selected, onSelect }: SheetSelectorProps
  * Prefers "Product Options" if available (Dutchie XLSX pattern).
  */
 export function getDefaultSheet(sheets: string[]): string {
-  const preferred = sheets.find((s) => s === 'Product Options');
+  const preferred = sheets.find((s) => s === "Product Options");
   return preferred ?? sheets[0];
 }

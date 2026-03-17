@@ -1,17 +1,17 @@
-import { IMPORT_PAGE_PATTERNS } from '../../lib/constants';
-import { onMessage } from '../../lib/messaging';
-import { getValidToken } from './auth';
+import { IMPORT_PAGE_PATTERNS } from "../../lib/constants";
+import { onMessage } from "../../lib/messaging";
+import { getValidToken } from "./auth";
 
 export default defineBackground(() => {
   // Allow content scripts to access session storage
-  chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' });
+  chrome.storage.session.setAccessLevel({ accessLevel: "TRUSTED_AND_UNTRUSTED_CONTEXTS" });
 
   // When extension icon is clicked, tell the content script to open the drawer
   chrome.action.onClicked.addListener(async (tab) => {
     if (!tab.id || !tab.url) return;
     if (isImportPageUrl(tab.url)) {
       // Content script is already injected — dispatch custom event to open drawer
-      chrome.tabs.sendMessage(tab.id, { type: 'openDrawer', wizardType: 'catalog' });
+      chrome.tabs.sendMessage(tab.id, { type: "openDrawer", wizardType: "catalog" });
     }
   });
 
@@ -21,13 +21,13 @@ export default defineBackground(() => {
    */
   function isImportPageUrl(url: string): boolean {
     return IMPORT_PAGE_PATTERNS.some((pattern) => {
-      const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
+      const regex = new RegExp("^" + pattern.replace(/\*/g, ".*") + "$");
       return regex.test(url);
     });
   }
 
   // Handle getAuthToken messages via typed messaging
-  onMessage('getAuthToken', async (message) => {
+  onMessage("getAuthToken", async (message) => {
     const { appUrl } = message.data;
     // Side panel messages don't have sender.tab, so query the active tab
     let tabId = message.sender.tab?.id;
@@ -42,19 +42,19 @@ export default defineBackground(() => {
   });
 
   // Handle getPresignedUrl -- fetch presigned S3 upload URL from Treez file-management API
-  onMessage('getPresignedUrl', async (message) => {
+  onMessage("getPresignedUrl", async (message) => {
     const { apiBaseUrl, token, params } = message.data;
     const res = await fetch(`${apiBaseUrl}/file/v1/presignedUrl`, {
-      method: 'POST',
-      credentials: 'omit',
+      method: "POST",
+      credentials: "omit",
       headers: {
         Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         ...params,
-        contentType: 'text/csv',
-        checksumAlgorithm: 'SHA256',
+        contentType: "text/csv",
+        checksumAlgorithm: "SHA256",
       }),
     });
 
@@ -67,13 +67,13 @@ export default defineBackground(() => {
   });
 
   // Handle uploadToS3 -- PUT CSV content to presigned S3 URL (bypasses CORS)
-  onMessage('uploadToS3', async (message) => {
+  onMessage("uploadToS3", async (message) => {
     const { presignedUrl, csvContent } = message.data;
     try {
       const res = await fetch(presignedUrl, {
-        method: 'PUT',
-        credentials: 'omit',
-        headers: { 'Content-Type': 'text/csv' },
+        method: "PUT",
+        credentials: "omit",
+        headers: { "Content-Type": "text/csv" },
         body: csvContent,
       });
 
@@ -86,16 +86,16 @@ export default defineBackground(() => {
     } catch (err) {
       return {
         ok: false,
-        error: err instanceof Error ? err.message : 'S3 upload failed',
+        error: err instanceof Error ? err.message : "S3 upload failed",
       };
     }
   });
 
   // Handle fetchImportReport -- GET import job statuses from Treez API
-  onMessage('fetchImportReport', async (message) => {
+  onMessage("fetchImportReport", async (message) => {
     const { apiBaseUrl, token } = message.data;
     const res = await fetch(`${apiBaseUrl}/import/v1/report`, {
-      credentials: 'omit',
+      credentials: "omit",
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -108,16 +108,16 @@ export default defineBackground(() => {
   });
 
   // Handle fetchStores -- POST to MSO API to get entity/store details
-  onMessage('fetchStores', async (message) => {
+  onMessage("fetchStores", async (message) => {
     const { apiBaseUrl, token, orgId, entityIds } = message.data;
     const res = await fetch(
       `${apiBaseUrl}/organization/v1/organizations/${orgId}/entities/details`,
       {
-        method: 'POST',
-        credentials: 'omit',
+        method: "POST",
+        credentials: "omit",
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ entityIds }),
       },
@@ -133,24 +133,24 @@ export default defineBackground(() => {
 
   // ── Portal API handlers ──────────────────────────────────────────────────
 
-  const PORTAL_BASE_URL = 'https://customer-success.mso.treez.io';
+  const PORTAL_BASE_URL = "https://customer-success.mso.treez.io";
 
   // Handle portalLogin -- authenticate with portal and return token + user info
-  onMessage('portalLogin', async (message) => {
+  onMessage("portalLogin", async (message) => {
     const { username, password } = message.data;
     const res = await fetch(`${PORTAL_BASE_URL}/api/auth/login`, {
-      method: 'POST',
-      credentials: 'omit',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      credentials: "omit",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
     });
 
     if (res.status === 401) {
-      throw new Error('Invalid credentials');
+      throw new Error("Invalid credentials");
     }
     if (res.status === 403) {
       const body = await res.json().catch(() => ({}));
-      throw new Error(body.detail ?? 'Missing required role');
+      throw new Error(body.detail ?? "Missing required role");
     }
     if (!res.ok) {
       const text = await res.text();
@@ -161,10 +161,10 @@ export default defineBackground(() => {
   });
 
   // Handle portalFetchStores -- get list of configured stores from portal
-  onMessage('portalFetchStores', async (message) => {
+  onMessage("portalFetchStores", async (message) => {
     const { portalToken } = message.data;
     const res = await fetch(`${PORTAL_BASE_URL}/api/stores`, {
-      credentials: 'omit',
+      credentials: "omit",
       headers: { Authorization: `Bearer ${portalToken}` },
     });
 
@@ -176,24 +176,24 @@ export default defineBackground(() => {
   });
 
   // Handle portalValidate -- upload CSV to portal for server-side validation
-  onMessage('portalValidate', async (message) => {
+  onMessage("portalValidate", async (message) => {
     const { portalToken, csvContent, storeId, fileName } = message.data;
 
     // Build multipart form data
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const blob = new Blob([csvContent], { type: "text/csv" });
     const formData = new FormData();
-    formData.append('file', blob, fileName);
-    formData.append('store_id', storeId);
+    formData.append("file", blob, fileName);
+    formData.append("store_id", storeId);
 
     const res = await fetch(`${PORTAL_BASE_URL}/api/import/upload`, {
-      method: 'POST',
-      credentials: 'omit',
+      method: "POST",
+      credentials: "omit",
       headers: { Authorization: `Bearer ${portalToken}` },
       body: formData,
     });
 
     if (res.status === 409) {
-      throw new Error('This store is currently locked. Please unlock it before uploading.');
+      throw new Error("This store is currently locked. Please unlock it before uploading.");
     }
     if (!res.ok) {
       const text = await res.text();
@@ -204,15 +204,17 @@ export default defineBackground(() => {
   });
 
   // Handle portalExecute -- approve and launch a VALIDATED import job
-  onMessage('portalExecute', async (message) => {
+  onMessage("portalExecute", async (message) => {
     const { portalToken, jobId } = message.data;
     const res = await fetch(`${PORTAL_BASE_URL}/api/import/jobs/${jobId}/execute`, {
-      method: 'POST',
-      credentials: 'omit',
+      method: "POST",
+      credentials: "omit",
       headers: { Authorization: `Bearer ${portalToken}` },
     });
     if (res.status === 409) {
-      throw new Error('This job can no longer be executed. It may have already been started, cancelled, or rolled back.');
+      throw new Error(
+        "This job can no longer be executed. It may have already been started, cancelled, or rolled back.",
+      );
     }
     if (!res.ok) {
       const text = await res.text();
@@ -222,10 +224,10 @@ export default defineBackground(() => {
   });
 
   // Handle portalGetJob -- poll job status
-  onMessage('portalGetJob', async (message) => {
+  onMessage("portalGetJob", async (message) => {
     const { portalToken, jobId } = message.data;
     const res = await fetch(`${PORTAL_BASE_URL}/api/import/jobs/${jobId}`, {
-      credentials: 'omit',
+      credentials: "omit",
       headers: { Authorization: `Bearer ${portalToken}` },
     });
     if (!res.ok) {
@@ -235,15 +237,17 @@ export default defineBackground(() => {
   });
 
   // Handle portalRollback -- rollback a completed/failed import
-  onMessage('portalRollback', async (message) => {
+  onMessage("portalRollback", async (message) => {
     const { portalToken, jobId } = message.data;
     const res = await fetch(`${PORTAL_BASE_URL}/api/import/jobs/${jobId}/rollback`, {
-      method: 'POST',
-      credentials: 'omit',
+      method: "POST",
+      credentials: "omit",
       headers: { Authorization: `Bearer ${portalToken}` },
     });
     if (res.status === 409) {
-      throw new Error('This job cannot be rolled back. Only completed or failed imports can be rolled back.');
+      throw new Error(
+        "This job cannot be rolled back. Only completed or failed imports can be rolled back.",
+      );
     }
     if (!res.ok) {
       const text = await res.text();
@@ -253,15 +257,17 @@ export default defineBackground(() => {
   });
 
   // Handle portalCancel -- cancel a VALIDATED import job
-  onMessage('portalCancel', async (message) => {
+  onMessage("portalCancel", async (message) => {
     const { portalToken, jobId } = message.data;
     const res = await fetch(`${PORTAL_BASE_URL}/api/import/jobs/${jobId}/cancel`, {
-      method: 'POST',
-      credentials: 'omit',
+      method: "POST",
+      credentials: "omit",
       headers: { Authorization: `Bearer ${portalToken}` },
     });
     if (res.status === 409) {
-      throw new Error('This job can no longer be cancelled. It may have already been executed or cancelled.');
+      throw new Error(
+        "This job can no longer be cancelled. It may have already been executed or cancelled.",
+      );
     }
     if (!res.ok) {
       const text = await res.text();
@@ -271,19 +277,19 @@ export default defineBackground(() => {
   });
 
   // Handle portalReindex -- trigger OpenSearch reindex for a store
-  onMessage('portalReindex', async (message) => {
+  onMessage("portalReindex", async (message) => {
     const { portalToken, storeId, username, password } = message.data;
     const res = await fetch(`${PORTAL_BASE_URL}/api/import/reindex/${storeId}`, {
-      method: 'POST',
-      credentials: 'omit',
+      method: "POST",
+      credentials: "omit",
       headers: {
         Authorization: `Bearer ${portalToken}`,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({ username, password }),
     });
     if (res.status === 401) {
-      throw new Error('IOMT authentication failed. Check your credentials.');
+      throw new Error("IOMT authentication failed. Check your credentials.");
     }
     if (!res.ok) {
       const text = await res.text();
@@ -291,5 +297,4 @@ export default defineBackground(() => {
     }
     return res.json();
   });
-
 });

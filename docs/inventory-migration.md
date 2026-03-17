@@ -62,13 +62,13 @@ The tool generates a single **56-column inventory CSV** and uploads it to S3. Th
 
 ## Key Differences from Catalog Migration
 
-| Aspect | Catalog | Inventory |
-|--------|---------|-----------|
-| Scope | Organization-wide | Per-store |
-| Input files | 1 file | Up to 5 files |
-| Output files | 6 CSVs | 1 CSV (56 columns) |
-| Prerequisites | None | Catalog must exist in Treez |
-| Invoice data | N/A | Reconstructed from receipts + adjustments |
+| Aspect        | Catalog           | Inventory                                 |
+| ------------- | ----------------- | ----------------------------------------- |
+| Scope         | Organization-wide | Per-store                                 |
+| Input files   | 1 file            | Up to 5 files                             |
+| Output files  | 6 CSVs            | 1 CSV (56 columns)                        |
+| Prerequisites | None              | Catalog must exist in Treez               |
+| Invoice data  | N/A               | Reconstructed from receipts + adjustments |
 
 ## Tips
 

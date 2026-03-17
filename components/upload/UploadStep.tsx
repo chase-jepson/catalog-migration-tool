@@ -1,12 +1,12 @@
-import { useCallback, useState } from 'react';
-import type { ParsedFile, POSDetectionResult } from '../../lib/types';
-import { validateFile, parseFile, getSheetNames } from '../../lib/parser';
-import { detectPOS } from '../../lib/pos-detection';
-import { FileDropZone } from './FileDropZone';
-import { FileSummaryCard } from './FileSummaryCard';
-import { SheetSelector, getDefaultSheet } from './SheetSelector';
+import { useCallback, useState } from "react";
+import type { ParsedFile, POSDetectionResult } from "../../lib/types";
+import { validateFile, parseFile, getSheetNames } from "../../lib/parser";
+import { detectPOS } from "../../lib/pos-detection";
+import { FileDropZone } from "./FileDropZone";
+import { FileSummaryCard } from "./FileSummaryCard";
+import { SheetSelector, getDefaultSheet } from "./SheetSelector";
 
-type ParsingStatus = 'idle' | 'parsing' | 'done' | 'error';
+type ParsingStatus = "idle" | "parsing" | "done" | "error";
 
 interface UploadStepProps {
   onCanProceed: (canProceed: boolean) => void;
@@ -33,9 +33,7 @@ export function UploadStep({
   detectedPOS,
   onDetectedPOSChange,
 }: UploadStepProps) {
-  const [status, setStatus] = useState<ParsingStatus>(
-    parsedFiles.length > 0 ? 'done' : 'idle',
-  );
+  const [status, setStatus] = useState<ParsingStatus>(parsedFiles.length > 0 ? "done" : "idle");
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [pendingSheet, setPendingSheet] = useState<PendingSheet | null>(null);
@@ -70,8 +68,8 @@ export function UploadStep({
       // Check for multi-sheet XLSX
       if (rawFiles.length === 1) {
         const file = rawFiles[0];
-        const ext = file.name.split('.').pop()?.toLowerCase();
-        if (ext === 'xlsx' || ext === 'xls') {
+        const ext = file.name.split(".").pop()?.toLowerCase();
+        if (ext === "xlsx" || ext === "xls") {
           const sheets = await getSheetNames(file);
           if (sheets.length > 1) {
             const defaultSheet = getDefaultSheet(sheets);
@@ -90,7 +88,7 @@ export function UploadStep({
 
   const parseFiles = useCallback(
     async (rawFiles: File[], sheetName?: string) => {
-      setStatus('parsing');
+      setStatus("parsing");
       setProgress({ current: 0, total: rawFiles.length });
 
       try {
@@ -103,14 +101,12 @@ export function UploadStep({
 
         const allFiles = [...parsedFiles, ...newParsed];
         onParsedFilesChange(allFiles);
-        setStatus('done');
+        setStatus("done");
         setPendingSheet(null);
         runDetection(allFiles);
       } catch (err) {
-        setStatus('error');
-        setError(
-          err instanceof Error ? err.message : 'Failed to parse file(s)',
-        );
+        setStatus("error");
+        setError(err instanceof Error ? err.message : "Failed to parse file(s)");
       }
     },
     [parsedFiles, onParsedFilesChange, runDetection],
@@ -126,7 +122,7 @@ export function UploadStep({
       const updated = parsedFiles.filter((f) => f.fileName !== fileName);
       onParsedFilesChange(updated);
       if (updated.length === 0) {
-        setStatus('idle');
+        setStatus("idle");
         onCanProceed(false);
         onDetectedPOSChange({ detected: null, confidence: 0, disagreement: false });
       } else {
@@ -139,7 +135,7 @@ export function UploadStep({
   const handlePOSChange = useCallback(
     (pos: string) => {
       onSelectedPOSChange(pos);
-      onCanProceed(parsedFiles.length > 0 && pos !== '');
+      onCanProceed(parsedFiles.length > 0 && pos !== "");
     },
     [parsedFiles, onSelectedPOSChange, onCanProceed],
   );
@@ -154,13 +150,10 @@ export function UploadStep({
       </div>
 
       {/* Drop zone -- always shown so users can add more files */}
-      <FileDropZone
-        onFilesSelected={handleFilesSelected}
-        disabled={status === 'parsing'}
-      />
+      <FileDropZone onFilesSelected={handleFilesSelected} disabled={status === "parsing"} />
 
       {/* Parsing progress */}
-      {status === 'parsing' && (
+      {status === "parsing" && (
         <div className="rounded-lg border border-gray-200 bg-white p-4">
           <div className="flex items-center gap-3">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-treez-primary border-t-transparent" />
@@ -192,9 +185,7 @@ export function UploadStep({
           <SheetSelector
             sheets={pendingSheet.sheets}
             selected={pendingSheet.selectedSheet}
-            onSelect={(sheet) =>
-              setPendingSheet({ ...pendingSheet, selectedSheet: sheet })
-            }
+            onSelect={(sheet) => setPendingSheet({ ...pendingSheet, selectedSheet: sheet })}
           />
           <button
             type="button"
@@ -207,7 +198,7 @@ export function UploadStep({
       )}
 
       {/* File summary cards */}
-      {parsedFiles.length > 0 && status === 'done' && (
+      {parsedFiles.length > 0 && status === "done" && (
         <div className="space-y-3">
           {parsedFiles.map((file, idx) => (
             <FileSummaryCard

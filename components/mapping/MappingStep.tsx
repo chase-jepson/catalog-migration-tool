@@ -1,16 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { MappingGroup } from './MappingGroup';
-import { MappingToolbar } from './MappingToolbar';
-import { DataPreview } from './DataPreview';
-import { MAPPING_GROUPS } from '../../lib/constants';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { MappingGroup } from "./MappingGroup";
+import { MappingToolbar } from "./MappingToolbar";
+import { DataPreview } from "./DataPreview";
+import { MAPPING_GROUPS } from "../../lib/constants";
 import {
   applyPOSDefaults,
   clearAllMappings,
   getMappingsByGroup,
   getUnmappedRequired,
   updateMapping,
-} from '../../lib/mapping-engine';
-import type { FieldMapping, ParsedFile } from '../../lib/types';
+} from "../../lib/mapping-engine";
+import type { FieldMapping, ParsedFile } from "../../lib/types";
 
 interface MappingStepProps {
   mappings: FieldMapping[];
@@ -59,7 +59,7 @@ export function MappingStep({
       setHighlightedField(mapping.fieldKey);
       document
         .getElementById(`mapping-row-${mapping.fieldKey}`)
-        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
 
       // Clear highlight after 2 seconds
       if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
@@ -102,11 +102,7 @@ export function MappingStep({
       ))}
 
       {/* Data preview */}
-      <DataPreview
-        mergedFile={mergedFile}
-        mappings={mappings}
-        onColumnClick={handleColumnClick}
-      />
+      <DataPreview mergedFile={mergedFile} mappings={mappings} onColumnClick={handleColumnClick} />
     </div>
   );
 }

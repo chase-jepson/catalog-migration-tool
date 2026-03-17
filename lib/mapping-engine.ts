@@ -1,5 +1,5 @@
-import type { FieldMapping, MappingGroup } from './types';
-import { MAPPING_FIELDS, POS_DEFAULTS } from './constants';
+import type { FieldMapping, MappingGroup } from "./types";
+import { MAPPING_FIELDS, POS_DEFAULTS } from "./constants";
 
 /**
  * Create field mappings pre-populated with POS-specific default source headers.
@@ -23,9 +23,7 @@ export function updateMapping(
   fieldKey: string,
   sourceHeader: string | null,
 ): FieldMapping[] {
-  return mappings.map((m) =>
-    m.fieldKey === fieldKey ? { ...m, sourceHeader } : m,
-  );
+  return mappings.map((m) => (m.fieldKey === fieldKey ? { ...m, sourceHeader } : m));
 }
 
 /**
@@ -39,9 +37,7 @@ export function clearAllMappings(mappings: FieldMapping[]): FieldMapping[] {
  * Get field keys of required fields that are not yet mapped.
  */
 export function getUnmappedRequired(mappings: FieldMapping[]): string[] {
-  const requiredKeys = new Set(
-    MAPPING_FIELDS.filter((f) => f.required).map((f) => f.key),
-  );
+  const requiredKeys = new Set(MAPPING_FIELDS.filter((f) => f.required).map((f) => f.key));
 
   return mappings
     .filter((m) => requiredKeys.has(m.fieldKey) && m.sourceHeader === null)
@@ -51,24 +47,22 @@ export function getUnmappedRequired(mappings: FieldMapping[]): string[] {
 /**
  * Group mappings by their MappingGroup, excluding hidden fields.
  */
-export function getMappingsByGroup(
-  mappings: FieldMapping[],
-): Record<MappingGroup, FieldMapping[]> {
+export function getMappingsByGroup(mappings: FieldMapping[]): Record<MappingGroup, FieldMapping[]> {
   const fieldDefs = new Map(MAPPING_FIELDS.map((f) => [f.key, f]));
 
   const result: Record<MappingGroup, FieldMapping[]> = {
-    'Product Info': [],
-    'Cannabis Details': [],
-    'Pricing': [],
-    'Attributes': [],
-    'Display & Media': [],
-    'Product Matching': [],
-    'Inventory Data': [],
-    'Location': [],
-    'Customer Type': [],
-    'Dates': [],
-    'Distributor': [],
-    'Invoice': [],
+    "Product Info": [],
+    "Cannabis Details": [],
+    Pricing: [],
+    Attributes: [],
+    "Display & Media": [],
+    "Product Matching": [],
+    "Inventory Data": [],
+    Location: [],
+    "Customer Type": [],
+    Dates: [],
+    Distributor: [],
+    Invoice: [],
   };
 
   for (const mapping of mappings) {
@@ -84,13 +78,10 @@ export function getMappingsByGroup(
  * Get the first non-empty value for a given header from a set of rows.
  * Useful for showing sample data in the mapping UI.
  */
-export function getSampleValue(
-  rows: Record<string, string>[],
-  header: string,
-): string {
+export function getSampleValue(rows: Record<string, string>[], header: string): string {
   for (const row of rows) {
     const val = row[header];
-    if (val !== undefined && val !== '') return val;
+    if (val !== undefined && val !== "") return val;
   }
-  return '';
+  return "";
 }

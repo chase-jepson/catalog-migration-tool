@@ -1,15 +1,19 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { buildInventoryCSV, serializeCSV, INVENTORY_OUTPUT_COLUMNS } from '../../lib/inventory-csv-generator';
-import { sendMessage } from '../../lib/messaging';
-import { buildUploadPayload } from '../../lib/file-uploader';
-import { getAdaptiveInterval, isTerminalStatus, MAX_POLL_DURATION_MS } from '../../lib/import-poller';
-import { detectEnvironment, getApiBaseUrl } from '../../lib/env';
-import { getPortalAuth } from '../../lib/portal-auth';
-import type {
-  InventoryDerivedRow,
-  PortalReindexResult,
-  StoreInfo,
-} from '../../lib/types';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  buildInventoryCSV,
+  serializeCSV,
+  INVENTORY_OUTPUT_COLUMNS,
+} from "../../lib/inventory-csv-generator";
+import { sendMessage } from "../../lib/messaging";
+import { buildUploadPayload } from "../../lib/file-uploader";
+import {
+  getAdaptiveInterval,
+  isTerminalStatus,
+  MAX_POLL_DURATION_MS,
+} from "../../lib/import-poller";
+import { detectEnvironment, getApiBaseUrl } from "../../lib/env";
+import { getPortalAuth } from "../../lib/portal-auth";
+import type { InventoryDerivedRow, PortalReindexResult, StoreInfo } from "../../lib/types";
 
 interface InventoryImportStepProps {
   derivedRows: InventoryDerivedRow[];
@@ -20,8 +24,16 @@ interface InventoryImportStepProps {
   onStartNew: () => void;
 }
 
-type Phase = 'pre-import' | 'generating' | 'uploading' | 'processing' | 'done' | 'error' | 'rolling-back' | 'rolled-back';
-type ReindexPhase = 'idle' | 'credentials' | 'reindexing' | 'done' | 'error';
+type Phase =
+  | "pre-import"
+  | "generating"
+  | "uploading"
+  | "processing"
+  | "done"
+  | "error"
+  | "rolling-back"
+  | "rolled-back";
+type ReindexPhase = "idle" | "credentials" | "reindexing" | "done" | "error";
 
 export function InventoryImportStep({
   derivedRows,
@@ -31,58 +43,58 @@ export function InventoryImportStep({
   portalStoreId,
   onStartNew,
 }: InventoryImportStepProps) {
-  const [phase, setPhase] = useState<Phase>('pre-import');
+  const [phase, setPhase] = useState<Phase>("pre-import");
   const [progressPercent, setProgressPercent] = useState(0);
-  const [statusMessage, setStatusMessage] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
+  const [statusMessage, setStatusMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
   const [rollbackResult, setRollbackResult] = useState<Record<string, number> | null>(null);
   const [totalImported, setTotalImported] = useState(0);
 
   // Reindex state
-  const [reindexPhase, setReindexPhase] = useState<ReindexPhase>('idle');
-  const [reindexUsername, setReindexUsername] = useState('');
-  const [reindexPassword, setReindexPassword] = useState('');
+  const [reindexPhase, setReindexPhase] = useState<ReindexPhase>("idle");
+  const [reindexUsername, setReindexUsername] = useState("");
+  const [reindexPassword, setReindexPassword] = useState("");
   const [reindexResult, setReindexResult] = useState<PortalReindexResult | null>(null);
-  const [reindexError, setReindexError] = useState('');
+  const [reindexError, setReindexError] = useState("");
 
   const cancelledRef = useRef(false);
 
   // Warn user before closing during import
   useEffect(() => {
-    if (phase !== 'uploading' && phase !== 'processing') return;
-    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
+    if (phase !== "uploading" && phase !== "processing") return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
   }, [phase]);
 
-  const activeRows = useMemo(
-    () => derivedRows.filter((r) => !r.excluded),
-    [derivedRows],
-  );
+  const activeRows = useMemo(() => derivedRows.filter((r) => !r.excluded), [derivedRows]);
 
   // Determine which file roles contributed to this data
   const rolesUsed = useMemo(() => {
-    const roles: string[] = ['Inventory'];
-    if (activeRows.some((r) => r.invoiceId !== '')) roles.push('Receipts');
-    if (activeRows.some((r) => r.distributorName !== '')) roles.push('Vendors');
+    const roles: string[] = ["Inventory"];
+    if (activeRows.some((r) => r.invoiceId !== "")) roles.push("Receipts");
+    if (activeRows.some((r) => r.distributorName !== "")) roles.push("Vendors");
     return roles;
   }, [activeRows]);
 
   // ── Get Token and URL ─────────────────────────────────────────────────────
   const getTokenAndUrl = useCallback(async () => {
-    let tabUrl = '';
+    let tabUrl: string;
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      tabUrl = tab?.url ?? '';
+      tabUrl = tab?.url ?? "";
     } catch {
       tabUrl = window.location.href;
     }
     const env = detectEnvironment(tabUrl);
-    if (!env) throw new Error('Could not detect Treez environment from current page');
+    if (!env) throw new Error("Could not detect Treez environment from current page");
 
     const apiBaseUrl = getApiBaseUrl(env);
-    const { token } = await sendMessage('getAuthToken', { appUrl: tabUrl });
-    if (!token) throw new Error('No auth token available. Please refresh the Treez page and try again.');
+    const { token } = await sendMessage("getAuthToken", { appUrl: tabUrl });
+    if (!token)
+      throw new Error("No auth token available. Please refresh the Treez page and try again.");
 
     return { apiBaseUrl, token };
   }, []);
@@ -92,31 +104,31 @@ export function InventoryImportStep({
     if (!selectedStore) return;
 
     cancelledRef.current = false;
-    setErrorMessage('');
+    setErrorMessage("");
     setProgressPercent(0);
 
     try {
       // Step 1: Generate CSV
-      setPhase('generating');
-      setStatusMessage('Generating 56-column inventory CSV...');
+      setPhase("generating");
+      setStatusMessage("Generating 56-column inventory CSV...");
 
       const csvData = buildInventoryCSV(derivedRows);
       const dataRowCount = csvData.length - 1; // subtract header
 
       if (dataRowCount === 0) {
-        setErrorMessage('No rows to import. All rows were excluded.');
-        setPhase('error');
+        setErrorMessage("No rows to import. All rows were excluded.");
+        setPhase("error");
         return;
       }
 
       const now = new Date();
-      const pad = (n: number) => n.toString().padStart(2, '0');
+      const pad = (n: number) => n.toString().padStart(2, "0");
       const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}-${pad(now.getMinutes())}`;
       const fileName = `CS Tool - Inventory Import - ${selectedStore.name} - ${ts}.csv`;
 
       // Step 2: Upload
-      setPhase('uploading');
-      setStatusMessage('Uploading to Treez...');
+      setPhase("uploading");
+      setStatusMessage("Uploading to Treez...");
       setProgressPercent(25);
 
       const { apiBaseUrl, token } = await getTokenAndUrl();
@@ -124,34 +136,34 @@ export function InventoryImportStep({
 
       if (cancelledRef.current) return;
 
-      const { presignedUrl } = await sendMessage('getPresignedUrl', {
+      const { presignedUrl } = await sendMessage("getPresignedUrl", {
         apiBaseUrl,
         token,
         params: {
           name: fileName,
           contentLength,
-          objectType: 'INVENTORY_IMPORT',
-          objectId: 'INVENTORY_IMPORT',
+          objectType: "INVENTORY_IMPORT",
+          objectId: "INVENTORY_IMPORT",
         },
       });
 
       if (cancelledRef.current) return;
 
-      const uploadResult = await sendMessage('uploadToS3', {
+      const uploadResult = await sendMessage("uploadToS3", {
         presignedUrl,
         csvContent,
         contentLength,
       });
 
       if (!uploadResult.ok) {
-        throw new Error(uploadResult.error ?? 'S3 upload failed');
+        throw new Error(uploadResult.error ?? "S3 upload failed");
       }
 
       setProgressPercent(50);
 
       // Step 3: Poll for completion
-      setPhase('processing');
-      setStatusMessage('Processing import...');
+      setPhase("processing");
+      setStatusMessage("Processing import...");
 
       const interval = getAdaptiveInterval(dataRowCount);
       const pollStart = Date.now();
@@ -160,13 +172,13 @@ export function InventoryImportStep({
       while (true) {
         if (cancelledRef.current) break;
         if (Date.now() - pollStart > MAX_POLL_DURATION_MS) {
-          throw new Error('Import timed out after 60 minutes');
+          throw new Error("Import timed out after 60 minutes");
         }
 
         await new Promise((resolve) => setTimeout(resolve, interval));
 
         const { apiBaseUrl: pollApiUrl, token: pollToken } = await getTokenAndUrl();
-        const jobs = await sendMessage('fetchImportReport', {
+        const jobs = await sendMessage("fetchImportReport", {
           apiBaseUrl: pollApiUrl,
           token: pollToken,
         });
@@ -179,9 +191,8 @@ export function InventoryImportStep({
           if (!jobId) jobId = job.id;
 
           // Update progress
-          const jobProgress = job.totalRows && job.totalRows > 0
-            ? job.countProcessed / job.totalRows
-            : 0;
+          const jobProgress =
+            job.totalRows && job.totalRows > 0 ? job.countProcessed / job.totalRows : 0;
           setProgressPercent(50 + Math.round(jobProgress * 50));
           setStatusMessage(
             `Processing: ${job.countProcessed}/${job.totalRows ?? dataRowCount} rows`,
@@ -192,15 +203,15 @@ export function InventoryImportStep({
             job.totalRows != null && job.totalRows > 0 && job.countProcessed >= job.totalRows;
 
           if (isTerminalStatus(job.status) || allProcessed) {
-            if (job.status === 'FINISHED' || allProcessed) {
+            if (job.status === "FINISHED" || allProcessed) {
               setTotalImported(job.countProcessed);
               setProgressPercent(100);
-              setPhase('done');
+              setPhase("done");
               return;
-            } else if (job.status === 'FINISHED_WITH_FAILURES') {
+            } else if (job.status === "FINISHED_WITH_FAILURES") {
               setTotalImported(job.countProcessed - job.countError);
               setProgressPercent(100);
-              setPhase('done');
+              setPhase("done");
               return;
             } else {
               throw new Error(`Import stopped: ${job.status} (${job.countError} errors)`);
@@ -210,8 +221,8 @@ export function InventoryImportStep({
       }
     } catch (err) {
       if (!cancelledRef.current) {
-        setErrorMessage(err instanceof Error ? err.message : 'Import failed');
-        setPhase('error');
+        setErrorMessage(err instanceof Error ? err.message : "Import failed");
+        setPhase("error");
       }
     }
   }, [derivedRows, selectedStore, getTokenAndUrl]);
@@ -221,13 +232,13 @@ export function InventoryImportStep({
     if (!portalJobId) return;
     try {
       const auth = await getPortalAuth();
-      if (!auth) throw new Error('Portal session expired.');
-      await sendMessage('portalCancel', { portalToken: auth.token, jobId: portalJobId });
-      setErrorMessage('Job cancelled. You can start a new migration.');
-      setPhase('error');
+      if (!auth) throw new Error("Portal session expired.");
+      await sendMessage("portalCancel", { portalToken: auth.token, jobId: portalJobId });
+      setErrorMessage("Job cancelled. You can start a new migration.");
+      setPhase("error");
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Cancel failed');
-      setPhase('error');
+      setErrorMessage(err instanceof Error ? err.message : "Cancel failed");
+      setPhase("error");
     }
   }, [portalJobId]);
 
@@ -235,61 +246,66 @@ export function InventoryImportStep({
   const handlePortalExecute = useCallback(async () => {
     if (!portalJobId) return;
     cancelledRef.current = false;
-    setErrorMessage('');
+    setErrorMessage("");
     setProgressPercent(0);
 
     try {
       const auth = await getPortalAuth();
-      if (!auth) throw new Error('Portal session expired. Please go back and re-authenticate.');
+      if (!auth) throw new Error("Portal session expired. Please go back and re-authenticate.");
 
-      setPhase('uploading');
-      setStatusMessage('Executing import via portal...');
+      setPhase("uploading");
+      setStatusMessage("Executing import via portal...");
       setProgressPercent(10);
 
-      await sendMessage('portalExecute', { portalToken: auth.token, jobId: portalJobId });
+      await sendMessage("portalExecute", { portalToken: auth.token, jobId: portalJobId });
       setProgressPercent(25);
 
       // Poll for completion
-      setPhase('processing');
-      setStatusMessage('Processing import...');
+      setPhase("processing");
+      setStatusMessage("Processing import...");
       const pollStart = Date.now();
 
       while (true) {
         if (cancelledRef.current) break;
         if (Date.now() - pollStart > MAX_POLL_DURATION_MS) {
-          throw new Error('Import timed out after 60 minutes');
+          throw new Error("Import timed out after 60 minutes");
         }
         await new Promise((r) => setTimeout(r, 5000));
 
         const freshAuth = await getPortalAuth();
-        if (!freshAuth) throw new Error('Portal session expired during import.');
+        if (!freshAuth) throw new Error("Portal session expired during import.");
 
-        const job = await sendMessage('portalGetJob', { portalToken: freshAuth.token, jobId: portalJobId });
+        const job = await sendMessage("portalGetJob", {
+          portalToken: freshAuth.token,
+          jobId: portalJobId,
+        });
 
         const processed = job.processed_invoices ?? 0;
         const total = job.total_invoices ?? 1;
         setProgressPercent(25 + Math.round((processed / total) * 75));
         setStatusMessage(`Processing: ${processed}/${total} invoices`);
 
-        if (['COMPLETED', 'FAILED', 'ROLLED_BACK'].includes(job.status)) {
+        if (["COMPLETED", "FAILED", "ROLLED_BACK"].includes(job.status)) {
           setTotalImported(job.succeeded_rows ?? 0);
           setProgressPercent(100);
-          if (job.status === 'COMPLETED') {
-            setPhase('done');
-          } else if (job.status === 'FAILED') {
-            setErrorMessage(`Import failed: ${job.error_summary ?? 'Unknown error'}. ${job.succeeded_rows ?? 0} rows succeeded, ${job.failed_rows ?? 0} failed.`);
-            setPhase('done');
+          if (job.status === "COMPLETED") {
+            setPhase("done");
+          } else if (job.status === "FAILED") {
+            setErrorMessage(
+              `Import failed: ${job.error_summary ?? "Unknown error"}. ${job.succeeded_rows ?? 0} rows succeeded, ${job.failed_rows ?? 0} failed.`,
+            );
+            setPhase("done");
           } else {
             setErrorMessage(`Import was rolled back.`);
-            setPhase('error');
+            setPhase("error");
           }
           return;
         }
       }
     } catch (err) {
       if (!cancelledRef.current) {
-        setErrorMessage(err instanceof Error ? err.message : 'Portal import failed');
-        setPhase('error');
+        setErrorMessage(err instanceof Error ? err.message : "Portal import failed");
+        setPhase("error");
       }
     }
   }, [portalJobId]);
@@ -297,43 +313,46 @@ export function InventoryImportStep({
   // ── Portal Rollback ─────────────────────────────────────────────────────────
   const handleRollback = useCallback(async () => {
     if (!portalJobId) return;
-    setPhase('rolling-back');
-    setStatusMessage('Rolling back import...');
+    setPhase("rolling-back");
+    setStatusMessage("Rolling back import...");
 
     try {
       const auth = await getPortalAuth();
-      if (!auth) throw new Error('Portal session expired. Cannot rollback.');
+      if (!auth) throw new Error("Portal session expired. Cannot rollback.");
 
-      const result = await sendMessage('portalRollback', { portalToken: auth.token, jobId: portalJobId });
+      const result = await sendMessage("portalRollback", {
+        portalToken: auth.token,
+        jobId: portalJobId,
+      });
       setRollbackResult(result.deleted_counts);
-      setPhase('rolled-back');
+      setPhase("rolled-back");
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Rollback failed');
-      setPhase('error');
+      setErrorMessage(err instanceof Error ? err.message : "Rollback failed");
+      setPhase("error");
     }
   }, [portalJobId]);
 
   // ── Reindex OpenSearch ────────────────────────────────────────────────────────
   const handleReindex = useCallback(async () => {
     if (!portalStoreId || !reindexUsername || !reindexPassword) return;
-    setReindexPhase('reindexing');
-    setReindexError('');
+    setReindexPhase("reindexing");
+    setReindexError("");
 
     try {
       const auth = await getPortalAuth();
-      if (!auth) throw new Error('Portal session expired. Please re-authenticate.');
+      if (!auth) throw new Error("Portal session expired. Please re-authenticate.");
 
-      const result = await sendMessage('portalReindex', {
+      const result = await sendMessage("portalReindex", {
         portalToken: auth.token,
         storeId: portalStoreId,
         username: reindexUsername,
         password: reindexPassword,
       });
       setReindexResult(result);
-      setReindexPhase('done');
+      setReindexPhase("done");
     } catch (err) {
-      setReindexError(err instanceof Error ? err.message : 'Reindex failed');
-      setReindexPhase('error');
+      setReindexError(err instanceof Error ? err.message : "Reindex failed");
+      setReindexPhase("error");
     }
   }, [portalStoreId, reindexUsername, reindexPassword]);
 
@@ -342,15 +361,15 @@ export function InventoryImportStep({
     const csvData = buildInventoryCSV(derivedRows);
     const csvString = serializeCSV(csvData);
 
-    const storeName = selectedStore?.name ?? 'inventory';
+    const storeName = selectedStore?.name ?? "inventory";
     const now = new Date();
-    const pad = (n: number) => n.toString().padStart(2, '0');
+    const pad = (n: number) => n.toString().padStart(2, "0");
     const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}-${pad(now.getMinutes())}`;
     const fileName = `CS Tool - Inventory Import - ${storeName} - ${ts}.csv`;
 
-    const blob = new Blob([csvString], { type: 'text/csv' });
+    const blob = new Blob([csvString], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = fileName;
     a.click();
@@ -363,20 +382,24 @@ export function InventoryImportStep({
     <div className="flex h-full w-full flex-col p-4">
       {/* Header */}
       <h2 className="mb-3 text-sm font-medium text-gray-900">
-        {phase === 'done' ? 'Import Complete' : 'Import Inventory to Treez'}
+        {phase === "done" ? "Import Complete" : "Import Inventory to Treez"}
       </h2>
 
-      {selectedStore && (
-        <p className="mb-3 text-xs text-gray-500">
-          Store: {selectedStore.name}
-        </p>
-      )}
+      {selectedStore && <p className="mb-3 text-xs text-gray-500">Store: {selectedStore.name}</p>}
 
       {/* Warning during upload/processing */}
-      {(phase === 'uploading' || phase === 'processing') && (
+      {(phase === "uploading" || phase === "processing") && (
         <div className="mb-3 flex items-center gap-1.5 rounded border border-amber-200 bg-amber-50 px-2 py-1.5">
-          <svg className="h-3.5 w-3.5 shrink-0 text-amber-500" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.168 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+          <svg
+            className="h-3.5 w-3.5 shrink-0 text-amber-500"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fillRule="evenodd"
+              d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.168 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z"
+              clipRule="evenodd"
+            />
           </svg>
           <span className="text-xs text-amber-800">
             Do not close this window until import finishes.
@@ -387,7 +410,7 @@ export function InventoryImportStep({
       {/* Main content area */}
       <div className="flex-1 space-y-3 overflow-auto">
         {/* Pre-import state */}
-        {phase === 'pre-import' && (
+        {phase === "pre-import" && (
           <div className="space-y-3">
             <p className="text-sm text-gray-600">
               Generate and upload the 56-column inventory CSV to Treez.
@@ -395,23 +418,20 @@ export function InventoryImportStep({
 
             <div className="rounded border border-gray-200 bg-white p-3 space-y-1">
               <p className="text-sm text-gray-700">
-                <span className="font-medium">{activeRows.length.toLocaleString()}</span> rows ready for import
+                <span className="font-medium">{activeRows.length.toLocaleString()}</span> rows ready
+                for import
               </p>
               <p className="text-xs text-gray-500">
-                {INVENTORY_OUTPUT_COLUMNS.length} columns | {rolesUsed.join(' + ')}
+                {INVENTORY_OUTPUT_COLUMNS.length} columns | {rolesUsed.join(" + ")}
               </p>
               {dispensaryLicense && (
-                <p className="text-xs text-gray-500">
-                  License: {dispensaryLicense}
-                </p>
+                <p className="text-xs text-gray-500">License: {dispensaryLicense}</p>
               )}
             </div>
 
             {activeRows.length === 0 && (
               <div className="rounded border border-amber-200 bg-amber-50 p-3">
-                <p className="text-xs text-amber-600">
-                  No rows to import. All rows were excluded.
-                </p>
+                <p className="text-xs text-amber-600">No rows to import. All rows were excluded.</p>
               </div>
             )}
 
@@ -422,14 +442,14 @@ export function InventoryImportStep({
                 disabled={activeRows.length === 0}
                 className="btn-treez-text flex-1 font-[Roboto,sans-serif] font-medium disabled:cursor-not-allowed disabled:opacity-40"
                 style={{
-                  padding: '0 20px',
-                  borderRadius: '15px',
-                  border: '1px solid #1a4007',
-                  color: '#1a4007',
-                  fontSize: '14px',
-                  height: '40px',
-                  letterSpacing: '0.4px',
-                  lineHeight: '24px',
+                  padding: "0 20px",
+                  borderRadius: "15px",
+                  border: "1px solid #1a4007",
+                  color: "#1a4007",
+                  fontSize: "14px",
+                  height: "40px",
+                  letterSpacing: "0.4px",
+                  lineHeight: "24px",
                 }}
               >
                 Download
@@ -440,14 +460,14 @@ export function InventoryImportStep({
                 disabled={activeRows.length === 0}
                 className="btn-treez-green flex-1 font-[Roboto,sans-serif] font-medium disabled:cursor-not-allowed disabled:opacity-40"
                 style={{
-                  padding: '0 20px',
-                  borderRadius: '15px',
-                  border: 'none',
-                  color: '#0f1709',
-                  fontSize: '14px',
-                  height: '40px',
-                  letterSpacing: '0.4px',
-                  lineHeight: '24px',
+                  padding: "0 20px",
+                  borderRadius: "15px",
+                  border: "none",
+                  color: "#0f1709",
+                  fontSize: "14px",
+                  height: "40px",
+                  letterSpacing: "0.4px",
+                  lineHeight: "24px",
                 }}
               >
                 Import
@@ -467,7 +487,7 @@ export function InventoryImportStep({
         )}
 
         {/* Generating / Uploading / Processing -- single progress bar */}
-        {(phase === 'generating' || phase === 'uploading' || phase === 'processing') && (
+        {(phase === "generating" || phase === "uploading" || phase === "processing") && (
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-treez-primary border-t-transparent" />
@@ -481,14 +501,12 @@ export function InventoryImportStep({
               />
             </div>
 
-            <p className="text-center text-xs text-gray-500">
-              {progressPercent}% complete
-            </p>
+            <p className="text-center text-xs text-gray-500">{progressPercent}% complete</p>
           </div>
         )}
 
         {/* Done state */}
-        {phase === 'done' && (
+        {phase === "done" && (
           <div className="space-y-3">
             <div className="rounded border border-green-200 bg-green-50 px-3 py-2 text-center">
               <p className="text-sm font-medium text-green-800">
@@ -502,20 +520,20 @@ export function InventoryImportStep({
             </div>
 
             {/* OpenSearch Reindex Section */}
-            {portalStoreId && reindexPhase !== 'done' && (
+            {portalStoreId && reindexPhase !== "done" && (
               <div className="rounded border border-gray-200 bg-gray-50 p-3 space-y-2">
-                <p className="text-xs font-medium text-gray-800">
-                  Reindex OpenSearch
-                </p>
+                <p className="text-xs font-medium text-gray-800">Reindex OpenSearch</p>
                 <p className="text-xs text-gray-600">
                   Trigger an OpenSearch reindex so imported inventory appears in Treez.
                 </p>
 
-                {(reindexPhase === 'idle' || reindexPhase === 'credentials' || reindexPhase === 'error') && (
+                {(reindexPhase === "idle" ||
+                  reindexPhase === "credentials" ||
+                  reindexPhase === "error") && (
                   <form
                     onSubmit={(e) => {
                       e.preventDefault();
-                      setReindexPhase('credentials');
+                      setReindexPhase("credentials");
                       handleReindex();
                     }}
                     className="space-y-2"
@@ -538,7 +556,7 @@ export function InventoryImportStep({
                       onChange={(e) => setReindexPassword(e.target.value)}
                       className="w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900 placeholder-gray-400 focus:border-gray-500 focus:outline-none"
                     />
-                    {reindexPhase === 'error' && (
+                    {reindexPhase === "error" && (
                       <p className="text-xs text-red-600">{reindexError}</p>
                     )}
                     <button
@@ -546,13 +564,13 @@ export function InventoryImportStep({
                       disabled={!reindexUsername || !reindexPassword}
                       className="btn-treez-green w-full font-[Roboto,sans-serif] font-medium disabled:cursor-not-allowed disabled:opacity-40"
                       style={{
-                        padding: '0 16px',
-                        borderRadius: '15px',
-                        border: 'none',
-                        color: '#0f1709',
-                        fontSize: '13px',
-                        height: '36px',
-                        letterSpacing: '0.4px',
+                        padding: "0 16px",
+                        borderRadius: "15px",
+                        border: "none",
+                        color: "#0f1709",
+                        fontSize: "13px",
+                        height: "36px",
+                        letterSpacing: "0.4px",
                       }}
                     >
                       Reindex
@@ -560,7 +578,7 @@ export function InventoryImportStep({
                   </form>
                 )}
 
-                {reindexPhase === 'reindexing' && (
+                {reindexPhase === "reindexing" && (
                   <div className="flex items-center gap-2 py-1">
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-500 border-t-transparent" />
                     <span className="text-xs text-gray-600">Reindexing OpenSearch...</span>
@@ -570,11 +588,12 @@ export function InventoryImportStep({
             )}
 
             {/* Reindex success */}
-            {reindexPhase === 'done' && reindexResult && (
+            {reindexPhase === "done" && reindexResult && (
               <div className="rounded border border-green-200 bg-green-50 px-3 py-2">
                 <p className="text-xs font-medium text-green-800">OpenSearch reindex complete</p>
                 <p className="text-xs text-green-600">
-                  {reindexResult.successful_uploads} successful, {reindexResult.failed_uploads} failed out of {reindexResult.total} total
+                  {reindexResult.successful_uploads} successful, {reindexResult.failed_uploads}{" "}
+                  failed out of {reindexResult.total} total
                 </p>
               </div>
             )}
@@ -585,14 +604,14 @@ export function InventoryImportStep({
                 onClick={onStartNew}
                 className="btn-treez-green flex-1 font-[Roboto,sans-serif] font-medium"
                 style={{
-                  padding: '0 20px',
-                  borderRadius: '15px',
-                  border: 'none',
-                  color: '#0f1709',
-                  fontSize: '14px',
-                  height: '40px',
-                  letterSpacing: '0.4px',
-                  lineHeight: '24px',
+                  padding: "0 20px",
+                  borderRadius: "15px",
+                  border: "none",
+                  color: "#0f1709",
+                  fontSize: "14px",
+                  height: "40px",
+                  letterSpacing: "0.4px",
+                  lineHeight: "24px",
                 }}
               >
                 Start New Migration
@@ -603,12 +622,12 @@ export function InventoryImportStep({
                   onClick={handleRollback}
                   className="btn-treez-rollback flex-1 font-[Roboto,sans-serif] font-medium"
                   style={{
-                    padding: '0 16px',
-                    borderRadius: '15px',
-                    border: '1px solid #d32f2f',
-                    color: '#d32f2f',
-                    fontSize: '14px',
-                    height: '40px',
+                    padding: "0 16px",
+                    borderRadius: "15px",
+                    border: "1px solid #d32f2f",
+                    color: "#d32f2f",
+                    fontSize: "14px",
+                    height: "40px",
                   }}
                 >
                   Rollback Import
@@ -619,7 +638,7 @@ export function InventoryImportStep({
         )}
 
         {/* Rolling back */}
-        {phase === 'rolling-back' && (
+        {phase === "rolling-back" && (
           <div className="flex flex-col items-center gap-3 py-6">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-red-500 border-t-transparent" />
             <span className="text-sm text-gray-700">{statusMessage}</span>
@@ -627,14 +646,16 @@ export function InventoryImportStep({
         )}
 
         {/* Rolled back */}
-        {phase === 'rolled-back' && (
+        {phase === "rolled-back" && (
           <div className="space-y-3">
             <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-center">
               <p className="text-sm font-medium text-amber-800">Import rolled back successfully</p>
               {rollbackResult && (
                 <div className="mt-1 text-xs text-amber-700">
                   {Object.entries(rollbackResult).map(([table, count]) => (
-                    <span key={table} className="mr-3">{table}: {count}</span>
+                    <span key={table} className="mr-3">
+                      {table}: {count}
+                    </span>
                   ))}
                 </div>
               )}
@@ -644,14 +665,14 @@ export function InventoryImportStep({
               onClick={onStartNew}
               className="btn-treez-green w-full font-[Roboto,sans-serif] font-medium"
               style={{
-                padding: '0 20px',
-                borderRadius: '15px',
-                border: 'none',
-                color: '#0f1709',
-                fontSize: '14px',
-                height: '40px',
-                letterSpacing: '0.4px',
-                lineHeight: '24px',
+                padding: "0 20px",
+                borderRadius: "15px",
+                border: "none",
+                color: "#0f1709",
+                fontSize: "14px",
+                height: "40px",
+                letterSpacing: "0.4px",
+                lineHeight: "24px",
               }}
             >
               Start New Migration
@@ -660,7 +681,7 @@ export function InventoryImportStep({
         )}
 
         {/* Error state */}
-        {phase === 'error' && (
+        {phase === "error" && (
           <div className="space-y-3">
             <div className="rounded border border-red-200 bg-red-50 px-3 py-2">
               <p className="text-sm text-red-700">{errorMessage}</p>
@@ -672,14 +693,14 @@ export function InventoryImportStep({
                 onClick={handleStartImport}
                 className="btn-treez-green flex-1 font-[Roboto,sans-serif] font-medium"
                 style={{
-                  padding: '0 20px',
-                  borderRadius: '15px',
-                  border: 'none',
-                  color: '#0f1709',
-                  fontSize: '14px',
-                  height: '40px',
-                  letterSpacing: '0.4px',
-                  lineHeight: '24px',
+                  padding: "0 20px",
+                  borderRadius: "15px",
+                  border: "none",
+                  color: "#0f1709",
+                  fontSize: "14px",
+                  height: "40px",
+                  letterSpacing: "0.4px",
+                  lineHeight: "24px",
                 }}
               >
                 Retry
@@ -689,12 +710,12 @@ export function InventoryImportStep({
                 onClick={onStartNew}
                 className="btn-treez-text font-[Roboto,sans-serif] font-medium"
                 style={{
-                  padding: '8px 10px',
-                  borderRadius: '16px',
-                  border: 'none',
-                  color: '#1a4007',
-                  fontSize: '15px',
-                  height: '40px',
+                  padding: "8px 10px",
+                  borderRadius: "16px",
+                  border: "none",
+                  color: "#1a4007",
+                  fontSize: "15px",
+                  height: "40px",
                 }}
               >
                 Start Over
@@ -703,7 +724,6 @@ export function InventoryImportStep({
           </div>
         )}
       </div>
-
     </div>
   );
 }

@@ -1,18 +1,18 @@
-import * as XLSX from 'xlsx';
-import type { ParsedFile } from './types';
-import { MAX_FILE_SIZE } from './constants';
+import * as XLSX from "xlsx";
+import type { ParsedFile } from "./types";
+import { MAX_FILE_SIZE } from "./constants";
 
 /**
  * Validate a file for acceptable extension and size.
  * Returns an error string or null if valid.
  */
 export function validateFile(file: File): string | null {
-  const ext = file.name.split('.').pop()?.toLowerCase();
-  if (ext !== 'csv' && ext !== 'xlsx' && ext !== 'xls') {
-    return 'Only CSV and XLSX files are supported.';
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  if (ext !== "csv" && ext !== "xlsx" && ext !== "xls") {
+    return "Only CSV and XLSX files are supported.";
   }
   if (file.size > MAX_FILE_SIZE) {
-    return 'File size exceeds 100MB limit.';
+    return "File size exceeds 100MB limit.";
   }
   return null;
 }
@@ -26,7 +26,7 @@ export function detectHeaderRow(sheet: XLSX.WorkSheet): number {
   const aoa = XLSX.utils.sheet_to_json<string[]>(sheet, {
     header: 1,
     raw: false,
-    defval: '',
+    defval: "",
   });
   if (aoa.length < 2) return 0;
 
@@ -39,7 +39,7 @@ export function detectHeaderRow(sheet: XLSX.WorkSheet): number {
   let bestRow = 0;
   let bestFilled = 0;
   for (let i = 0; i < maxScan; i++) {
-    const filled = aoa[i].filter((c) => c !== '').length;
+    const filled = aoa[i].filter((c) => c !== "").length;
     if (filled > bestFilled) {
       bestFilled = filled;
       bestRow = i;
@@ -47,14 +47,14 @@ export function detectHeaderRow(sheet: XLSX.WorkSheet): number {
   }
 
   // If the best row has significantly more columns than row 0, skip to it
-  const row0Filled = aoa[0].filter((c) => c !== '').length;
+  const row0Filled = aoa[0].filter((c) => c !== "").length;
   if (bestRow > 0 && bestFilled >= 4 && bestFilled > row0Filled * 2) {
     return bestRow;
   }
 
   // Fallback: if row 0 has very few cells and row 1 has more, skip row 0
   if (row0Filled <= 3 && aoa.length > 1) {
-    const row1Filled = aoa[1].filter((c) => c !== '').length;
+    const row1Filled = aoa[1].filter((c) => c !== "").length;
     if (row1Filled >= row0Filled * 3) {
       return 1;
     }
@@ -64,7 +64,7 @@ export function detectHeaderRow(sheet: XLSX.WorkSheet): number {
 }
 
 /** Preferred sheet names -- if present, use instead of the first sheet */
-const PREFERRED_SHEETS = ['Product Options'];
+const PREFERRED_SHEETS = ["Product Options"];
 
 /**
  * Parse a CSV or XLSX file into a ParsedFile structure.
@@ -72,16 +72,14 @@ const PREFERRED_SHEETS = ['Product Options'];
  */
 export async function parseFile(file: File, sheetName?: string): Promise<ParsedFile> {
   const buffer = await file.arrayBuffer();
-  const workbook = XLSX.read(buffer, { type: 'array' });
+  const workbook = XLSX.read(buffer, { type: "array" });
 
   // Determine which sheet to parse
   let targetSheet: string;
   if (sheetName) {
     targetSheet = sheetName;
   } else {
-    const preferredSheet = workbook.SheetNames.find((name) =>
-      PREFERRED_SHEETS.includes(name),
-    );
+    const preferredSheet = workbook.SheetNames.find((name) => PREFERRED_SHEETS.includes(name));
     targetSheet = preferredSheet ?? workbook.SheetNames[0];
   }
 
@@ -91,13 +89,13 @@ export async function parseFile(file: File, sheetName?: string): Promise<ParsedF
 
   // If we need to skip rows, adjust the sheet range
   if (headerRow > 0) {
-    const range = XLSX.utils.decode_range(sheet['!ref'] ?? 'A1');
+    const range = XLSX.utils.decode_range(sheet["!ref"] ?? "A1");
     range.s.r = headerRow;
-    sheet['!ref'] = XLSX.utils.encode_range(range);
+    sheet["!ref"] = XLSX.utils.encode_range(range);
   }
 
   const jsonData = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, {
-    defval: '',
+    defval: "",
     raw: false,
   });
 
@@ -118,7 +116,7 @@ export async function parseFile(file: File, sheetName?: string): Promise<ParsedF
  */
 export async function getSheetNames(file: File): Promise<string[]> {
   const buffer = await file.arrayBuffer();
-  const workbook = XLSX.read(buffer, { type: 'array' });
+  const workbook = XLSX.read(buffer, { type: "array" });
   return workbook.SheetNames;
 }
 
@@ -135,22 +133,22 @@ export function mergeFiles(files: ParsedFile[]): ParsedFile {
   }
 
   // Add virtual "Source File" column first
-  const headers = ['Source File', ...allHeaders];
+  const headers = ["Source File", ...allHeaders];
 
   // Merge rows, filling missing columns with ''
   const rows: Record<string, string>[] = [];
   for (const f of files) {
     for (const row of f.rows) {
-      const merged: Record<string, string> = { 'Source File': f.fileName };
+      const merged: Record<string, string> = { "Source File": f.fileName };
       for (const h of allHeaders) {
-        merged[h] = row[h] ?? '';
+        merged[h] = row[h] ?? "";
       }
       rows.push(merged);
     }
   }
 
   return {
-    fileName: files.map((f) => f.fileName).join(', '),
+    fileName: files.map((f) => f.fileName).join(", "),
     fileSize: files.reduce((sum, f) => sum + f.fileSize, 0),
     headers,
     rows,

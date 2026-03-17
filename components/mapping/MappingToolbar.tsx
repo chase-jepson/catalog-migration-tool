@@ -4,11 +4,7 @@ interface MappingToolbarProps {
   posName: string;
 }
 
-export function MappingToolbar({
-  onClearAll,
-  onResetToAuto,
-  posName,
-}: MappingToolbarProps) {
+export function MappingToolbar({ onClearAll, onResetToAuto, posName }: MappingToolbarProps) {
   return (
     <div className="flex items-center gap-2">
       <button
@@ -23,7 +19,7 @@ export function MappingToolbar({
         onClick={onResetToAuto}
         className="rounded border border-treez-accent bg-white px-3 py-1 text-xs font-medium text-treez-primary hover:bg-treez-accent-muted"
       >
-        Apply {posName || 'auto'} defaults
+        Apply {posName || "auto"} defaults
       </button>
     </div>
   );

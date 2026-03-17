@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import type { ParsedFile, FieldMapping } from '../../lib/types';
+import { useState } from "react";
+import type { ParsedFile, FieldMapping } from "../../lib/types";
 
 interface DataPreviewProps {
   mergedFile: ParsedFile;
@@ -9,16 +9,10 @@ interface DataPreviewProps {
 
 const PREVIEW_ROW_COUNT = 8;
 
-export function DataPreview({
-  mergedFile,
-  mappings,
-  onColumnClick,
-}: DataPreviewProps) {
+export function DataPreview({ mergedFile, mappings, onColumnClick }: DataPreviewProps) {
   const [open, setOpen] = useState(false);
 
-  const mappedHeaders = new Set(
-    mappings.filter((m) => m.sourceHeader).map((m) => m.sourceHeader!),
-  );
+  const mappedHeaders = new Set(mappings.filter((m) => m.sourceHeader).map((m) => m.sourceHeader!));
 
   const rows = mergedFile.previewRows.slice(0, PREVIEW_ROW_COUNT);
 
@@ -30,7 +24,7 @@ export function DataPreview({
         className="flex w-full items-center gap-2 px-3 py-2"
       >
         <svg
-          className={`h-4 w-4 text-gray-500 transition-transform ${open ? 'rotate-90' : ''}`}
+          className={`h-4 w-4 text-gray-500 transition-transform ${open ? "rotate-90" : ""}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -55,9 +49,7 @@ export function DataPreview({
                       key={header}
                       onClick={() => onColumnClick(header)}
                       className={`cursor-pointer whitespace-nowrap px-2 py-1.5 text-left text-xs font-medium ${
-                        isMapped
-                          ? 'bg-green-50 text-green-800'
-                          : 'bg-gray-100 text-gray-500'
+                        isMapped ? "bg-green-50 text-green-800" : "bg-gray-100 text-gray-500"
                       }`}
                     >
                       {header}
@@ -74,7 +66,7 @@ export function DataPreview({
                       key={header}
                       className="max-w-[10rem] truncate whitespace-nowrap bg-white px-2 py-1 text-xs text-gray-700"
                     >
-                      {row[header] ?? ''}
+                      {row[header] ?? ""}
                     </td>
                   ))}
                 </tr>

@@ -1,18 +1,18 @@
-import { arrayToCSV } from './csv-generator';
-import type { OutputCSVs, ImportObjectType } from './types';
-import { OUTPUT_FILE_ORDER, OUTPUT_FILE_LABELS } from './types';
+import { arrayToCSV } from "./csv-generator";
+import type { OutputCSVs, ImportObjectType } from "./types";
+import { OUTPUT_FILE_ORDER, OUTPUT_FILE_LABELS } from "./types";
 
 /**
  * Object type identifiers expected by the Treez file-management API.
  * Maps our internal keys to the API's import object type strings.
  */
 export const API_OBJECT_TYPES: Record<ImportObjectType, string> = {
-  brands: 'PRODUCT_BRAND_IMPORT',
-  attributes: 'PRODUCT_ATTRIBUTE_IMPORT',
-  products: 'PRODUCT_IMPORT',
-  variants: 'PRODUCT_VARIANT_IMPORT',
-  attributeJoins: 'PRODUCT_ATTRIBUTE_JOIN_IMPORT',
-  images: 'PRODUCT_VARIANT_IMAGE_IMPORT',
+  brands: "PRODUCT_BRAND_IMPORT",
+  attributes: "PRODUCT_ATTRIBUTE_IMPORT",
+  products: "PRODUCT_IMPORT",
+  variants: "PRODUCT_VARIANT_IMPORT",
+  attributeJoins: "PRODUCT_ATTRIBUTE_JOIN_IMPORT",
+  images: "PRODUCT_VARIANT_IMAGE_IMPORT",
 };
 
 /**

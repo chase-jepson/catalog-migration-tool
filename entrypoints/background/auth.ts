@@ -1,4 +1,4 @@
-import { detectEnvironment, getApiBaseUrl, type TreezEnv } from '../../lib/env';
+import { detectEnvironment, getApiBaseUrl, type TreezEnv } from "../../lib/env";
 
 export interface StoredTokens {
   accessToken: string;
@@ -11,14 +11,12 @@ export interface StoredTokens {
  * Decode the payload section of a JWT token (base64url -> JSON).
  * Returns null on any error (malformed, invalid base64, bad JSON).
  */
-export function decodeJwtPayload(
-  token: string,
-): Record<string, unknown> | null {
+export function decodeJwtPayload(token: string): Record<string, unknown> | null {
   try {
-    const parts = token.split('.');
+    const parts = token.split(".");
     if (parts.length !== 3) return null;
     // Convert base64url to standard base64
-    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
     const payload = atob(base64);
     return JSON.parse(payload);
   } catch {
@@ -32,22 +30,20 @@ export function decodeJwtPayload(
  */
 export function isTokenExpired(token: string): boolean {
   const payload = decodeJwtPayload(token);
-  if (!payload || typeof payload.exp !== 'number') return true;
+  if (!payload || typeof payload.exp !== "number") return true;
   return Date.now() / 1000 > payload.exp - 60;
 }
 
 /**
  * Read Treez session tokens from the page's localStorage via chrome.scripting.
  */
-export async function getTokensViaScripting(
-  tabId: number,
-): Promise<StoredTokens | null> {
+export async function getTokensViaScripting(tabId: number): Promise<StoredTokens | null> {
   try {
     const results = await chrome.scripting.executeScript({
       target: { tabId },
       func: () => {
         try {
-          const raw = localStorage.getItem('tz-tokens');
+          const raw = localStorage.getItem("tz-tokens");
           return raw ? JSON.parse(raw) : null;
         } catch {
           return null;
@@ -66,12 +62,12 @@ export async function getTokensViaScripting(
  */
 function getOAuthUrl(env: TreezEnv): string {
   switch (env) {
-    case 'production':
-      return 'https://oauth.treez.io/oauth/token';
-    case 'sandbox':
-      return 'https://oauth.treez.io/oauth/token';
-    case 'dev':
-      return 'https://oauth-dev.treez.io/oauth/token';
+    case "production":
+      return "https://oauth.treez.io/oauth/token";
+    case "sandbox":
+      return "https://oauth.treez.io/oauth/token";
+    case "dev":
+      return "https://oauth-dev.treez.io/oauth/token";
   }
 }
 
@@ -86,10 +82,10 @@ export async function refreshAccessToken(
   try {
     const url = getOAuthUrl(env);
     const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        grant_type: 'refresh_token',
+        grant_type: "refresh_token",
         refresh_token: refreshToken,
       }),
     });
@@ -114,10 +110,7 @@ let refreshInProgress: Promise<StoredTokens | null> | null = null;
  * checks expiry, and refreshes if needed. Uses a refresh-in-progress
  * guard to prevent concurrent refresh race conditions.
  */
-export async function getValidToken(
-  tabId: number,
-  tabUrl: string,
-): Promise<string | null> {
+export async function getValidToken(tabId: number, tabUrl: string): Promise<string | null> {
   const tokens = await getTokensViaScripting(tabId);
   if (!tokens?.accessToken) return null;
 

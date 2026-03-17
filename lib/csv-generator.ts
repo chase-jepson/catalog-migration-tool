@@ -1,6 +1,6 @@
-import JSZip from 'jszip';
-import type { DerivedRow, OutputCSVs } from './types';
-import { EACH_UOM_CATEGORIES } from './constants';
+import JSZip from "jszip";
+import type { DerivedRow, OutputCSVs } from "./types";
+import { EACH_UOM_CATEGORIES } from "./constants";
 
 // ── Attribute Helpers ────────────────────────────────────────────────────────
 
@@ -18,8 +18,8 @@ function cleanAttributeValues(raw: string): string[] {
   if (!raw) return [];
   const seen = new Set<string>();
   const result: string[] = [];
-  for (const v of raw.split(',')) {
-    const cleaned = v.trim().replace(/\.$/, '');
+  for (const v of raw.split(",")) {
+    const cleaned = v.trim().replace(/\.$/, "");
     if (!cleaned || !isValidAttribute(cleaned)) continue;
     const lower = cleaned.toLowerCase();
     if (seen.has(lower)) continue;
@@ -31,7 +31,7 @@ function cleanAttributeValues(raw: string): string[] {
 
 /** Format amount: >= 0.0001, rounded to 4 decimal places */
 function formatAmount(val: number): string {
-  if (!val || val < 0.0001) return '';
+  if (!val || val < 0.0001) return "";
   const rounded = Math.round(val * 10000) / 10000;
   return rounded.toString();
 }
@@ -48,14 +48,14 @@ export function arrayToCSV(data: string[][]): string {
     .map((row) =>
       row
         .map((cell) => {
-          if (cell.includes(',') || cell.includes('"') || cell.includes('\n')) {
+          if (cell.includes(",") || cell.includes('"') || cell.includes("\n")) {
             return `"${cell.replace(/"/g, '""')}"`;
           }
           return cell;
         })
-        .join(','),
+        .join(","),
     )
-    .join('\n');
+    .join("\n");
 }
 
 // ── Build Output CSVs ────────────────────────────────────────────────────────
@@ -76,9 +76,9 @@ export function buildOutputCSVs(derived: DerivedRow[], selectedPOS?: string): Ou
     }
   }
   const sortedBrands = [...brandSet.values()].sort((a, b) =>
-    a.localeCompare(b, undefined, { sensitivity: 'base' }),
+    a.localeCompare(b, undefined, { sensitivity: "base" }),
   );
-  const brandsOutput: string[][] = [['Name'], ...sortedBrands.map((b) => [b])];
+  const brandsOutput: string[][] = [["Name"], ...sortedBrands.map((b) => [b])];
 
   // ── 2. Attributes ──────────────────────────────────────────────────────
   const attrSet = new Map<string, string>(); // "name|category" -> category
@@ -86,23 +86,23 @@ export function buildOutputCSVs(derived: DerivedRow[], selectedPOS?: string): Ou
   for (const d of derived) {
     if (d.excluded) continue;
     for (const tag of cleanAttributeValues(d.tags)) {
-      attrSet.set(`${tag}|Internal Tags`, 'Internal Tags');
+      attrSet.set(`${tag}|Internal Tags`, "Internal Tags");
     }
     for (const eff of cleanAttributeValues(d.effects)) {
-      attrSet.set(`${eff}|Effects`, 'Effects');
+      attrSet.set(`${eff}|Effects`, "Effects");
     }
     for (const f of cleanAttributeValues(d.flavor)) {
-      attrSet.set(`${f}|Flavor`, 'Flavor');
+      attrSet.set(`${f}|Flavor`, "Flavor");
     }
     for (const ing of cleanAttributeValues(d.ingredients)) {
-      attrSet.set(`${ing}|Ingredients`, 'Ingredients');
+      attrSet.set(`${ing}|Ingredients`, "Ingredients");
     }
   }
 
-  const attributesOutput: string[][] = [['Name', 'Category']];
+  const attributesOutput: string[][] = [["Name", "Category"]];
   const sortedAttrs = [...attrSet.entries()].sort((a, b) => a[0].localeCompare(b[0]));
   for (const [key, category] of sortedAttrs) {
-    const name = key.split('|')[0];
+    const name = key.split("|")[0];
     attributesOutput.push([name, category]);
   }
 
@@ -110,24 +110,24 @@ export function buildOutputCSVs(derived: DerivedRow[], selectedPOS?: string): Ou
   const seenProducts = new Set<string>();
   const productsOutput: string[][] = [
     [
-      'ImportProductReferenceId',
-      'TreezProductId',
-      'Brand',
-      'Product Name',
-      'Product Category',
-      'Product Sub Category',
-      'Status',
-      'Strain',
-      'Extraction Method',
-      'Classification',
-      'Import Tier Reference Id',
-      'PriceTierId',
-      'ReferenceSource1',
-      'ReferenceId1',
-      'ReferenceSource2',
-      'ReferenceId2',
-      'ReferenceSource3',
-      'ReferenceId3',
+      "ImportProductReferenceId",
+      "TreezProductId",
+      "Brand",
+      "Product Name",
+      "Product Category",
+      "Product Sub Category",
+      "Status",
+      "Strain",
+      "Extraction Method",
+      "Classification",
+      "Import Tier Reference Id",
+      "PriceTierId",
+      "ReferenceSource1",
+      "ReferenceId1",
+      "ReferenceSource2",
+      "ReferenceId2",
+      "ReferenceSource3",
+      "ReferenceId3",
     ],
   ];
 
@@ -138,7 +138,7 @@ export function buildOutputCSVs(derived: DerivedRow[], selectedPOS?: string): Ou
 
     productsOutput.push([
       d.productId,
-      '', // TreezProductId
+      "", // TreezProductId
       d.brand,
       d.productName,
       d.category,
@@ -147,55 +147,55 @@ export function buildOutputCSVs(derived: DerivedRow[], selectedPOS?: string): Ou
       d.strain,
       d.extractionMethod,
       d.classification,
-      '', // Import Tier Reference Id
-      '', // PriceTierId
-      '', // ReferenceSource1
-      '', // ReferenceId1
-      '', // ReferenceSource2
-      '', // ReferenceId2
-      '', // ReferenceSource3
-      '', // ReferenceId3
+      "", // Import Tier Reference Id
+      "", // PriceTierId
+      "", // ReferenceSource1
+      "", // ReferenceId1
+      "", // ReferenceSource2
+      "", // ReferenceId2
+      "", // ReferenceSource3
+      "", // ReferenceId3
     ]);
   }
 
   // ── 4. Variants ────────────────────────────────────────────────────────
   const variantsOutput: string[][] = [
     [
-      'ImportProductReferenceId',
-      'TreezProductId',
-      'ImportVariantReferenceId',
-      'TreezVariantId',
-      'Name',
-      'Label Printer',
-      'UoM',
-      'Liquid Volume UoM',
-      'Amount',
-      'Liquid Volume Amount',
-      'Unit Count',
-      'Merchandise Size',
-      'SKU Barcode',
-      'Status',
-      'Base Price',
-      'Description',
-      'Menu Title',
-      'Total Flower Weight',
-      'Total Concentrate Weight',
-      'Hide From Menu',
-      'Use Custom SKU Name',
-      'Total mg THC',
-      'THC Per Dose',
-      'Total mg CBD',
-      'CBD Per Dose',
-      'Doses',
-      'Net Weight',
-      'Net Weight UOM',
-      'Extraction Method',
-      'ReferenceSource1',
-      'ReferenceId1',
-      'ReferenceSource2',
-      'ReferenceId2',
-      'ReferenceSource3',
-      'ReferenceId3',
+      "ImportProductReferenceId",
+      "TreezProductId",
+      "ImportVariantReferenceId",
+      "TreezVariantId",
+      "Name",
+      "Label Printer",
+      "UoM",
+      "Liquid Volume UoM",
+      "Amount",
+      "Liquid Volume Amount",
+      "Unit Count",
+      "Merchandise Size",
+      "SKU Barcode",
+      "Status",
+      "Base Price",
+      "Description",
+      "Menu Title",
+      "Total Flower Weight",
+      "Total Concentrate Weight",
+      "Hide From Menu",
+      "Use Custom SKU Name",
+      "Total mg THC",
+      "THC Per Dose",
+      "Total mg CBD",
+      "CBD Per Dose",
+      "Doses",
+      "Net Weight",
+      "Net Weight UOM",
+      "Extraction Method",
+      "ReferenceSource1",
+      "ReferenceId1",
+      "ReferenceSource2",
+      "ReferenceId2",
+      "ReferenceSource3",
+      "ReferenceId3",
     ],
   ];
 
@@ -208,15 +208,19 @@ export function buildOutputCSVs(derived: DerivedRow[], selectedPOS?: string): Ou
 
     variantsOutput.push([
       d.productId,
-      '', // TreezProductId
+      "", // TreezProductId
       d.skuBarcode,
-      '', // TreezVariantId
+      "", // TreezVariantId
       d.productName,
-      '', // Label Printer
-      d.category === 'Non-Inv' ? 'each' : EACH_UOM_CATEGORIES.has(d.category) ? '' : d.uom,
-      '', // Liquid Volume UoM
-      d.category === 'Non-Inv' ? '1' : EACH_UOM_CATEGORIES.has(d.category) ? '' : formatAmount(d.amount),
-      '', // Liquid Volume Amount
+      "", // Label Printer
+      d.category === "Non-Inv" ? "each" : EACH_UOM_CATEGORIES.has(d.category) ? "" : d.uom,
+      "", // Liquid Volume UoM
+      d.category === "Non-Inv"
+        ? "1"
+        : EACH_UOM_CATEGORIES.has(d.category)
+          ? ""
+          : formatAmount(d.amount),
+      "", // Liquid Volume Amount
       d.unitCount,
       d.merchSize,
       d.skuBarcode,
@@ -227,35 +231,35 @@ export function buildOutputCSVs(derived: DerivedRow[], selectedPOS?: string): Ou
       d.totalFlowerWeight,
       d.totalConcentrateWeight,
       d.hideFromMenu,
-      '', // Use Custom SKU Name
+      "", // Use Custom SKU Name
       d.thc,
-      '', // THC Per Dose
+      "", // THC Per Dose
       d.cbd,
-      '', // CBD Per Dose
-      '', // Doses
-      '', // Net Weight
-      '', // Net Weight UOM
+      "", // CBD Per Dose
+      "", // Doses
+      "", // Net Weight
+      "", // Net Weight UOM
       d.extractionMethod,
-      '', // ReferenceSource1
-      '', // ReferenceId1
-      '', // ReferenceSource2
-      '', // ReferenceId2
-      '', // ReferenceSource3
-      '', // ReferenceId3
+      "", // ReferenceSource1
+      "", // ReferenceId1
+      "", // ReferenceSource2
+      "", // ReferenceId2
+      "", // ReferenceSource3
+      "", // ReferenceId3
     ]);
   }
 
   // ── 5. Attribute Joins ─────────────────────────────────────────────────
   const attrJoinsOutput: string[][] = [
     [
-      'ImportProductReferenceId',
-      'TreezProductId',
-      'Ingredients',
-      'Aroma',
-      'Internal Tags',
-      'General',
-      'Flavor',
-      'Effects',
+      "ImportProductReferenceId",
+      "TreezProductId",
+      "Ingredients",
+      "Aroma",
+      "Internal Tags",
+      "General",
+      "Flavor",
+      "Effects",
     ],
   ];
 
@@ -264,19 +268,19 @@ export function buildOutputCSVs(derived: DerivedRow[], selectedPOS?: string): Ou
     if (d.excluded) continue;
     if (!d.productId || seenJoinProducts.has(d.productId)) continue;
     if (!d.tags && !d.effects && !d.flavor && !d.ingredients) continue;
-    const cleanedIngredients = cleanAttributeValues(d.ingredients).join(', ');
-    const cleanedTags = cleanAttributeValues(d.tags).join(', ');
-    const cleanedEffects = cleanAttributeValues(d.effects).join(', ');
-    const cleanedFlavor = cleanAttributeValues(d.flavor).join(', ');
+    const cleanedIngredients = cleanAttributeValues(d.ingredients).join(", ");
+    const cleanedTags = cleanAttributeValues(d.tags).join(", ");
+    const cleanedEffects = cleanAttributeValues(d.effects).join(", ");
+    const cleanedFlavor = cleanAttributeValues(d.flavor).join(", ");
     if (!cleanedIngredients && !cleanedTags && !cleanedEffects && !cleanedFlavor) continue;
     seenJoinProducts.add(d.productId);
     attrJoinsOutput.push([
       d.productId,
-      '', // TreezProductId
+      "", // TreezProductId
       cleanedIngredients,
-      '', // Aroma
+      "", // Aroma
       cleanedTags,
-      '', // General
+      "", // General
       cleanedFlavor,
       cleanedEffects,
     ]);
@@ -284,7 +288,7 @@ export function buildOutputCSVs(derived: DerivedRow[], selectedPOS?: string): Ou
 
   // ── 6. Images ──────────────────────────────────────────────────────────
   const imagesOutput: string[][] = [
-    ['ImportVariantReferenceId', 'TreezVariantId', 'ImageUrl', 'Name', 'Order', 'Description'],
+    ["ImportVariantReferenceId", "TreezVariantId", "ImageUrl", "Name", "Order", "Description"],
   ];
 
   const imageOrderMap = new Map<string, number>();
@@ -296,11 +300,11 @@ export function buildOutputCSVs(derived: DerivedRow[], selectedPOS?: string): Ou
     imageOrderMap.set(d.skuBarcode, currentOrder);
 
     let imageUrl = d.imageFilename;
-    if (!imageUrl.startsWith('http') && selectedPOS === 'Dutchie') {
+    if (!imageUrl.startsWith("http") && selectedPOS === "Dutchie") {
       imageUrl = `https://leaflogixmedia.blob.core.windows.net/product-image/${imageUrl}`;
     }
 
-    imagesOutput.push([d.skuBarcode, '', imageUrl, '', currentOrder.toString(), '']);
+    imagesOutput.push([d.skuBarcode, "", imageUrl, "", currentOrder.toString(), ""]);
   }
 
   return {
@@ -316,12 +320,12 @@ export function buildOutputCSVs(derived: DerivedRow[], selectedPOS?: string): Ou
 // ── ZIP Generation ──────────────────────────────────────────────────────────
 
 const OUTPUT_FILE_LABELS: Record<keyof OutputCSVs, string> = {
-  brands: '01 - Brands',
-  attributes: '02 - Attributes',
-  products: '04 - Products',
-  variants: '05 - Variants',
-  attributeJoins: '06 - Attribute Joins',
-  images: '07 - Images',
+  brands: "01 - Brands",
+  attributes: "02 - Attributes",
+  products: "04 - Products",
+  variants: "05 - Variants",
+  attributeJoins: "06 - Attribute Joins",
+  images: "07 - Images",
 };
 
 /**
@@ -335,5 +339,5 @@ export async function generateZip(csvs: OutputCSVs): Promise<Blob> {
     zip.file(`${label}.csv`, arrayToCSV(data));
   }
 
-  return zip.generateAsync({ type: 'blob' });
+  return zip.generateAsync({ type: "blob" });
 }

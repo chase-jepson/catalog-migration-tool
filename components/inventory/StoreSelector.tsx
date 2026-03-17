@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { StoreInfo } from '../../lib/types';
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { StoreInfo } from "../../lib/types";
 
 interface StoreSelectorProps {
   selectedStore: StoreInfo | null;
@@ -17,7 +17,7 @@ export function StoreSelector({
   error,
 }: StoreSelectorProps) {
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [highlightIndex, setHighlightIndex] = useState(0);
   const [showConfirm, setShowConfirm] = useState(false);
   const [pendingStore, setPendingStore] = useState<StoreInfo | null>(null);
@@ -32,11 +32,11 @@ export function StoreSelector({
       const path = e.composedPath();
       if (dropdownRef.current && !path.includes(dropdownRef.current)) {
         setOpen(false);
-        setSearch('');
+        setSearch("");
       }
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
   // Focus search when opened, reset highlight
@@ -47,9 +47,7 @@ export function StoreSelector({
     }
   }, [open]);
 
-  const filteredStores = stores.filter((s) =>
-    s.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filteredStores = stores.filter((s) => s.name.toLowerCase().includes(search.toLowerCase()));
 
   // Reset highlight when search changes
   useEffect(() => {
@@ -59,8 +57,8 @@ export function StoreSelector({
   // Scroll highlighted item into view
   useEffect(() => {
     if (!open || !listRef.current) return;
-    const items = listRef.current.querySelectorAll('[data-store-item]');
-    items[highlightIndex]?.scrollIntoView({ block: 'nearest' });
+    const items = listRef.current.querySelectorAll("[data-store-item]");
+    items[highlightIndex]?.scrollIntoView({ block: "nearest" });
   }, [highlightIndex, open]);
 
   const handleSelect = useCallback(
@@ -69,12 +67,12 @@ export function StoreSelector({
         setPendingStore(store);
         setShowConfirm(true);
         setOpen(false);
-        setSearch('');
+        setSearch("");
         return;
       }
       onStoreChange(store);
       setOpen(false);
-      setSearch('');
+      setSearch("");
     },
     [selectedStore, onStoreChange],
   );
@@ -84,23 +82,23 @@ export function StoreSelector({
     (e: React.KeyboardEvent) => {
       if (!open) return;
       switch (e.key) {
-        case 'ArrowDown':
+        case "ArrowDown":
           e.preventDefault();
           setHighlightIndex((i) => Math.min(i + 1, filteredStores.length - 1));
           break;
-        case 'ArrowUp':
+        case "ArrowUp":
           e.preventDefault();
           setHighlightIndex((i) => Math.max(i - 1, 0));
           break;
-        case 'Enter':
+        case "Enter":
           e.preventDefault();
           if (filteredStores[highlightIndex]) {
             handleSelect(filteredStores[highlightIndex]);
           }
           break;
-        case 'Escape':
+        case "Escape":
           setOpen(false);
-          setSearch('');
+          setSearch("");
           break;
       }
     },
@@ -130,8 +128,13 @@ export function StoreSelector({
         >
           {/* Storefront icon */}
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-500">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
-              <path d="M3.3 7.4l1.2-3.6c.2-.5.7-.8 1.2-.8h12.6c.5 0 1 .3 1.2.8l1.2 3.6c.3 1.1-.1 2.2-.9 2.9V19c0 .6-.4 1-1 1H5.2c-.6 0-1-.4-1-1v-8.7c-.8-.7-1.2-1.8-.9-2.9zM5.2 19h13.6v-8.1c-.4.1-.7.1-1.1.1-.9 0-1.8-.4-2.4-1-.6.6-1.5 1-2.4 1-.9 0-1.8-.4-2.4-1-.6.6-1.5 1-2.4 1-.9 0-1.8-.4-2.4-1-.6.6-1.4 1-2.3 1-.1 0-.2 0-.3 0V19z"/>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="h-5 w-5"
+            >
+              <path d="M3.3 7.4l1.2-3.6c.2-.5.7-.8 1.2-.8h12.6c.5 0 1 .3 1.2.8l1.2 3.6c.3 1.1-.1 2.2-.9 2.9V19c0 .6-.4 1-1 1H5.2c-.6 0-1-.4-1-1v-8.7c-.8-.7-1.2-1.8-.9-2.9zM5.2 19h13.6v-8.1c-.4.1-.7.1-1.1.1-.9 0-1.8-.4-2.4-1-.6.6-1.5 1-2.4 1-.9 0-1.8-.4-2.4-1-.6.6-1.5 1-2.4 1-.9 0-1.8-.4-2.4-1-.6.6-1.4 1-2.3 1-.1 0-.2 0-.3 0V19z" />
             </svg>
           </div>
 
@@ -147,14 +150,19 @@ export function StoreSelector({
               <div className="text-sm text-red-600 truncate">{error}</div>
             ) : (
               <div className="text-sm text-gray-900 truncate">
-                {selectedStore?.name ?? 'Store Selection'}
+                {selectedStore?.name ?? "Store Selection"}
               </div>
             )}
           </div>
 
           {/* Expand icon */}
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5 shrink-0 text-gray-400">
-            <path d="M12 5.83L15.17 9l1.41-1.41L12 3 7.41 7.59 8.83 9 12 5.83zm0 12.34L8.83 15l-1.41 1.41L12 21l4.59-4.59L15.17 15 12 18.17z"/>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            className="h-5 w-5 shrink-0 text-gray-400"
+          >
+            <path d="M12 5.83L15.17 9l1.41-1.41L12 3 7.41 7.59 8.83 9 12 5.83zm0 12.34L8.83 15l-1.41 1.41L12 21l4.59-4.59L15.17 15 12 18.17z" />
           </svg>
         </button>
 
@@ -163,8 +171,13 @@ export function StoreSelector({
           <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-md border border-gray-200 bg-white shadow-lg">
             {/* Search */}
             <div className="flex items-center gap-2 border-b border-gray-100 px-3 py-2">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 text-gray-400">
-                <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="h-4 w-4 text-gray-400"
+              >
+                <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
               </svg>
               <input
                 ref={searchRef}
@@ -190,10 +203,10 @@ export function StoreSelector({
                     onClick={() => handleSelect(store)}
                     className={`flex w-full items-center px-3 py-2 text-left text-sm transition-colors ${
                       selectedStore?.entityId === store.entityId
-                        ? 'font-medium text-treez-primary bg-treez-accent-muted'
+                        ? "font-medium text-treez-primary bg-treez-accent-muted"
                         : idx === highlightIndex
-                          ? 'bg-gray-100 text-gray-900'
-                          : 'text-gray-900 hover:bg-gray-50'
+                          ? "bg-gray-100 text-gray-900"
+                          : "text-gray-900 hover:bg-gray-50"
                     }`}
                   >
                     {store.name}
@@ -217,12 +230,12 @@ export function StoreSelector({
               onClick={handleCancelChange}
               className="btn-treez-text font-[Roboto,sans-serif] font-medium"
               style={{
-                padding: '0 16px',
-                borderRadius: '15px',
-                border: 'none',
-                color: '#1a4007',
-                fontSize: '14px',
-                height: '32px',
+                padding: "0 16px",
+                borderRadius: "15px",
+                border: "none",
+                color: "#1a4007",
+                fontSize: "14px",
+                height: "32px",
               }}
             >
               Cancel
@@ -232,12 +245,12 @@ export function StoreSelector({
               onClick={handleConfirmChange}
               className="btn-treez-green font-[Roboto,sans-serif] font-medium"
               style={{
-                padding: '0 16px',
-                borderRadius: '15px',
-                border: 'none',
-                color: '#0f1709',
-                fontSize: '14px',
-                height: '32px',
+                padding: "0 16px",
+                borderRadius: "15px",
+                border: "none",
+                color: "#0f1709",
+                fontSize: "14px",
+                height: "32px",
               }}
             >
               Change Store

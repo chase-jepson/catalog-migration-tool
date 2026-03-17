@@ -1,13 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
-import {
-  INVENTORY_ROLE_FIELDS,
-} from '../../lib/inventory-constants';
-import type { PerRoleMappings } from '../../lib/inventory-transformer';
-import type {
-  FieldMapping,
-  InventoryFileAssignment,
-  InventoryFileRole,
-} from '../../lib/types';
+import { useCallback, useEffect, useState } from "react";
+import { INVENTORY_ROLE_FIELDS } from "../../lib/inventory-constants";
+import type { PerRoleMappings } from "../../lib/inventory-transformer";
+import type { FieldMapping, InventoryFileAssignment, InventoryFileRole } from "../../lib/types";
 
 interface InventoryMappingStepProps {
   fileAssignments: InventoryFileAssignment[];
@@ -24,29 +18,31 @@ const SECTIONS: {
   description: string;
 }[] = [
   {
-    role: 'inventory',
-    title: 'Inventory Information',
-    description: 'Core inventory data — SKU, quantities, location, potency, and dates.',
+    role: "inventory",
+    title: "Inventory Information",
+    description: "Core inventory data — SKU, quantities, location, potency, and dates.",
   },
   {
-    role: 'receipts',
-    title: 'Invoice Information',
-    description: 'Receipt history — used to reconstruct invoices and compute unit costs.',
+    role: "receipts",
+    title: "Invoice Information",
+    description: "Receipt history — used to reconstruct invoices and compute unit costs.",
   },
   {
-    role: 'vendors',
-    title: 'Distributor Information',
-    description: 'Vendor details and licenses. Duplicate vendors are auto-merged and license codes split into up to 3 slots.',
+    role: "vendors",
+    title: "Distributor Information",
+    description:
+      "Vendor details and licenses. Duplicate vendors are auto-merged and license codes split into up to 3 slots.",
   },
   {
-    role: 'adjustments',
-    title: 'Adjustment Information',
-    description: 'Quantity and cost adjustments by package — combined with receipts for package totals.',
+    role: "adjustments",
+    title: "Adjustment Information",
+    description:
+      "Quantity and cost adjustments by package — combined with receipts for package totals.",
   },
   {
-    role: 'catalog_export',
-    title: 'Catalog Information',
-    description: 'Post-migration Treez catalog — used to detect Merch category for TraceTreezId.',
+    role: "catalog_export",
+    title: "Catalog Information",
+    description: "Post-migration Treez catalog — used to detect Merch category for TraceTreezId.",
   },
 ];
 
@@ -147,10 +143,7 @@ export function InventoryMappingStep({
         ).length;
 
         return (
-          <div
-            key={role}
-            className="rounded-lg border border-gray-200 bg-white shadow-sm"
-          >
+          <div key={role} className="rounded-lg border border-gray-200 bg-white shadow-sm">
             {/* Section header */}
             <button
               type="button"
@@ -159,25 +152,30 @@ export function InventoryMappingStep({
             >
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-gray-900">{title}</p>
-                <p className="mt-0.5 text-xs text-gray-400">
-                  Source: {assignment.file.fileName}
-                </p>
+                <p className="mt-0.5 text-xs text-gray-400">Source: {assignment.file.fileName}</p>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`text-xs ${
-                  mappedRequired === requiredFields.length
-                    ? 'text-treez-primary'
-                    : 'text-amber-600'
-                }`}>
+                <span
+                  className={`text-xs ${
+                    mappedRequired === requiredFields.length
+                      ? "text-treez-primary"
+                      : "text-amber-600"
+                  }`}
+                >
                   {mappedRequired}/{requiredFields.length} required
                 </span>
                 <svg
-                  className={`h-4 w-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                  className={`h-4 w-4 text-gray-400 transition-transform ${isExpanded ? "rotate-180" : ""}`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </div>
             </button>
@@ -190,15 +188,13 @@ export function InventoryMappingStep({
 
                 {fieldDefs.map((def) => {
                   const mapping = roleMappings.find((m) => m.fieldKey === def.key);
-                  const currentValue = mapping?.sourceHeader ?? '';
+                  const currentValue = mapping?.sourceHeader ?? "";
 
                   return (
                     <div key={def.key}>
                       <label className="mb-1 flex items-baseline gap-1 text-xs font-medium text-gray-700">
                         <span>{def.label}</span>
-                        {def.required && (
-                          <span className="text-red-500">*</span>
-                        )}
+                        {def.required && <span className="text-red-500">*</span>}
                       </label>
                       <select
                         value={currentValue}
@@ -206,7 +202,7 @@ export function InventoryMappingStep({
                           handleMappingChange(
                             role,
                             def.key,
-                            e.target.value === '' ? null : e.target.value,
+                            e.target.value === "" ? null : e.target.value,
                           )
                         }
                         className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-700 focus:border-treez-accent-muted0 focus:outline-none focus:ring-1 focus:ring-treez-accent-muted0"
@@ -233,7 +229,8 @@ export function InventoryMappingStep({
       {activeSections.length === 0 && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
           <p className="text-sm text-amber-700">
-            No files have been assigned roles. Go back to the Upload step and assign at least an Inventory file.
+            No files have been assigned roles. Go back to the Upload step and assign at least an
+            Inventory file.
           </p>
         </div>
       )}

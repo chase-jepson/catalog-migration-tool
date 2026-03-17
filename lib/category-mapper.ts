@@ -3,8 +3,8 @@ import {
   PRODUCT_SUBCATEGORIES,
   UOM_BY_CATEGORY,
   EACH_UOM_CATEGORIES,
-} from './constants';
-import type { CategoryResolution } from './types';
+} from "./constants";
+import type { CategoryResolution } from "./types";
 
 // ── Keyword Rules ────────────────────────────────────────────────────────────
 
@@ -17,11 +17,11 @@ interface KeywordRule {
 // Exclude rules -- these source values should be skipped entirely
 const EXCLUDE_PATTERNS = [/\b(sample|display)\b/i];
 
-export const EXCLUDED_CATEGORY = '__EXCLUDE__';
+export const EXCLUDED_CATEGORY = "__EXCLUDE__";
 
 /** When a subcategory name exists in multiple categories, prefer this category */
 const SUBCATEGORY_CATEGORY_PRIORITY: Record<string, string> = {
-  Capsule: 'Pill',
+  Capsule: "Pill",
 };
 
 const KEYWORD_RULES: KeywordRule[] = [
@@ -29,138 +29,146 @@ const KEYWORD_RULES: KeywordRule[] = [
 
   // Merch -- battery/batteries must come BEFORE Cartridge so that
   // "Jeeter - 510 Battery" resolves to Merch, not Cartridge.
-  { keywords: /\b(batter(y|ies))\b/i, category: 'Merch', subCategory: 'Battery' },
+  { keywords: /\b(batter(y|ies))\b/i, category: "Merch", subCategory: "Battery" },
 
   // Beverage -- BEFORE Edible so "edible (liquid)" maps here
   {
     keywords: /\b(beverages?|drinks?|seltzer|soda|water|juice|tea|coffee|tonic|elixir|shot)\b/i,
-    category: 'Beverage',
+    category: "Beverage",
   },
-  { keywords: /edible\s*\(liquid\)/i, category: 'Beverage' },
-  { keywords: /\b(dissolvable)\b/i, category: 'Beverage', subCategory: 'Dissolvable' },
+  { keywords: /edible\s*\(liquid\)/i, category: "Beverage" },
+  { keywords: /\b(dissolvable)\b/i, category: "Beverage", subCategory: "Dissolvable" },
 
   // Cartridge -- "cart" and "vape" both trigger this
-  { keywords: /\b(cartridges?|cart|vapes?|510|ccell)\b/i, category: 'Cartridge' },
-  { keywords: /\b(pod|reload)\b/i, category: 'Cartridge', subCategory: 'Pod' },
+  { keywords: /\b(cartridges?|cart|vapes?|510|ccell)\b/i, category: "Cartridge" },
+  { keywords: /\b(pod|reload)\b/i, category: "Cartridge", subCategory: "Pod" },
   {
     keywords: /\b(all[\s-]?in[\s-]?one|aio|disposable|dispo|ready[\s-]?to[\s-]?use|rtu)\b/i,
-    category: 'Cartridge',
-    subCategory: 'Ready To Use',
+    category: "Cartridge",
+    subCategory: "Ready To Use",
   },
-  { keywords: /\b(pax)\b/i, category: 'Cartridge', subCategory: 'Pax' },
+  { keywords: /\b(pax)\b/i, category: "Cartridge", subCategory: "Pax" },
 
   // Edible -- after Beverage so "edible (liquid)" doesn't land here
-  { keywords: /\b(edibles?)\b/i, category: 'Edible' },
-  { keywords: /\b(gumm(y|ies))\b/i, category: 'Edible', subCategory: 'Gummy' },
-  { keywords: /\b(chocolate)\b/i, category: 'Edible', subCategory: 'Chocolate' },
-  { keywords: /\b(candy|candies|hard[\s-]?candy)\b/i, category: 'Edible', subCategory: 'Hard Candy' },
-  { keywords: /\b(cookie)\b/i, category: 'Edible', subCategory: 'Cookie' },
-  { keywords: /\b(baked[\s-]?good|brownie|pastry)\b/i, category: 'Edible', subCategory: 'Baked Good' },
-  { keywords: /\b(mint)\b/i, category: 'Edible', subCategory: 'Mints' },
-  { keywords: /\b(chew|taffy|caramel)\b/i, category: 'Edible', subCategory: 'Chew' },
-  { keywords: /\b(lozenge)\b/i, category: 'Edible', subCategory: 'Lozenge' },
+  { keywords: /\b(edibles?)\b/i, category: "Edible" },
+  { keywords: /\b(gumm(y|ies))\b/i, category: "Edible", subCategory: "Gummy" },
+  { keywords: /\b(chocolate)\b/i, category: "Edible", subCategory: "Chocolate" },
+  {
+    keywords: /\b(candy|candies|hard[\s-]?candy)\b/i,
+    category: "Edible",
+    subCategory: "Hard Candy",
+  },
+  { keywords: /\b(cookie)\b/i, category: "Edible", subCategory: "Cookie" },
+  {
+    keywords: /\b(baked[\s-]?good|brownie|pastry)\b/i,
+    category: "Edible",
+    subCategory: "Baked Good",
+  },
+  { keywords: /\b(mint)\b/i, category: "Edible", subCategory: "Mints" },
+  { keywords: /\b(chew|taffy|caramel)\b/i, category: "Edible", subCategory: "Chew" },
+  { keywords: /\b(lozenge)\b/i, category: "Edible", subCategory: "Lozenge" },
 
   // Extract -- "concentrate", "extract", "wax", "hash"
-  { keywords: /\bthc[\s-]?a\b/i, category: 'Extract', subCategory: 'THC-A' },
-  { keywords: /\b(extracts?|concentrates?|dab|wax|hash)\b/i, category: 'Extract' },
-  { keywords: /\bHCE\b/, category: 'Extract', subCategory: 'Extract - General' },
-  { keywords: /\b(shatter)\b/i, category: 'Extract', subCategory: 'Shatter' },
-  { keywords: /\b(live[\s-]?rosin)\b/i, category: 'Extract', subCategory: 'Live Rosin' },
-  { keywords: /\b(live[\s-]?resin)\b/i, category: 'Extract', subCategory: 'Live Resin' },
-  { keywords: /\b(cured[\s-]?resin)\b/i, category: 'Extract', subCategory: 'Cured Resin' },
-  { keywords: /\b(rosin)\b/i, category: 'Extract', subCategory: 'Rosin' },
-  { keywords: /\b(badder)\b/i, category: 'Extract', subCategory: 'Badder' },
-  { keywords: /\b(budder)\b/i, category: 'Extract', subCategory: 'Budder' },
-  { keywords: /\b(sauce)\b/i, category: 'Extract', subCategory: 'Sauce' },
-  { keywords: /\b(sugar)\b/i, category: 'Extract', subCategory: 'Sugar' },
-  { keywords: /\b(crumble)\b/i, category: 'Extract', subCategory: 'Crumble' },
-  { keywords: /\b(diamond)\b/i, category: 'Extract', subCategory: 'Diamonds' },
-  { keywords: /\b(kief)\b/i, category: 'Extract', subCategory: 'Kief' },
-  { keywords: /\b(rso)\b/i, category: 'Extract', subCategory: 'RSO' },
-  { keywords: /\b(moon[\s-]?rock)/i, category: 'Extract', subCategory: 'Moon Rocks' },
+  { keywords: /\bthc[\s-]?a\b/i, category: "Extract", subCategory: "THC-A" },
+  { keywords: /\b(extracts?|concentrates?|dab|wax|hash)\b/i, category: "Extract" },
+  { keywords: /\bHCE\b/, category: "Extract", subCategory: "Extract - General" },
+  { keywords: /\b(shatter)\b/i, category: "Extract", subCategory: "Shatter" },
+  { keywords: /\b(live[\s-]?rosin)\b/i, category: "Extract", subCategory: "Live Rosin" },
+  { keywords: /\b(live[\s-]?resin)\b/i, category: "Extract", subCategory: "Live Resin" },
+  { keywords: /\b(cured[\s-]?resin)\b/i, category: "Extract", subCategory: "Cured Resin" },
+  { keywords: /\b(rosin)\b/i, category: "Extract", subCategory: "Rosin" },
+  { keywords: /\b(badder)\b/i, category: "Extract", subCategory: "Badder" },
+  { keywords: /\b(budder)\b/i, category: "Extract", subCategory: "Budder" },
+  { keywords: /\b(sauce)\b/i, category: "Extract", subCategory: "Sauce" },
+  { keywords: /\b(sugar)\b/i, category: "Extract", subCategory: "Sugar" },
+  { keywords: /\b(crumble)\b/i, category: "Extract", subCategory: "Crumble" },
+  { keywords: /\b(diamond)\b/i, category: "Extract", subCategory: "Diamonds" },
+  { keywords: /\b(kief)\b/i, category: "Extract", subCategory: "Kief" },
+  { keywords: /\b(rso)\b/i, category: "Extract", subCategory: "RSO" },
+  { keywords: /\b(moon[\s-]?rock)/i, category: "Extract", subCategory: "Moon Rocks" },
   {
     keywords: /\b(fsho|full[\s-]?spectrum[\s-]?hash[\s-]?oil)\b/i,
-    category: 'Extract',
-    subCategory: 'Full Spectrum Oil',
+    category: "Extract",
+    subCategory: "Full Spectrum Oil",
   },
 
   // Preroll -- "roll" alone is enough
-  { keywords: /\b(pre[\s-]?rolls?|prerolls?|joints?|rolls?)\b/i, category: 'Preroll' },
-  { keywords: /\b(blunts?)\b/i, category: 'Preroll', subCategory: 'Blunt' },
+  { keywords: /\b(pre[\s-]?rolls?|prerolls?|joints?|rolls?)\b/i, category: "Preroll" },
+  { keywords: /\b(blunts?)\b/i, category: "Preroll", subCategory: "Blunt" },
   {
     keywords: /\b(infused[\s-]?pre[\s-]?rolls?|infused[\s-]?joints?)\b/i,
-    category: 'Preroll',
-    subCategory: 'Infused',
+    category: "Preroll",
+    subCategory: "Infused",
   },
 
   // Flower -- weight-based POS categories + weight hints
-  { keywords: /\b(eighth|1\/8)\b/i, category: 'Flower', subCategory: 'Pre-Pack' },
-  { keywords: /\b(quarter|1\/4)\b/i, category: 'Flower', subCategory: 'Pre-Pack' },
-  { keywords: /\b(half[\s-]?(oz|ounce))\b/i, category: 'Flower', subCategory: 'Pre-Pack' },
-  { keywords: /\bounce\b/i, category: 'Flower', subCategory: 'Pre-Pack' },
-  { keywords: /\b\d+(\.\d+)?g\b/i, category: 'Flower', subCategory: 'Pre-Pack' },
-  { keywords: /\b(flowers?|bud|buds|nug|nugs)\b/i, category: 'Flower' },
-  { keywords: /\b(pre[\s-]?pack|prepack)\b/i, category: 'Flower', subCategory: 'Pre-Pack' },
-  { keywords: /\b(shake)\b/i, category: 'Flower', subCategory: 'Shake' },
-  { keywords: /\b(pre[\s-]?ground)\b/i, category: 'Flower', subCategory: 'Pre-Ground' },
-  { keywords: /\b(bulk[\s-]?flower)\b/i, category: 'Flower', subCategory: 'Bulk Flower' },
-  { keywords: /\b(smalls)\b/i, category: 'Flower', subCategory: 'Pre-Pack Smalls' },
+  { keywords: /\b(eighth|1\/8)\b/i, category: "Flower", subCategory: "Pre-Pack" },
+  { keywords: /\b(quarter|1\/4)\b/i, category: "Flower", subCategory: "Pre-Pack" },
+  { keywords: /\b(half[\s-]?(oz|ounce))\b/i, category: "Flower", subCategory: "Pre-Pack" },
+  { keywords: /\bounce\b/i, category: "Flower", subCategory: "Pre-Pack" },
+  { keywords: /\b\d+(\.\d+)?g\b/i, category: "Flower", subCategory: "Pre-Pack" },
+  { keywords: /\b(flowers?|bud|buds|nug|nugs)\b/i, category: "Flower" },
+  { keywords: /\b(pre[\s-]?pack|prepack)\b/i, category: "Flower", subCategory: "Pre-Pack" },
+  { keywords: /\b(shake)\b/i, category: "Flower", subCategory: "Shake" },
+  { keywords: /\b(pre[\s-]?ground)\b/i, category: "Flower", subCategory: "Pre-Ground" },
+  { keywords: /\b(bulk[\s-]?flower)\b/i, category: "Flower", subCategory: "Bulk Flower" },
+  { keywords: /\b(smalls)\b/i, category: "Flower", subCategory: "Pre-Pack Smalls" },
 
   // Merch -- "merch", "para" (paraphernalia), "gear", "access", etc.
   {
     keywords:
       /\b(merch|merchandise|para|paraphernalia|gear|access|batter|battery|pipe|grinder|accessory|accessories|bong|lighter|rolling[\s-]?paper|non[\s-]?thc|clothing|glass|candle|hardware)\b/i,
-    category: 'Merch',
+    category: "Merch",
   },
-  { keywords: /\b(shirt|t[\s-]?shirt|tee)\b/i, category: 'Merch', subCategory: 'T Shirt' },
-  { keywords: /\b(sweater|sweatshirt|hoodie)\b/i, category: 'Merch', subCategory: 'Apparel' },
+  { keywords: /\b(shirt|t[\s-]?shirt|tee)\b/i, category: "Merch", subCategory: "T Shirt" },
+  { keywords: /\b(sweater|sweatshirt|hoodie)\b/i, category: "Merch", subCategory: "Apparel" },
 
   // Pill -- "tab", "pill", "capsule"
-  { keywords: /\b(pills?|capsules?|tablets?|tab)\b/i, category: 'Pill' },
+  { keywords: /\b(pills?|capsules?|tablets?|tab)\b/i, category: "Pill" },
 
   // Plant
-  { keywords: /\b(plants?|clones?|seeds?)\b/i, category: 'Plant' },
+  { keywords: /\b(plants?|clones?|seeds?)\b/i, category: "Plant" },
 
   // Tincture
-  { keywords: /\b(tinctures?|dropper)\b/i, category: 'Tincture' },
-  { keywords: /\b(syrup)\b/i, category: 'Tincture', subCategory: 'Syrup' },
-  { keywords: /\b(spray)\b/i, category: 'Tincture', subCategory: 'Spray' },
+  { keywords: /\b(tinctures?|dropper)\b/i, category: "Tincture" },
+  { keywords: /\b(syrup)\b/i, category: "Tincture", subCategory: "Syrup" },
+  { keywords: /\b(spray)\b/i, category: "Tincture", subCategory: "Spray" },
 
   // Topical
-  { keywords: /\b(topicals?)\b/i, category: 'Topical' },
-  { keywords: /\b(balm)\b/i, category: 'Topical', subCategory: 'Balm' },
-  { keywords: /\b(cream)\b/i, category: 'Topical', subCategory: 'Cream' },
-  { keywords: /\b(lotion)\b/i, category: 'Topical', subCategory: 'Lotion' },
-  { keywords: /\b(patch|transdermal)\b/i, category: 'Topical', subCategory: 'Patch' },
-  { keywords: /\b(salve)\b/i, category: 'Topical', subCategory: 'Salve' },
-  { keywords: /\b(roll[\s-]?on)\b/i, category: 'Topical', subCategory: 'Roll-On' },
-  { keywords: /\b(gel)\b/i, category: 'Topical', subCategory: 'Gel' },
-  { keywords: /\b(lubricant|lube)\b/i, category: 'Topical', subCategory: 'Lubricant' },
+  { keywords: /\b(topicals?)\b/i, category: "Topical" },
+  { keywords: /\b(balm)\b/i, category: "Topical", subCategory: "Balm" },
+  { keywords: /\b(cream)\b/i, category: "Topical", subCategory: "Cream" },
+  { keywords: /\b(lotion)\b/i, category: "Topical", subCategory: "Lotion" },
+  { keywords: /\b(patch|transdermal)\b/i, category: "Topical", subCategory: "Patch" },
+  { keywords: /\b(salve)\b/i, category: "Topical", subCategory: "Salve" },
+  { keywords: /\b(roll[\s-]?on)\b/i, category: "Topical", subCategory: "Roll-On" },
+  { keywords: /\b(gel)\b/i, category: "Topical", subCategory: "Gel" },
+  { keywords: /\b(lubricant|lube)\b/i, category: "Topical", subCategory: "Lubricant" },
 
   // Non-Inv
-  { keywords: /\b(non[\s-]?inv|gift[\s-]?card|fee|membership)\b/i, category: 'Non-Inv' },
+  { keywords: /\b(non[\s-]?inv|gift[\s-]?card|fee|membership)\b/i, category: "Non-Inv" },
 
   // Misc
-  { keywords: /\b(misc|miscellaneous|suppository|bath[\s-]?bomb)\b/i, category: 'Misc' },
+  { keywords: /\b(misc|miscellaneous|suppository|bath[\s-]?bomb)\b/i, category: "Misc" },
 
   // CBD -- check last since many categories can have CBD products
-  { keywords: /\bcbd\b/i, category: 'CBD' },
+  { keywords: /\bcbd\b/i, category: "CBD" },
 ];
 
 // ── Name Override Rules (highest priority) ──────────────────────────────────
 
 const NAME_OVERRIDE_RULES: KeywordRule[] = [
-  { keywords: /\b(batter(y|ies))\b/i, category: 'Merch', subCategory: 'Battery' },
-  { keywords: /\b(pod|reload)\b/i, category: 'Cartridge', subCategory: 'Pod' },
+  { keywords: /\b(batter(y|ies))\b/i, category: "Merch", subCategory: "Battery" },
+  { keywords: /\b(pod|reload)\b/i, category: "Cartridge", subCategory: "Pod" },
   {
     keywords: /\b(ready[\s-]?to[\s-]?use|rtu|all[\s-]?in[\s-]?one|aio|dispo|disposable)\b/i,
-    category: 'Cartridge',
-    subCategory: 'Ready To Use',
+    category: "Cartridge",
+    subCategory: "Ready To Use",
   },
-  { keywords: /\b(cart|vape)\b/i, category: 'Cartridge' },
-  { keywords: /\b(syrup)\b/i, category: 'Tincture', subCategory: 'Syrup' },
-  { keywords: /\b(tincture)\b/i, category: 'Tincture' },
-  { keywords: /\b(tablet|tablit)\b/i, category: 'Pill' },
+  { keywords: /\b(cart|vape)\b/i, category: "Cartridge" },
+  { keywords: /\b(syrup)\b/i, category: "Tincture", subCategory: "Syrup" },
+  { keywords: /\b(tincture)\b/i, category: "Tincture" },
+  { keywords: /\b(tablet|tablit)\b/i, category: "Pill" },
 ];
 
 /** Strong overrides -- unambiguous name patterns */
@@ -172,14 +180,14 @@ const STRONG_NAME_OVERRIDES: {
 }[] = [
   {
     namePattern: /\b(pre[\s-]?rolls?|prerolls?)\b/i,
-    overrideCategories: ['Flower'],
-    category: 'Preroll',
+    overrideCategories: ["Flower"],
+    category: "Preroll",
   },
   {
     namePattern: /\bthc[\s-]?a\b/i,
-    overrideCategories: ['Edible'],
-    category: 'Extract',
-    subCategory: 'THC-A',
+    overrideCategories: ["Edible"],
+    category: "Extract",
+    subCategory: "THC-A",
   },
 ];
 
@@ -193,118 +201,116 @@ interface SubCategoryNameRule {
 
 const SUBCATEGORY_NAME_RULES: Record<string, SubCategoryNameRule[]> = {
   Beverage: [
-    { keywords: /coffee/i, subCategory: 'Coffee' },
-    { keywords: /elixir/i, subCategory: 'Elixir' },
-    { keywords: /juice/i, subCategory: 'Juice' },
-    { keywords: /shot/i, subCategory: 'Shot' },
-    { keywords: /soda/i, subCategory: 'Soda' },
-    { keywords: /\btea\b/i, subCategory: 'Tea' },
-    { keywords: /tonic|tonik/i, subCategory: 'Tonic' },
-    { keywords: /water/i, subCategory: 'Water' },
-    { keywords: /\b(mix|powder)\b/i, subCategory: 'Dissolvable' },
+    { keywords: /coffee/i, subCategory: "Coffee" },
+    { keywords: /elixir/i, subCategory: "Elixir" },
+    { keywords: /juice/i, subCategory: "Juice" },
+    { keywords: /shot/i, subCategory: "Shot" },
+    { keywords: /soda/i, subCategory: "Soda" },
+    { keywords: /\btea\b/i, subCategory: "Tea" },
+    { keywords: /tonic|tonik/i, subCategory: "Tonic" },
+    { keywords: /water/i, subCategory: "Water" },
+    { keywords: /\b(mix|powder)\b/i, subCategory: "Dissolvable" },
   ],
   Cartridge: [
-    { keywords: /\b(pod|reload)\b/i, subCategory: 'Pod' },
+    { keywords: /\b(pod|reload)\b/i, subCategory: "Pod" },
     {
       keywords: /disp|ready[\s-]?to[\s-]?use|\brtu\b|all[\s-]?in[\s-]?one|\baio\b|all-in-one/i,
-      subCategory: 'Ready To Use',
+      subCategory: "Ready To Use",
     },
   ],
   CBD: [
-    { keywords: /capsule/i, subCategory: 'Pill' },
-    { keywords: /cream/i, subCategory: 'Topical' },
-    { keywords: /\boil\b/i, subCategory: 'Oil' },
-    { keywords: /tincture/i, subCategory: 'Tincture' },
+    { keywords: /capsule/i, subCategory: "Pill" },
+    { keywords: /cream/i, subCategory: "Topical" },
+    { keywords: /\boil\b/i, subCategory: "Oil" },
+    { keywords: /tincture/i, subCategory: "Tincture" },
   ],
   Edible: [
-    { keywords: /gumm/i, subCategory: 'Gummy' },
-    { keywords: /chew/i, subCategory: 'Chew' },
-    { keywords: /lozenge/i, subCategory: 'Lozenge' },
-    { keywords: /cookie/i, excludeKeywords: /bar/i, subCategory: 'Cookie' },
-    { keywords: /brownie|krisp|baked/i, subCategory: 'Baked Good' },
-    { keywords: /chocolate/i, subCategory: 'Chocolate' },
-    { keywords: /mints/i, subCategory: 'Mints' },
+    { keywords: /gumm/i, subCategory: "Gummy" },
+    { keywords: /chew/i, subCategory: "Chew" },
+    { keywords: /lozenge/i, subCategory: "Lozenge" },
+    { keywords: /cookie/i, excludeKeywords: /bar/i, subCategory: "Cookie" },
+    { keywords: /brownie|krisp|baked/i, subCategory: "Baked Good" },
+    { keywords: /chocolate/i, subCategory: "Chocolate" },
+    { keywords: /mints/i, subCategory: "Mints" },
   ],
   Extract: [
-    { keywords: /crystalline/i, subCategory: 'Crystalline' },
-    { keywords: /cured[\s-]?resin/i, subCategory: 'Cured Resin' },
-    { keywords: /distillate/i, subCategory: 'Distillate' },
-    { keywords: /hash[\s-]?rosin/i, subCategory: 'Hash Rosin' },
-    { keywords: /water[\s-]?hash/i, subCategory: 'Water Hash' },
-    { keywords: /live[\s-]?resin[\s-]?badder|live[\s-]?badder/i, subCategory: 'Live Resin Badder' },
-    { keywords: /live[\s-]?resin[\s-]?budder|live[\s-]?budder/i, subCategory: 'Live Resin Budder' },
-    { keywords: /live[\s-]?resin[\s-]?sugar|live[\s-]?sugar/i, subCategory: 'Live Resin Sugar' },
-    { keywords: /moon[\s-]?rock/i, subCategory: 'Moon Rocks' },
-    { keywords: /(?=.*rosin)(?=.*budder)/i, subCategory: 'Rosin Budder' },
-    { keywords: /\brso\b/i, subCategory: 'RSO' },
-    { keywords: /thc[\s-]?a\b/i, subCategory: 'THC-A' },
-    { keywords: /diamond/i, subCategory: 'Diamonds' },
-    { keywords: /rosin/i, subCategory: 'Live Rosin' },
-    { keywords: /crumble/i, subCategory: 'Crumble' },
-    { keywords: /sauce/i, subCategory: 'Sauce' },
-    { keywords: /shatter/i, subCategory: 'Shatter' },
-    { keywords: /hash/i, subCategory: 'Hash' },
-    { keywords: /live[\s-]?resin/i, subCategory: 'Live Resin' },
-    { keywords: /isolate/i, subCategory: 'Isolate' },
-    { keywords: /\boil\b/i, subCategory: 'Oil' },
-    { keywords: /jelly/i, subCategory: 'Jelly' },
-    { keywords: /badder/i, subCategory: 'Badder' },
-    { keywords: /budder/i, subCategory: 'Budder' },
-    { keywords: /sugar/i, subCategory: 'Sugar' },
-    { keywords: /wax/i, subCategory: 'Wax' },
+    { keywords: /crystalline/i, subCategory: "Crystalline" },
+    { keywords: /cured[\s-]?resin/i, subCategory: "Cured Resin" },
+    { keywords: /distillate/i, subCategory: "Distillate" },
+    { keywords: /hash[\s-]?rosin/i, subCategory: "Hash Rosin" },
+    { keywords: /water[\s-]?hash/i, subCategory: "Water Hash" },
+    { keywords: /live[\s-]?resin[\s-]?badder|live[\s-]?badder/i, subCategory: "Live Resin Badder" },
+    { keywords: /live[\s-]?resin[\s-]?budder|live[\s-]?budder/i, subCategory: "Live Resin Budder" },
+    { keywords: /live[\s-]?resin[\s-]?sugar|live[\s-]?sugar/i, subCategory: "Live Resin Sugar" },
+    { keywords: /moon[\s-]?rock/i, subCategory: "Moon Rocks" },
+    { keywords: /(?=.*rosin)(?=.*budder)/i, subCategory: "Rosin Budder" },
+    { keywords: /\brso\b/i, subCategory: "RSO" },
+    { keywords: /thc[\s-]?a\b/i, subCategory: "THC-A" },
+    { keywords: /diamond/i, subCategory: "Diamonds" },
+    { keywords: /rosin/i, subCategory: "Live Rosin" },
+    { keywords: /crumble/i, subCategory: "Crumble" },
+    { keywords: /sauce/i, subCategory: "Sauce" },
+    { keywords: /shatter/i, subCategory: "Shatter" },
+    { keywords: /hash/i, subCategory: "Hash" },
+    { keywords: /live[\s-]?resin/i, subCategory: "Live Resin" },
+    { keywords: /isolate/i, subCategory: "Isolate" },
+    { keywords: /\boil\b/i, subCategory: "Oil" },
+    { keywords: /jelly/i, subCategory: "Jelly" },
+    { keywords: /badder/i, subCategory: "Badder" },
+    { keywords: /budder/i, subCategory: "Budder" },
+    { keywords: /sugar/i, subCategory: "Sugar" },
+    { keywords: /wax/i, subCategory: "Wax" },
   ],
   Flower: [
-    { keywords: /bulk/i, subCategory: 'Bulk Flower' },
-    { keywords: /infused/i, subCategory: 'Infused Flower' },
-    { keywords: /small/i, subCategory: 'Pre-Pack Smalls' },
+    { keywords: /bulk/i, subCategory: "Bulk Flower" },
+    { keywords: /infused/i, subCategory: "Infused Flower" },
+    { keywords: /small/i, subCategory: "Pre-Pack Smalls" },
   ],
   Merch: [
-    { keywords: /battery/i, subCategory: 'Battery' },
-    { keywords: /bong|water[\s-]?pipe|beaker/i, subCategory: 'Bong' },
-    { keywords: /\bhat\b/i, subCategory: 'Hat' },
-    { keywords: /hoodie/i, subCategory: 'Hoodie' },
-    { keywords: /lighter|torch/i, subCategory: 'Lighter' },
-    { keywords: /\srig\b/i, subCategory: 'Dab Rig' },
-    { keywords: /pipe/i, subCategory: 'Pipe' },
-    { keywords: /paper|cone/i, subCategory: 'Rolling Papers' },
-    { keywords: /sweatshirt|sweater/i, subCategory: 'Sweatshirt' },
-    { keywords: /shirt/i, subCategory: 'T Shirt' },
-    { keywords: /vaporizer/i, subCategory: 'Vaporizer' },
+    { keywords: /battery/i, subCategory: "Battery" },
+    { keywords: /bong|water[\s-]?pipe|beaker/i, subCategory: "Bong" },
+    { keywords: /\bhat\b/i, subCategory: "Hat" },
+    { keywords: /hoodie/i, subCategory: "Hoodie" },
+    { keywords: /lighter|torch/i, subCategory: "Lighter" },
+    { keywords: /\srig\b/i, subCategory: "Dab Rig" },
+    { keywords: /pipe/i, subCategory: "Pipe" },
+    { keywords: /paper|cone/i, subCategory: "Rolling Papers" },
+    { keywords: /sweatshirt|sweater/i, subCategory: "Sweatshirt" },
+    { keywords: /shirt/i, subCategory: "T Shirt" },
+    { keywords: /vaporizer/i, subCategory: "Vaporizer" },
   ],
-  Misc: [{ keywords: /suppository/i, subCategory: 'Suppository' }],
+  Misc: [{ keywords: /suppository/i, subCategory: "Suppository" }],
   Pill: [
-    { keywords: /capsule/i, subCategory: 'Capsule' },
-    { keywords: /tab/i, subCategory: 'Tablet' },
+    { keywords: /capsule/i, subCategory: "Capsule" },
+    { keywords: /tab/i, subCategory: "Tablet" },
   ],
   Plant: [
-    { keywords: /seed/i, subCategory: 'Seeds' },
-    { keywords: /clone/i, subCategory: 'Clone' },
+    { keywords: /seed/i, subCategory: "Seeds" },
+    { keywords: /clone/i, subCategory: "Clone" },
   ],
-  Preroll: [
-    { keywords: /infused|hash|jeeter|diamond/i, subCategory: 'Infused' },
-  ],
+  Preroll: [{ keywords: /infused|hash|jeeter|diamond/i, subCategory: "Infused" }],
   Tincture: [
-    { keywords: /spray/i, subCategory: 'Spray' },
-    { keywords: /syrup/i, subCategory: 'Syrup' },
+    { keywords: /spray/i, subCategory: "Spray" },
+    { keywords: /syrup/i, subCategory: "Syrup" },
   ],
   Topical: [
-    { keywords: /balm/i, subCategory: 'Balm' },
-    { keywords: /cream|creme/i, subCategory: 'Cream' },
-    { keywords: /lotion/i, subCategory: 'Lotion' },
-    { keywords: /patch/i, subCategory: 'Patch' },
-    { keywords: /spray/i, subCategory: 'Spray' },
-    { keywords: /salve|liniment/i, subCategory: 'Salve' },
-    { keywords: /\boil\b/i, subCategory: 'Oil' },
-    { keywords: /gel/i, subCategory: 'Gel' },
+    { keywords: /balm/i, subCategory: "Balm" },
+    { keywords: /cream|creme/i, subCategory: "Cream" },
+    { keywords: /lotion/i, subCategory: "Lotion" },
+    { keywords: /patch/i, subCategory: "Patch" },
+    { keywords: /spray/i, subCategory: "Spray" },
+    { keywords: /salve|liniment/i, subCategory: "Salve" },
+    { keywords: /\boil\b/i, subCategory: "Oil" },
+    { keywords: /gel/i, subCategory: "Gel" },
   ],
 };
 
 /** Category-specific default subcategories */
 const CATEGORY_DEFAULT_SUBCATEGORY: Record<string, string> = {
-  Cartridge: '510 Thread',
-  Flower: 'Pre-Pack',
-  Preroll: 'Flower',
-  Tincture: 'Dropper',
+  Cartridge: "510 Thread",
+  Flower: "Pre-Pack",
+  Preroll: "Flower",
+  Tincture: "Dropper",
 };
 
 // ── Resolution Helpers ───────────────────────────────────────────────────────
@@ -315,21 +321,18 @@ const PRODUCT_CATEGORIES_SET = new Set(PRODUCT_CATEGORIES as readonly string[]);
 function isWeakResolution(cat: string): boolean {
   if (!cat) return true;
   if (!PRODUCT_CATEGORIES_SET.has(cat)) return true;
-  if (cat === 'Misc') return true;
+  if (cat === "Misc") return true;
   return false;
 }
 
 export function getDefaultSubCategory(category: string): string {
   if (CATEGORY_DEFAULT_SUBCATEGORY[category]) return CATEGORY_DEFAULT_SUBCATEGORY[category];
   const subs = PRODUCT_SUBCATEGORIES[category] ?? [];
-  return subs.find((s) => s.includes('General')) ?? subs[0] ?? '';
+  return subs.find((s) => s.includes("General")) ?? subs[0] ?? "";
 }
 
 /** Resolve subcategory from product name keywords */
-export function resolveSubCategoryFromName(
-  category: string,
-  productName: string,
-): string | null {
+export function resolveSubCategoryFromName(category: string, productName: string): string | null {
   const rules = SUBCATEGORY_NAME_RULES[category];
   if (!rules || !productName) return null;
   for (const rule of rules) {
@@ -380,13 +383,13 @@ function tryResolve(
 ): { category: string; subCategory: string } | null {
   const combined = [categoryVal, subCategoryVal, externalCategoryVal, productNameHint]
     .filter(Boolean)
-    .join(' ');
+    .join(" ");
 
   if (!combined) return null;
 
   // 0. Check excludes
   for (const pattern of EXCLUDE_PATTERNS) {
-    if (pattern.test(categoryVal)) return { category: EXCLUDED_CATEGORY, subCategory: '' };
+    if (pattern.test(categoryVal)) return { category: EXCLUDED_CATEGORY, subCategory: "" };
   }
 
   // 1. Exact match against category names
@@ -422,7 +425,7 @@ function tryResolve(
       }
       const context = [categoryVal, subCategoryVal, externalCategoryVal, productNameHint]
         .filter(Boolean)
-        .join(' ');
+        .join(" ");
       for (const rule of KEYWORD_RULES) {
         if (rule.keywords.test(context)) {
           const match = matches.find((m) => m.category === rule.category);
@@ -474,8 +477,8 @@ export function applyNameOverride(
     ) {
       const sub =
         override.subCategory ??
-        (resolveSubCategoryFromName(override.category, productName) ??
-          getDefaultSubCategory(override.category));
+        resolveSubCategoryFromName(override.category, productName) ??
+        getDefaultSubCategory(override.category);
       return { category: override.category, subCategory: sub };
     }
   }
@@ -490,8 +493,8 @@ export function applyNameOverride(
       const newCategory = rule.category;
       const newSubCategory =
         rule.subCategory ??
-        (resolveSubCategoryFromName(newCategory, productName) ??
-          getDefaultSubCategory(newCategory));
+        resolveSubCategoryFromName(newCategory, productName) ??
+        getDefaultSubCategory(newCategory);
       return { category: newCategory, subCategory: newSubCategory };
     }
   }
@@ -503,15 +506,15 @@ export function applyNameOverride(
 
 function extractMerchSize(productName: string): string {
   const lower = productName.toLowerCase();
-  if (lower.includes('6xl')) return '5XL';
-  for (const size of ['5XL', '4XL', '3XL', '2XL', 'XL', 'XS'] as const) {
+  if (lower.includes("6xl")) return "5XL";
+  for (const size of ["5XL", "4XL", "3XL", "2XL", "XL", "XS"] as const) {
     if (lower.includes(size.toLowerCase())) return size;
   }
-  if (/\bsmall\b/i.test(productName)) return 'Small';
-  if (/\bmedium\b|\bmed\b/i.test(productName)) return 'Medium';
-  if (/\blarge\b|\blg\b/i.test(productName)) return 'Large';
-  if (/\bone\s*size\b/i.test(productName)) return 'One Size';
-  return 'One Size';
+  if (/\bsmall\b/i.test(productName)) return "Small";
+  if (/\bmedium\b|\bmed\b/i.test(productName)) return "Medium";
+  if (/\blarge\b|\blg\b/i.test(productName)) return "Large";
+  if (/\bone\s*size\b/i.test(productName)) return "One Size";
+  return "One Size";
 }
 
 // ── Public API ───────────────────────────────────────────────────────────────
@@ -526,7 +529,7 @@ export function resolveCategory(
   externalCategory: string,
   productName: string,
 ): CategoryResolution {
-  const result = tryResolve(categoryField, '', externalCategory, productName);
+  const result = tryResolve(categoryField, "", externalCategory, productName);
 
   let cat: string;
   let sub: string;
@@ -535,8 +538,8 @@ export function resolveCategory(
     cat = result.category;
     sub = result.subCategory;
   } else {
-    cat = 'Misc';
-    sub = getDefaultSubCategory('Misc');
+    cat = "Misc";
+    sub = getDefaultSubCategory("Misc");
   }
 
   // Apply name override
@@ -545,8 +548,8 @@ export function resolveCategory(
   sub = overridden.subCategory;
 
   // Derive uom and merchSize from category
-  const uom = UOM_BY_CATEGORY[cat] ?? 'each';
-  const merchSize = cat === 'Merch' ? extractMerchSize(productName) : '';
+  const uom = UOM_BY_CATEGORY[cat] ?? "each";
+  const merchSize = cat === "Merch" ? extractMerchSize(productName) : "";
 
   return { category: cat, subCategory: sub, uom, merchSize };
 }
@@ -575,8 +578,8 @@ export function enhancedCategoryResolve(
   const standard = tryResolve(rawCategory, rawSubCategory, rawExternalCategory, productName);
   if (standard && !isWeakResolution(standard.category)) return standard;
 
-  const searchText = [productName, extraContext].filter(Boolean).join(' ');
-  if (!searchText) return standard ?? { category: rawCategory || '', subCategory: '' };
+  const searchText = [productName, extraContext].filter(Boolean).join(" ");
+  if (!searchText) return standard ?? { category: rawCategory || "", subCategory: "" };
 
   // Fallback A -- keyword rules on extended text
   for (const rule of KEYWORD_RULES) {
@@ -598,7 +601,7 @@ export function enhancedCategoryResolve(
     }
   }
 
-  return standard ?? { category: rawCategory || '', subCategory: '' };
+  return standard ?? { category: rawCategory || "", subCategory: "" };
 }
 
 // ── Batch Category Resolution ────────────────────────────────────────────────
