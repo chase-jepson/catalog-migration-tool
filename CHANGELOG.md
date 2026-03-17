@@ -2,6 +2,16 @@
 
 All notable changes to the Catalog Migration Tool will be documented in this file.
 
+## [0.2.1] - 2026-03-16
+
+### Added
+
+- MIT license
+- CI/CD pipeline (`.gitlab-ci.yml`) — runs tests and builds on every MR and push to main, auto-creates releases on version tags
+- Merge request template with review checklist
+- Contributing guide (`CONTRIBUTING.md`)
+- Git tag `v0.0.1` for initial release
+
 ## [0.0.1] - 2026-03-16
 
 ### Added
