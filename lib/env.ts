@@ -31,8 +31,8 @@ export function getMsoApiBaseUrl(env: TreezEnv): string {
     case "production":
       return "https://api.mso.treez.io";
     case "sandbox":
-      return "https://api.mso.sandbox.treez.io";
+      return "https://api.sandbox.treez.io";
     case "dev":
-      return "https://api-dev.mso.treez.io";
+      return "https://api.dev.treez.io";
   }
 }
