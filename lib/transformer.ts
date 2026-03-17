@@ -562,8 +562,11 @@ export function deriveRows(
     // Non-cannabis flag: some POS exports have an explicit flag (e.g., IndicaOnline "Is MMJ?" = "N").
     // When present and negative, force to a non-THC category (CBD, Merch, or Non-Inv).
     const NON_CANNABIS_HEADERS = ["Is MMJ?", "Is MMJ", "is_mmj", "Is Cannabis", "Contains THC"];
+    const CANNABIS_HEADERS = ["Is Marijuana", "Is Marijuana?", "is_marijuana"];
     const NON_CANNABIS_VALUES = new Set(["n", "no", "false", "0"]);
+    const CANNABIS_VALUES = new Set(["y", "yes", "true", "1"]);
     const THC_CATEGORIES = new Set(["Flower", "Extract", "Cartridge", "Edible", "Preroll", "Beverage", "Tincture", "Topical", "Pill", "Misc"]);
+    const NON_THC_CATEGORIES = new Set(["CBD", "Merch", "Non-Inv"]);
 
     let isNonCannabis = false;
     for (const header of NON_CANNABIS_HEADERS) {
@@ -571,6 +574,33 @@ export function deriveRows(
       if (val && NON_CANNABIS_VALUES.has(val)) {
         isNonCannabis = true;
         break;
+      }
+    }
+
+    let isCannabis = false;
+    for (const header of CANNABIS_HEADERS) {
+      const val = (row[header] ?? "").trim().toLowerCase();
+      if (val && CANNABIS_VALUES.has(val)) {
+        isCannabis = true;
+        break;
+      }
+    }
+
+    // Cannabis products (Is Marijuana = YES) cannot go into CBD, Merch, or Non-Inv
+    if (isCannabis && NON_THC_CATEGORIES.has(finalResolution.category)) {
+      // Re-resolve from original source fields (not the already-resolved CBD/Merch result)
+      const reResolved = enhancedCategoryResolve(
+        rawCategory,
+        rawSubCategory,
+        rawExternalCategory,
+        rawName,
+        rawBrand,
+      );
+      if (THC_CATEGORIES.has(reResolved.category)) {
+        finalResolution = reResolved;
+      } else {
+        // Fallback: default to Misc for cannabis products we can't classify
+        finalResolution = { category: "Misc", subCategory: "Misc - General" };
       }
     }
 
@@ -661,7 +691,16 @@ export function deriveRows(
     } else if (uom === "milligrams") {
       const cannaVal = category === "CBD" ? cbd : thc;
       const num = parseFloat(cannaVal);
-      amount = !isNaN(num) && num > 0 ? num : 0;
+      const catCeiling = CATEGORY_MAX_MG[category];
+      // Use cannabinoid value as amount, but only if plausible for this category.
+      // When THC/CBD is implausible (e.g., "9000" from a bad THC% column) and
+      // weight is valid, prefer weight as the amount source.
+      const cannaPlausible = !isNaN(num) && num > 0 && (!catCeiling || num <= catCeiling);
+      if (cannaPlausible) {
+        amount = num;
+      } else {
+        amount = 0;
+      }
       // Fallback: use raw weight as mg amount.
       // For unknown-unit values, treat directly as mg (not grams) to avoid overflow.
       // E.g., Meadow "Cannabis Content" = 1000 means 1000mg, not 1000g.
@@ -713,12 +752,23 @@ export function deriveRows(
     // - THC should equal amount for non-CBD cannabis products
     // - CBD should equal amount for CBD category products
     // - Both should be blank for gram-based products
-    if (uom === "milligrams" && amount > 0) {
-      if (category !== "CBD" && !thc) {
-        thc = amount.toString();
+    // - Implausible THC/CBD values (exceeding category ceiling) are replaced by amount
+    if (uom === "milligrams") {
+      if (category !== "CBD") {
+        const thcNum = parseFloat(thc);
+        if (catMax && thcNum > catMax) {
+          thc = amount > 0 ? amount.toString() : "";
+        } else if (!thc && amount > 0) {
+          thc = amount.toString();
+        }
       }
-      if (category === "CBD" && !cbd) {
-        cbd = amount.toString();
+      if (category === "CBD") {
+        const cbdNum = parseFloat(cbd);
+        if (catMax && cbdNum > catMax) {
+          cbd = amount > 0 ? amount.toString() : "";
+        } else if (!cbd && amount > 0) {
+          cbd = amount.toString();
+        }
       }
     }
     // Ensure THC/CBD are blank for grams-based products (cleanup after category overrides)
@@ -754,6 +804,7 @@ export function deriveRows(
       strain: rawStrain,
       classification:
         normalizeClassification(rawClassification, rawName, rawDescription) ||
+        normalizeClassification(rawExternalCategory, rawName, rawDescription) ||
         lookupStrainClassification(rawStrain) ||
         "",
       extractionMethod: deriveExtractionMethod(rawName, rawDescription),

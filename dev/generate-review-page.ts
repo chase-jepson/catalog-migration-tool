@@ -10,20 +10,26 @@ const allData = JSON.parse(
   fs.readFileSync(path.join(OUTPUT_DIR, "flagged-summary.json"), "utf-8"),
 ) as any[];
 
-// Pick top 2 files per POS system by flagged count
-const byPOS: Record<string, any[]> = {};
-for (const entry of allData) {
-  const pos = entry.posName.split(" - ")[0]; // "Blaze - Blaze" → "Blaze"
-  if (!byPOS[pos]) byPOS[pos] = [];
-  byPOS[pos].push(entry);
+// If only one file in summary, show all rows; otherwise top 2 per POS
+const singleFile = allData.length === 1;
+let data: any[];
+if (singleFile) {
+  data = allData.filter((e: any) => e.flaggedCount > 0);
+} else {
+  const byPOS: Record<string, any[]> = {};
+  for (const entry of allData) {
+    const pos = entry.posName.split(" - ")[0]; // "Blaze - Blaze" → "Blaze"
+    if (!byPOS[pos]) byPOS[pos] = [];
+    byPOS[pos].push(entry);
+  }
+  data = [];
+  for (const entries of Object.values(byPOS)) {
+    entries.sort((a: any, b: any) => b.flaggedCount - a.flaggedCount);
+    const top2 = entries.slice(0, 2).filter((e: any) => e.flaggedCount > 0);
+    data.push(...top2);
+  }
+  data.sort((a: any, b: any) => b.flaggedCount - a.flaggedCount);
 }
-const data: any[] = [];
-for (const entries of Object.values(byPOS)) {
-  entries.sort((a: any, b: any) => b.flaggedCount - a.flaggedCount);
-  const top2 = entries.slice(0, 2).filter((e: any) => e.flaggedCount > 0);
-  data.push(...top2);
-}
-data.sort((a: any, b: any) => b.flaggedCount - a.flaggedCount);
 
 // Import enum values for dropdowns
 const PRODUCT_CATEGORIES = [
@@ -271,6 +277,13 @@ const SUBCATEGORIES = ${JSON.stringify(PRODUCT_SUBCATEGORIES)};
 
 // State: stored in localStorage
 const STORAGE_KEY = 'catalog-review-corrections';
+// Clear previous corrections on first load of a fresh build
+const BUILD_KEY = 'catalog-review-build';
+const BUILD_ID = '${Date.now()}';
+if (localStorage.getItem(BUILD_KEY) !== BUILD_ID) {
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.setItem(BUILD_KEY, BUILD_ID);
+}
 let state = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
 
 // Restore state on load

@@ -258,23 +258,28 @@ function sampleFlags(allFlagged: FlaggedRow[]): FlaggedRow[] {
 
 const INPUT_DIR = "/Users/chase/Downloads/Catalog Migration Tool/Exports/Catalog";
 const OUTPUT_DIR = "/Users/chase/projects/catalog-migration-tool/dev/output";
+const FILE_FILTER = process.argv[2] ? path.resolve(process.argv[2]) : "";
 
 async function main() {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   const summaryData: any[] = [];
 
   // Iterate through POS folders
-  const posFolders = fs.readdirSync(INPUT_DIR).filter((f) => {
-    const fp = path.join(INPUT_DIR, f);
-    return fs.statSync(fp).isDirectory() && !f.startsWith(".");
-  });
+  const posFolders = FILE_FILTER
+    ? [path.basename(path.dirname(FILE_FILTER))]
+    : fs.readdirSync(INPUT_DIR).filter((f) => {
+        const fp = path.join(INPUT_DIR, f);
+        return fs.statSync(fp).isDirectory() && !f.startsWith(".");
+      });
 
   for (const posFolder of posFolders) {
-    const folderPath = path.join(INPUT_DIR, posFolder);
-    const files = fs.readdirSync(folderPath).filter((f) => {
-      const ext = path.extname(f).toLowerCase();
-      return (ext === ".csv" || ext === ".xlsx" || ext === ".xls") && !f.startsWith(".");
-    });
+    const folderPath = FILE_FILTER ? path.dirname(FILE_FILTER) : path.join(INPUT_DIR, posFolder);
+    const files = FILE_FILTER
+      ? [path.basename(FILE_FILTER)]
+      : fs.readdirSync(folderPath).filter((f) => {
+          const ext = path.extname(f).toLowerCase();
+          return (ext === ".csv" || ext === ".xlsx" || ext === ".xls") && !f.startsWith(".");
+        });
 
     for (const file of files) {
       const filePath = path.join(folderPath, file);

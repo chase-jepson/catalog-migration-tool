@@ -495,7 +495,9 @@ function tryResolve(
           if (match) return match;
         }
       }
-      return matches[0];
+      // Don't blindly return matches[0] — fall through to Step 2.5
+      // so stronger signals from other fields (e.g. "Vape" → Cartridge)
+      // can override an ambiguous subcategory match like "Oil".
     }
   }
 
