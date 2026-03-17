@@ -3,4 +3,5 @@ node_modules/
 .wxt/
 .planning/
 dist/
+dev/output/
 *.log
