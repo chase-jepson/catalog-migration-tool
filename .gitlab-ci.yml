@@ -9,12 +9,12 @@ variables:
   image: node:${NODE_VERSION}
   before_script:
     - corepack enable
-    - pnpm install --frozen-lockfile
 
 test:
   <<: *node_setup
   stage: test
   script:
+    - pnpm install --frozen-lockfile --ignore-scripts
     - pnpm test
   rules:
     - if: $CI_MERGE_REQUEST_IID
@@ -25,6 +25,7 @@ build:
   <<: *node_setup
   stage: build
   script:
+    - pnpm install --no-frozen-lockfile
     - pnpm build
     - pnpm zip
   artifacts:
