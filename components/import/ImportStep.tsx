@@ -162,7 +162,7 @@ export function ImportStep({
           const { apiBaseUrl: pollApiUrl, token: pollToken } = await getTokenAndUrl();
           const jobs = await sendMessage('fetchImportReport', { apiBaseUrl: pollApiUrl, token: pollToken });
 
-          const job = jobId ? jobs.find((j) => j.id === jobId) : jobs.find((j) => j.name === fileName);
+          const job: any = jobId ? jobs.find((j) => j.id === jobId) : jobs.find((j) => j.name === fileName);
 
           if (job) {
             if (!jobId) jobId = job.id;
@@ -294,7 +294,7 @@ export function ImportStep({
 
             const { apiBaseUrl: pollApiUrl, token: pollToken } = await getTokenAndUrl();
             const jobs = await sendMessage('fetchImportReport', { apiBaseUrl: pollApiUrl, token: pollToken });
-            const job = jobId ? jobs.find((j) => j.id === jobId) : jobs.find((j) => j.name === fileName);
+            const job: any = jobId ? jobs.find((j) => j.id === jobId) : jobs.find((j) => j.name === fileName);
 
             if (job) {
               if (!jobId) jobId = job.id;

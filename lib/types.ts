@@ -329,6 +329,14 @@ export interface PortalAuthState {
   expiresAt: number;
 }
 
+export interface PortalValidationIssue {
+  row_number: number | null;
+  field_name: string | null;
+  field_value: string | null;
+  message: string;
+  severity?: string;
+}
+
 export interface PortalValidationResult {
   job_id: string;
   status: 'VALIDATED' | 'FAILED';

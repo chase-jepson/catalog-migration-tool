@@ -328,9 +328,9 @@ describe('joinChain', () => {
     const inventoryData = [
       { ExternalPackageId: 'PKG-1', Units: '10', ProductSKU: 'SKU-1', VendorName: 'Vendor A' },
     ];
-    const distributorData: Record<string, Record<string, string>> = {
+    const distributorData = {
       'Vendor A': { distributorName: 'Vendor A', distributorDBA: 'VA' },
-    };
+    } as any;
 
     const result = joinChain(inventoryData, [], distributorData, []);
 

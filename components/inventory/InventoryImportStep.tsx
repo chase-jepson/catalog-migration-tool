@@ -171,7 +171,7 @@ export function InventoryImportStep({
           token: pollToken,
         });
 
-        const job = jobId
+        const job: any = jobId
           ? jobs.find((j: any) => j.id === jobId)
           : jobs.find((j: any) => j.name === fileName);
 

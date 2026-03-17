@@ -10,7 +10,21 @@ All notable changes to the Catalog Migration Tool will be documented in this fil
 - CI/CD pipeline (`.gitlab-ci.yml`) — runs tests and builds on every MR and push to main, auto-creates releases on version tags
 - Merge request template with review checklist
 - Contributing guide (`CONTRIBUTING.md`)
+- TypeScript type checking (`pnpm typecheck`) in CI build pipeline
+- Cross-platform `pnpm-lock.yaml` (macOS + Linux) via `.npmrc`
+- `@types/chrome` for extension API type safety
+- Node.js `>=20` engine requirement in `package.json`
 - Git tag `v0.0.1` for initial release
+
+### Fixed
+
+- TypeScript errors: missing `PortalValidationIssue` type, implicit `any` on import job polling
+- README download link now points to Releases page (version-agnostic)
+- README prerequisite updated from Node 18+ to Node 20+
+
+### Removed
+
+- `.planning/` directory (development artifacts, not needed in repo)
 
 ## [0.0.1] - 2026-03-16
 
