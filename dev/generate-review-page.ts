@@ -1,6 +1,7 @@
 /**
  * Generate an interactive HTML review page from flagged-summary.json.
- * Users can edit category/subCategory/classification, add notes, and save.
+ * Groups all flagged rows by error pattern (collapsible sections).
+ * Users can edit category/subCategory/classification, add notes, and export.
  */
 import * as fs from "fs";
 import * as path from "path";
@@ -10,28 +11,63 @@ const allData = JSON.parse(
   fs.readFileSync(path.join(OUTPUT_DIR, "flagged-summary.json"), "utf-8"),
 ) as any[];
 
-// If only one file in summary, show all rows; otherwise top 2 per POS
-const singleFile = allData.length === 1;
-let data: any[];
-if (singleFile) {
-  data = allData.filter((e: any) => e.flaggedCount > 0);
-} else {
-  const byPOS: Record<string, any[]> = {};
-  for (const entry of allData) {
-    const pos = entry.posName.split(" - ")[0]; // "Blaze - Blaze" → "Blaze"
-    if (!byPOS[pos]) byPOS[pos] = [];
-    byPOS[pos].push(entry);
-  }
-  data = [];
-  for (const entries of Object.values(byPOS)) {
-    entries.sort((a: any, b: any) => b.flaggedCount - a.flaggedCount);
-    const top2 = entries.slice(0, 2).filter((e: any) => e.flaggedCount > 0);
-    data.push(...top2);
-  }
-  data.sort((a: any, b: any) => b.flaggedCount - a.flaggedCount);
+// Collect ALL flagged rows across all files
+interface FlatRow {
+  posName: string;
+  fileName: string;
+  rowIndex: number;
+  reasons: string[];
+  original: Record<string, string>;
+  derived: Record<string, any>;
+  headers: string[];
 }
 
-// Import enum values for dropdowns
+const allRows: FlatRow[] = [];
+for (const pos of allData) {
+  for (const row of pos.flaggedRows) {
+    allRows.push({
+      posName: pos.posName,
+      fileName: pos.fileName,
+      rowIndex: row.rowIndex,
+      reasons: row.reasons,
+      original: row.original,
+      derived: row.derived,
+      headers: pos.headers,
+    });
+  }
+}
+
+// Group rows by error pattern (normalize numbers and quoted strings)
+function patternize(reason: string): string {
+  return reason.replace(/"[^"]*"/g, '"..."').replace(/\d+\.?\d*/g, "N");
+}
+
+const groupMap: Record<string, { pattern: string; example: string; rows: FlatRow[] }> = {};
+for (const row of allRows) {
+  for (const reason of row.reasons) {
+    const pattern = patternize(reason);
+    if (!groupMap[pattern]) {
+      groupMap[pattern] = { pattern, example: reason, rows: [] };
+    }
+    groupMap[pattern].rows.push(row);
+  }
+}
+
+// Sort groups by count descending
+const groups = Object.values(groupMap).sort((a, b) => b.rows.length - a.rows.length);
+
+// Deduplicate rows within groups (same row can appear once per group)
+for (const g of groups) {
+  const seen = new Set<string>();
+  g.rows = g.rows.filter((r) => {
+    const key = `${r.posName}__${r.rowIndex}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+// Enum values for dropdowns
 const PRODUCT_CATEGORIES = [
   "Beverage", "CBD", "Cartridge", "Edible", "Extract", "Flower",
   "Merch", "Misc", "Non-Inv", "Pill", "Plant", "Preroll", "Tincture", "Topical",
@@ -66,7 +102,6 @@ const DERIVED_FIELDS = [
   "thc", "cbd", "status", "strain", "extractionMethod", "unitCount", "skuBarcode",
 ];
 
-// Labels match the actual Treez import CSV column names
 const DERIVED_LABELS: Record<string, string> = {
   productName: "Product Name", brand: "Brand", category: "Product Category",
   subCategory: "Product Sub Category", classification: "Classification",
@@ -76,44 +111,147 @@ const DERIVED_LABELS: Record<string, string> = {
   extractionMethod: "Extraction Method", unitCount: "Unit Count", skuBarcode: "SKU Barcode",
 };
 
-// Editable fields get dropdowns or text inputs
 const EDITABLE_DROPDOWN_FIELDS = new Set(["category", "subCategory", "classification"]);
 const EDITABLE_TEXT_FIELDS = new Set(["amount", "uom", "thc", "cbd"]);
+
+// Stats
+const totalFiles = allData.length;
+const totalRows = allData.reduce((s: number, r: any) => s + r.totalRows, 0);
+const totalFlagged = allRows.length;
+const uniquePatterns = groups.length;
+
+// Build per-POS stats
+const posStats: Record<string, { files: number; rows: number; flagged: number }> = {};
+for (const pos of allData) {
+  const posKey = pos.posName.split(" - ")[0];
+  if (!posStats[posKey]) posStats[posKey] = { files: 0, rows: 0, flagged: 0 };
+  posStats[posKey].files++;
+  posStats[posKey].rows += pos.totalRows;
+  posStats[posKey].flagged += pos.flaggedCount;
+}
+
+function renderRowCard(row: FlatRow, groupIdx: number, rowIdx: number): string {
+  const rowKey = `${row.posName}__${row.rowIndex}`;
+  const productName = esc(row.derived.productName || "(no name)");
+  const posLabel = esc(row.posName);
+
+  let card = `<div class="row-card" data-row-key="${esc(rowKey)}" data-group="${groupIdx}">
+    <div class="row-header" onclick="toggleRow(this)">
+      <span class="row-id">${posLabel} — Row ${row.rowIndex + 1}</span>
+      <span class="product-name">${productName}</span>
+      <div class="reasons">${row.reasons.map((r: string) => `<span class="reason">${esc(r)}</span>`).join("")}</div>
+    </div>
+    <div class="row-body">
+      <div class="comparison">
+        <div class="col-header original">Original (${posLabel})</div>
+        <div class="col-header transformed">Transformed (Treez) &mdash; editable</div>
+        <div class="col-content"><table>`;
+
+  // Original columns (non-empty only)
+  for (const h of row.headers) {
+    const val = row.original[h] ?? "";
+    if (val.trim() === "") continue;
+    card += `<tr><th>${esc(h)}</th><td>${esc(val)}</td></tr>`;
+  }
+
+  card += `</table></div><div class="col-content"><table>`;
+
+  // Transformed fields
+  for (const key of DERIVED_FIELDS) {
+    const val = String(row.derived[key] ?? "");
+    const label = DERIVED_LABELS[key] || key;
+    const isEmpty = val === "" || val === "0" || val === "undefined";
+    const isHighlighted = row.reasons.some((r: string) =>
+      r.toLowerCase().includes(key.toLowerCase()) || r.toLowerCase().includes(label.toLowerCase()),
+    );
+
+    if (EDITABLE_DROPDOWN_FIELDS.has(key)) {
+      let options: string[] = [];
+      if (key === "category") options = PRODUCT_CATEGORIES;
+      else if (key === "subCategory") options = PRODUCT_SUBCATEGORIES[row.derived.category] || [];
+      else if (key === "classification") options = VALID_CLASSIFICATIONS;
+
+      card += `<tr><th>${esc(label)}</th><td class="${isHighlighted ? "highlight" : ""}">`;
+      card += `<select data-field="${key}" data-row-key="${esc(rowKey)}" data-original="${esc(val)}" onchange="onFieldEdit(this, '${esc(rowKey)}')">`;
+      card += `<option value="">(empty)</option>`;
+      for (const opt of options) {
+        card += `<option value="${esc(opt)}"${opt === val ? " selected" : ""}>${esc(opt)}</option>`;
+      }
+      if (val && !options.includes(val)) {
+        card += `<option value="${esc(val)}" selected>${esc(val)} (current)</option>`;
+      }
+      card += `</select></td></tr>`;
+    } else if (EDITABLE_TEXT_FIELDS.has(key)) {
+      card += `<tr><th>${esc(label)}</th><td class="${isHighlighted ? "highlight" : ""}">`;
+      card += `<input type="text" value="${esc(val)}" data-field="${key}" data-row-key="${esc(rowKey)}" data-original="${esc(val)}" onchange="onFieldEdit(this, '${esc(rowKey)}')" />`;
+      card += `</td></tr>`;
+    } else {
+      card += `<tr><th>${esc(label)}</th><td class="${isEmpty ? "empty" : ""}${isHighlighted ? " highlight" : ""}">${isEmpty ? "(empty)" : esc(val)}</td></tr>`;
+    }
+  }
+
+  card += `</table></div></div>
+      <div class="notes-section">
+        <div class="notes-label">Notes</div>
+        <textarea data-row-key="${esc(rowKey)}" placeholder="Add notes about this row..." onchange="onNotesEdit(this, '${esc(rowKey)}')"></textarea>
+      </div>
+      <div class="row-actions">
+        <button class="btn-correct" data-row-key="${esc(rowKey)}" onclick="markReviewed(this, '${esc(rowKey)}')">Mark as Reviewed</button>
+      </div>
+    </div>
+  </div>`;
+
+  return card;
+}
 
 let html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Catalog Migration Review</title>
+<title>Catalog Migration Review — Grouped by Error</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; }
   .header { background: #1a4007; color: white; padding: 16px 24px; position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; }
   .header h1 { font-size: 18px; font-weight: 600; }
   .header .subtitle { font-size: 13px; opacity: 0.8; margin-top: 4px; }
-  .header-actions { display: flex; gap: 8px; }
+  .header-actions { display: flex; gap: 8px; align-items: center; }
   .header-actions button { background: white; color: #1a4007; border: none; padding: 6px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; }
   .header-actions button:hover { background: #dbf5b3; }
-  .header-actions .save-count { font-size: 11px; opacity: 0.7; }
-  .tabs { display: flex; gap: 0; background: #f0f0f0; border-bottom: 1px solid #ddd; position: sticky; top: 56px; z-index: 99; flex-wrap: wrap; }
-  .tab { padding: 10px 20px; cursor: pointer; font-size: 13px; font-weight: 500; border: none; background: none; border-bottom: 2px solid transparent; color: #666; }
-  .tab:hover { background: #e8e8e8; }
-  .tab.active { color: #1a4007; border-bottom-color: #1a4007; background: white; }
-  .tab .count { background: #e0e0e0; border-radius: 10px; padding: 1px 7px; font-size: 11px; margin-left: 6px; }
-  .tab.active .count { background: #dbf5b3; color: #1a4007; }
-  .pos-section { display: none; padding: 16px 24px; }
-  .pos-section.active { display: block; }
-  .stats { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
-  .stat { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px 16px; flex: 1; min-width: 100px; }
+  .header-actions .save-count { font-size: 11px; color: rgba(255,255,255,0.7); }
+
+  .stats-bar { display: flex; gap: 16px; padding: 16px 24px; flex-wrap: wrap; }
+  .stat { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px 16px; flex: 1; min-width: 120px; }
   .stat .label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
   .stat .value { font-size: 22px; font-weight: 600; color: #1a4007; margin-top: 2px; }
-  .row-card { background: white; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+
+  .toolbar { display: flex; gap: 8px; padding: 0 24px 16px; flex-wrap: wrap; align-items: center; }
+  .toolbar button { font-size: 12px; color: #1a4007; cursor: pointer; border: 1px solid #1a4007; background: white; padding: 4px 12px; border-radius: 6px; }
+  .toolbar button:hover { background: #f0f7e8; }
+  .filter-group { display: flex; gap: 4px; align-items: center; font-size: 12px; color: #666; }
+  .filter-group select { font-size: 12px; padding: 3px 8px; border: 1px solid #ccc; border-radius: 4px; }
+
+  .content { padding: 0 24px 24px; }
+
+  .error-group { background: white; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+  .error-group-header { padding: 12px 16px; background: #fafafa; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; cursor: pointer; gap: 12px; user-select: none; }
+  .error-group-header:hover { background: #f0f0f0; }
+  .error-group-header .chevron { font-size: 12px; color: #999; transition: transform 0.2s; flex-shrink: 0; }
+  .error-group-header.open .chevron { transform: rotate(90deg); }
+  .error-group-header .pattern-text { font-size: 13px; font-weight: 500; color: #333; flex: 1; }
+  .error-group-header .group-count { background: #fff3cd; color: #856404; font-size: 12px; padding: 2px 10px; border-radius: 10px; border: 1px solid #ffc107; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+  .error-group-header .pos-tags { display: flex; gap: 4px; flex-wrap: wrap; flex-shrink: 0; }
+  .error-group-header .pos-tag { font-size: 10px; padding: 1px 6px; border-radius: 3px; background: #e8e8e8; color: #555; }
+  .error-group-body { display: none; padding: 8px; }
+  .error-group-body.open { display: block; }
+
+  .row-card { background: white; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
   .row-card.has-edits { border-color: #1a4007; border-width: 2px; }
   .row-card.reviewed { border-color: #4caf50; }
   .row-header { padding: 10px 16px; background: #fafafa; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; cursor: pointer; gap: 8px; }
   .row-header:hover { background: #f0f0f0; }
-  .row-header .row-id { font-size: 12px; font-weight: 600; color: #555; white-space: nowrap; }
+  .row-header .row-id { font-size: 11px; font-weight: 600; color: #888; white-space: nowrap; }
   .row-header .product-name { font-size: 13px; color: #333; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
   .reasons { display: flex; flex-wrap: wrap; gap: 4px; flex-shrink: 0; }
   .reason { background: #fff3cd; color: #856404; font-size: 11px; padding: 2px 8px; border-radius: 4px; border: 1px solid #ffc107; white-space: nowrap; }
@@ -142,11 +280,6 @@ let html = `<!DOCTYPE html>
   .btn-correct { background: #e8f7d0; color: #1a4007; border: 1px solid #1a4007; }
   .btn-correct:hover { background: #d4edb8; }
   .btn-correct.marked { background: #1a4007; color: white; }
-  .toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-  .toolbar button { font-size: 12px; color: #1a4007; cursor: pointer; border: 1px solid #1a4007; background: white; padding: 4px 12px; border-radius: 6px; }
-  .toolbar button:hover { background: #f0f7e8; }
-  .filter-group { display: flex; gap: 4px; align-items: center; font-size: 12px; color: #666; }
-  .filter-group select { font-size: 12px; padding: 3px 8px; }
   .toast { position: fixed; bottom: 24px; right: 24px; background: #1a4007; color: white; padding: 10px 20px; border-radius: 8px; font-size: 13px; z-index: 200; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
   .toast.show { display: block; animation: fadein 0.3s; }
   @keyframes fadein { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -156,128 +289,88 @@ let html = `<!DOCTYPE html>
 <div class="header">
   <div>
     <h1>Catalog Migration Review</h1>
-    <div class="subtitle">${data.reduce((s: any, r: any) => s + r.flaggedCount, 0)} flagged rows across ${data.length} POS systems</div>
+    <div class="subtitle">${totalFlagged} flagged rows across ${totalFiles} files &mdash; ${uniquePatterns} error patterns</div>
   </div>
   <div class="header-actions">
+    <span class="save-count" id="saveCount"></span>
     <button onclick="exportCorrections()">Export Corrections</button>
     <button onclick="saveAll()">Save All</button>
-    <span class="save-count" id="saveCount"></span>
   </div>
 </div>
-<div class="tabs">
+
+<div class="stats-bar">
+  <div class="stat"><div class="label">Total Files</div><div class="value">${totalFiles}</div></div>
+  <div class="stat"><div class="label">Total Rows</div><div class="value">${totalRows.toLocaleString()}</div></div>
+  <div class="stat"><div class="label">Flagged Rows</div><div class="value">${totalFlagged}</div></div>
+  <div class="stat"><div class="label">Error Patterns</div><div class="value">${uniquePatterns}</div></div>
+  <div class="stat"><div class="label">Reviewed</div><div class="value" id="reviewed-total">0</div></div>
+</div>
+
+<div class="toolbar">
+  <button onclick="expandAllGroups()">Expand All Groups</button>
+  <button onclick="collapseAllGroups()">Collapse All Groups</button>
+  <div class="filter-group">
+    <label>Filter POS:</label>
+    <select id="posFilter" onchange="applyFilters()">
+      <option value="all">All</option>
+${Object.keys(posStats).sort().map((p) => `      <option value="${esc(p)}">${esc(p)} (${posStats[p].flagged})</option>`).join("\n")}
+    </select>
+  </div>
+  <div class="filter-group">
+    <label>Status:</label>
+    <select id="statusFilter" onchange="applyFilters()">
+      <option value="all">All</option>
+      <option value="unreviewed">Unreviewed</option>
+      <option value="reviewed">Reviewed</option>
+      <option value="edited">Has Edits</option>
+    </select>
+  </div>
+</div>
+
+<div class="content">
 `;
 
-for (const pos of data) {
-  html += `  <button class="tab" data-pos="${esc(pos.posName)}">${esc(pos.posName)}<span class="count">${pos.flaggedCount}</span></button>\n`;
-}
-html += `</div>\n`;
+// Render each error group
+for (let gi = 0; gi < groups.length; gi++) {
+  const g = groups[gi];
+  // Compute POS breakdown for this group
+  const posBreakdown: Record<string, number> = {};
+  for (const r of g.rows) {
+    const pos = r.posName.split(" - ")[0];
+    posBreakdown[pos] = (posBreakdown[pos] || 0) + 1;
+  }
+  const posTags = Object.entries(posBreakdown)
+    .sort((a, b) => b[1] - a[1])
+    .map(([p, c]) => `<span class="pos-tag">${esc(p)} (${c})</span>`)
+    .join("");
 
-for (const pos of data) {
-  html += `<div class="pos-section" data-pos="${esc(pos.posName)}">
-  <div class="stats">
-    <div class="stat"><div class="label">Total Rows</div><div class="value">${pos.totalRows.toLocaleString()}</div></div>
-    <div class="stat"><div class="label">Flagged</div><div class="value">${pos.flaggedCount}</div></div>
-    <div class="stat"><div class="label">Reviewed</div><div class="value" id="reviewed-${esc(pos.posName)}">0</div></div>
+  html += `<div class="error-group" data-group-idx="${gi}">
+  <div class="error-group-header" onclick="toggleGroup(this)">
+    <span class="chevron">&#9654;</span>
+    <span class="pattern-text">${esc(g.example)}</span>
+    <div class="pos-tags">${posTags}</div>
+    <span class="group-count">${g.rows.length}</span>
   </div>
-  <div class="toolbar">
-    <button onclick="toggleAll('${esc(pos.posName)}')">Expand / Collapse All</button>
-    <div class="filter-group">
-      <label>Filter:</label>
-      <select onchange="filterRows('${esc(pos.posName)}', this.value)">
-        <option value="all">All</option>
-        <option value="unreviewed">Unreviewed</option>
-        <option value="reviewed">Reviewed</option>
-        <option value="edited">Has Edits</option>
-      </select>
-    </div>
-  </div>
+  <div class="error-group-body">
 `;
 
-  for (const row of pos.flaggedRows) {
-    const rowKey = `${pos.posName}__${row.rowIndex}`;
-    const productName = esc(row.derived.productName || "(no name)");
-
-    html += `  <div class="row-card" data-row-key="${esc(rowKey)}" data-pos="${esc(pos.posName)}">
-    <div class="row-header" onclick="toggleRow(this)">
-      <span class="row-id">Row ${row.rowIndex + 1}</span>
-      <span class="product-name">${productName}</span>
-      <div class="reasons">${row.reasons.map((r: string) => `<span class="reason">${esc(r)}</span>`).join("")}</div>
-    </div>
-    <div class="row-body">
-      <div class="comparison">
-        <div class="col-header original">Original (${esc(pos.posName)})</div>
-        <div class="col-header transformed">Transformed (Treez) &mdash; editable</div>
-        <div class="col-content"><table>`;
-
-    // Original columns (non-empty only)
-    const origHeaders = pos.headers as string[];
-    for (const h of origHeaders) {
-      const val = row.original[h] ?? "";
-      if (val.trim() === "") continue;
-      html += `<tr><th>${esc(h)}</th><td>${esc(val)}</td></tr>`;
-    }
-
-    html += `</table></div><div class="col-content"><table>`;
-
-    // Transformed fields — some editable
-    for (const key of DERIVED_FIELDS) {
-      const val = String(row.derived[key] ?? "");
-      const label = DERIVED_LABELS[key] || key;
-      const isEmpty = val === "" || val === "0" || val === "undefined";
-      const isHighlighted = row.reasons.some((r: string) =>
-        r.toLowerCase().includes(key.toLowerCase()) || r.toLowerCase().includes(label.toLowerCase()),
-      );
-
-      if (EDITABLE_DROPDOWN_FIELDS.has(key)) {
-        let options: string[] = [];
-        if (key === "category") options = PRODUCT_CATEGORIES;
-        else if (key === "subCategory") options = PRODUCT_SUBCATEGORIES[row.derived.category] || [];
-        else if (key === "classification") options = VALID_CLASSIFICATIONS;
-
-        html += `<tr><th>${esc(label)}</th><td class="${isHighlighted ? "highlight" : ""}">`;
-        html += `<select data-field="${key}" data-row-key="${esc(rowKey)}" data-original="${esc(val)}" onchange="onFieldEdit(this, '${esc(rowKey)}')">`;
-        html += `<option value="">(empty)</option>`;
-        for (const opt of options) {
-          html += `<option value="${esc(opt)}"${opt === val ? " selected" : ""}>${esc(opt)}</option>`;
-        }
-        // If current value isn't in options, add it
-        if (val && !options.includes(val)) {
-          html += `<option value="${esc(val)}" selected>${esc(val)} (current)</option>`;
-        }
-        html += `</select></td></tr>`;
-      } else if (EDITABLE_TEXT_FIELDS.has(key)) {
-        html += `<tr><th>${esc(label)}</th><td class="${isHighlighted ? "highlight" : ""}">`;
-        html += `<input type="text" value="${esc(val)}" data-field="${key}" data-row-key="${esc(rowKey)}" data-original="${esc(val)}" onchange="onFieldEdit(this, '${esc(rowKey)}')" />`;
-        html += `</td></tr>`;
-      } else {
-        html += `<tr><th>${esc(label)}</th><td class="${isEmpty ? "empty" : ""}${isHighlighted ? " highlight" : ""}">${isEmpty ? "(empty)" : esc(val)}</td></tr>`;
-      }
-    }
-
-    html += `</table></div></div>
-      <div class="notes-section">
-        <div class="notes-label">Notes</div>
-        <textarea data-row-key="${esc(rowKey)}" placeholder="Add notes about this row..." onchange="onNotesEdit(this, '${esc(rowKey)}')"></textarea>
-      </div>
-      <div class="row-actions">
-        <button class="btn-correct" data-row-key="${esc(rowKey)}" onclick="markReviewed(this, '${esc(rowKey)}')">Mark as Reviewed</button>
-      </div>
-    </div>
-  </div>
-`;
+  for (let ri = 0; ri < g.rows.length; ri++) {
+    html += renderRowCard(g.rows[ri], gi, ri);
   }
 
-  html += `</div>\n`;
+  html += `  </div>
+</div>
+`;
 }
 
-html += `
+html += `</div>
+
 <div class="toast" id="toast"></div>
 <script>
 const SUBCATEGORIES = ${JSON.stringify(PRODUCT_SUBCATEGORIES)};
 
 // State: stored in localStorage
 const STORAGE_KEY = 'catalog-review-corrections';
-// Clear previous corrections on first load of a fresh build
 const BUILD_KEY = 'catalog-review-build';
 const BUILD_ID = '${Date.now()}';
 if (localStorage.getItem(BUILD_KEY) !== BUILD_ID) {
@@ -288,33 +381,31 @@ let state = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
 
 // Restore state on load
 window.addEventListener('DOMContentLoaded', () => {
-  // Restore edits, notes, reviewed status
   for (const [rowKey, rowState] of Object.entries(state)) {
-    const card = document.querySelector(\`[data-row-key="\${rowKey}"]\`);
-    if (!card) continue;
-    const rs = rowState;
-    // Restore field edits
-    if (rs.edits) {
-      for (const [field, value] of Object.entries(rs.edits)) {
-        const el = card.querySelector(\`[data-field="\${field}"][data-row-key="\${rowKey}"]\`);
-        if (el) {
-          el.value = value;
-          if (el.dataset.original !== value) el.classList.add('edited');
+    const cards = document.querySelectorAll(\`[data-row-key="\${rowKey}"]\`);
+    cards.forEach(card => {
+      if (!card.classList.contains('row-card')) return;
+      const rs = rowState;
+      if (rs.edits) {
+        for (const [field, value] of Object.entries(rs.edits)) {
+          const el = card.querySelector(\`[data-field="\${field}"][data-row-key="\${rowKey}"]\`);
+          if (el) {
+            el.value = value;
+            if (el.dataset.original !== value) el.classList.add('edited');
+          }
         }
+        card.classList.add('has-edits');
       }
-      card.classList.add('has-edits');
-    }
-    // Restore notes
-    if (rs.notes) {
-      const ta = card.querySelector(\`textarea[data-row-key="\${rowKey}"]\`);
-      if (ta) ta.value = rs.notes;
-    }
-    // Restore reviewed
-    if (rs.reviewed) {
-      card.classList.add('reviewed');
-      const btn = card.querySelector(\`.btn-correct[data-row-key="\${rowKey}"]\`);
-      if (btn) { btn.classList.add('marked'); btn.textContent = 'Reviewed'; }
-    }
+      if (rs.notes) {
+        const ta = card.querySelector(\`textarea[data-row-key="\${rowKey}"]\`);
+        if (ta) ta.value = rs.notes;
+      }
+      if (rs.reviewed) {
+        card.classList.add('reviewed');
+        const btn = card.querySelector(\`.btn-correct[data-row-key="\${rowKey}"]\`);
+        if (btn) { btn.classList.add('marked'); btn.textContent = 'Reviewed'; }
+      }
+    });
   }
   updateCounts();
 });
@@ -334,14 +425,12 @@ function onFieldEdit(el, rowKey) {
   if (!rs.edits) rs.edits = {};
   rs.edits[el.dataset.field] = el.value;
 
-  // Visual feedback
   if (el.dataset.original !== el.value) {
     el.classList.add('edited');
   } else {
     el.classList.remove('edited');
   }
 
-  // Update subcategory options when category changes
   if (el.dataset.field === 'category') {
     const card = el.closest('.row-card');
     const subSelect = card.querySelector('[data-field="subCategory"]');
@@ -353,11 +442,9 @@ function onFieldEdit(el, rowKey) {
     }
   }
 
-  // Mark card as having edits
   const card = el.closest('.row-card');
   const hasAnyEdit = card.querySelectorAll('.edited').length > 0;
   card.classList.toggle('has-edits', hasAnyEdit);
-
   persist();
 }
 
@@ -380,37 +467,55 @@ function toggleRow(header) {
   header.nextElementSibling.classList.toggle('open');
 }
 
-function toggleAll(posName) {
-  const section = document.querySelector(\`.pos-section[data-pos="\${posName}"]\`);
-  const bodies = section.querySelectorAll('.row-body');
-  const allOpen = [...bodies].every(b => b.classList.contains('open'));
-  bodies.forEach(b => allOpen ? b.classList.remove('open') : b.classList.add('open'));
+function toggleGroup(header) {
+  header.classList.toggle('open');
+  header.nextElementSibling.classList.toggle('open');
 }
 
-function filterRows(posName, filter) {
-  const section = document.querySelector(\`.pos-section[data-pos="\${posName}"]\`);
-  section.querySelectorAll('.row-card').forEach(card => {
-    const key = card.dataset.rowKey;
-    const rs = state[key] || {};
-    let show = true;
-    if (filter === 'unreviewed') show = !rs.reviewed;
-    else if (filter === 'reviewed') show = !!rs.reviewed;
-    else if (filter === 'edited') show = !!rs.edits && Object.keys(rs.edits).length > 0;
-    card.style.display = show ? '' : 'none';
+function expandAllGroups() {
+  document.querySelectorAll('.error-group-header').forEach(h => {
+    h.classList.add('open');
+    h.nextElementSibling.classList.add('open');
+  });
+}
+
+function collapseAllGroups() {
+  document.querySelectorAll('.error-group-header').forEach(h => {
+    h.classList.remove('open');
+    h.nextElementSibling.classList.remove('open');
+  });
+}
+
+function applyFilters() {
+  const posFilter = document.getElementById('posFilter').value;
+  const statusFilter = document.getElementById('statusFilter').value;
+
+  document.querySelectorAll('.error-group').forEach(group => {
+    let visibleRows = 0;
+    group.querySelectorAll('.row-card').forEach(card => {
+      const key = card.dataset.rowKey;
+      const rs = state[key] || {};
+      const pos = key.split(' - ')[0];
+      let show = true;
+
+      if (posFilter !== 'all' && pos !== posFilter) show = false;
+      if (statusFilter === 'unreviewed' && rs.reviewed) show = false;
+      if (statusFilter === 'reviewed' && !rs.reviewed) show = false;
+      if (statusFilter === 'edited' && !(rs.edits && Object.keys(rs.edits).length > 0)) show = false;
+
+      card.style.display = show ? '' : 'none';
+      if (show) visibleRows++;
+    });
+    group.style.display = visibleRows > 0 ? '' : 'none';
   });
 }
 
 function updateCounts() {
-  const byPos = {};
-  for (const [key, rs] of Object.entries(state)) {
-    const pos = key.split('__')[0];
-    if (!byPos[pos]) byPos[pos] = 0;
-    if (rs.reviewed) byPos[pos]++;
+  let reviewed = 0;
+  for (const rs of Object.values(state)) {
+    if (rs.reviewed) reviewed++;
   }
-  for (const [pos, count] of Object.entries(byPos)) {
-    const el = document.getElementById('reviewed-' + pos);
-    if (el) el.textContent = count;
-  }
+  document.getElementById('reviewed-total').textContent = reviewed;
   const totalEdits = Object.values(state).filter(rs => rs.edits || rs.notes).length;
   document.getElementById('saveCount').textContent = totalEdits + ' rows with edits/notes';
 }
@@ -443,19 +548,6 @@ function showToast(msg) {
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2500);
 }
-
-// Tab switching
-const tabs = document.querySelectorAll('.tab');
-const sections = document.querySelectorAll('.pos-section');
-tabs.forEach(tab => {
-  tab.addEventListener('click', () => {
-    tabs.forEach(t => t.classList.remove('active'));
-    sections.forEach(s => s.classList.remove('active'));
-    tab.classList.add('active');
-    document.querySelector(\`.pos-section[data-pos="\${tab.dataset.pos}"]\`).classList.add('active');
-  });
-});
-if (tabs[0]) tabs[0].click();
 </script>
 </body>
 </html>`;
@@ -463,4 +555,5 @@ if (tabs[0]) tabs[0].click();
 const outputPath = path.join(OUTPUT_DIR, "review.html");
 fs.writeFileSync(outputPath, html);
 console.log(`Review page written to: ${outputPath}`);
-console.log(`Total flagged rows: ${data.reduce((s: any, r: any) => s + r.flaggedCount, 0)}`);
+console.log(`Total flagged rows: ${totalFlagged}`);
+console.log(`Error pattern groups: ${uniquePatterns}`);

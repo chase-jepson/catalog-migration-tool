@@ -7,7 +7,7 @@ export default defineConfig({
   manifest: {
     name: "Catalog Migration Tool",
     description:
-      "Transform product catalog and inventory data from other POS systems into Treez import files, review the generated files, and import the catalog into Treez.",
+      "Migrate product catalog and inventory data from other POS systems into Treez.",
     icons: {
       16: "icon-16.png",
       48: "icon-48.png",
