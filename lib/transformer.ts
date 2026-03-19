@@ -494,7 +494,8 @@ export function deriveRows(
     const rawClassification = getVal(row, fm, "classification");
     const rawWeight = getVal(row, fm, "weight");
     const rawPrice = getVal(row, fm, "basePrice");
-    const rawDescription = getVal(row, fm, "description");
+    const rawDescription =
+      getVal(row, fm, "description") || (row["Alternate description"] ?? "").trim();
     const rawMenuTitle = getVal(row, fm, "menuTitle");
     const rawAvailOnline = getVal(row, fm, "availableOnline");
     const rawImage = getVal(row, fm, "imageFilename");

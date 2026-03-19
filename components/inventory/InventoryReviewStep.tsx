@@ -436,17 +436,7 @@ export function InventoryReviewStep({
           <button
             type="button"
             onClick={handleRevalidate}
-            className="btn-treez-green font-[Roboto,sans-serif] font-medium"
-            style={{
-              padding: "0 20px",
-              borderRadius: "15px",
-              border: "none",
-              color: "#0f1709",
-              fontSize: "14px",
-              height: "40px",
-              letterSpacing: "0.4px",
-              lineHeight: "24px",
-            }}
+            className="btn-treez -primary"
           >
             Re-validate
           </button>

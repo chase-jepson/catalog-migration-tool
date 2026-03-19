@@ -141,42 +141,6 @@ export function validateDerivedRows(derived: DerivedRow[]): ValidationResult {
           severity: "error",
         });
       }
-    } else {
-      errors.push({
-        rowIndex: i,
-        field: "classification",
-        currentValue: "",
-        message: "Classification is empty",
-        fixType: "dropdown",
-        dropdownOptions: [...VALID_CLASSIFICATIONS],
-        severity: "warning",
-      });
-    }
-
-    // ── Optional fields (severity: 'warning') ────────────────────────────
-
-    // strain: warn if empty
-    if (!row.strain?.trim()) {
-      errors.push({
-        rowIndex: i,
-        field: "strain",
-        currentValue: row.strain || "",
-        message: "Strain is empty",
-        fixType: "text",
-        severity: "warning",
-      });
-    }
-
-    // description: warn if empty
-    if (!row.description?.trim()) {
-      errors.push({
-        rowIndex: i,
-        field: "description",
-        currentValue: row.description || "",
-        message: "Description is empty",
-        fixType: "text",
-        severity: "warning",
-      });
     }
   }
 

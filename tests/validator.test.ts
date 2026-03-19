@@ -61,13 +61,11 @@ describe("validateDerivedRows", () => {
     expect(catError!.dropdownOptions).toEqual([...PRODUCT_CATEGORIES]);
   });
 
-  it("returns warning severity for missing optional description", () => {
+  it("does not warn for missing optional description", () => {
     const rows = [makeRow({ description: "" })];
     const result = validateDerivedRows(rows);
-    expect(result.warningCount).toBeGreaterThan(0);
     const descWarning = result.errors.find((e) => e.field === "description");
-    expect(descWarning).toBeDefined();
-    expect(descWarning!.severity).toBe("warning");
+    expect(descWarning).toBeUndefined();
   });
 
   it("returns error with dropdown for invalid classification", () => {
@@ -117,20 +115,18 @@ describe("validateDerivedRows", () => {
     expect(subError!.dropdownOptions).toEqual(PRODUCT_SUBCATEGORIES["Flower"]);
   });
 
-  it("returns warning for missing optional strain", () => {
+  it("does not warn for missing optional strain", () => {
     const rows = [makeRow({ strain: "" })];
     const result = validateDerivedRows(rows);
     const strainWarning = result.errors.find((e) => e.field === "strain");
-    expect(strainWarning).toBeDefined();
-    expect(strainWarning!.severity).toBe("warning");
+    expect(strainWarning).toBeUndefined();
   });
 
-  it("returns warning for empty classification (not invalid)", () => {
+  it("does not warn for empty classification", () => {
     const rows = [makeRow({ classification: "" })];
     const result = validateDerivedRows(rows);
     const classWarning = result.errors.find((e) => e.field === "classification");
-    expect(classWarning).toBeDefined();
-    expect(classWarning!.severity).toBe("warning");
+    expect(classWarning).toBeUndefined();
   });
 
   it("produces multiple errors for a single row with multiple issues", () => {
@@ -154,9 +150,9 @@ describe("validateDerivedRows", () => {
   it("counts errors and warnings correctly in result", () => {
     const rows = [makeRow({ productName: "", description: "", strain: "" })];
     const result = validateDerivedRows(rows);
-    // productName = error, description = warning, strain = warning
+    // productName = error; description and strain are not flagged
     expect(result.errorCount).toBe(1);
-    expect(result.warningCount).toBe(2);
+    expect(result.warningCount).toBe(0);
   });
 });
 

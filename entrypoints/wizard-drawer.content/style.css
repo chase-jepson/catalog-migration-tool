@@ -14,35 +14,124 @@
   font-family: "Roboto", sans-serif !important;
 }
 
-/* Back button hover — matches Treez "Copy Product" hover (light green bg) */
-.btn-treez-text {
-  background-color: transparent;
-  transition: background-color 0.15s;
+/* ── Button system ─────────────────────────────────────────────────────────
+   Base class `.btn-treez` provides shared sizing/font/transitions.
+   Combine with a variant: `-primary`, `-secondary`, `-outline`, `-danger`.
+   Add `-sm` for compact buttons (36px height). */
+
+.btn-treez {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Roboto", sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 15px;
+  border: none;
+  letter-spacing: 0.4px;
+  line-height: 24px;
+  cursor: pointer;
+  transition: background-color 0.15s, opacity 0.15s;
+  white-space: nowrap;
 }
-.btn-treez-text:hover {
-  background-color: #e8f7d0;
+.btn-treez:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
-/* Rollback button hover — light grey, not green */
-.btn-treez-rollback {
-  background-color: transparent;
-  transition: background-color 0.15s;
-}
-.btn-treez-rollback:hover {
-  background-color: #f0f0f0;
-}
-
-/* Green button hover — slightly darker like Treez active tab */
-.btn-treez-green {
+/* Primary — green fill (main actions: Next, Import, Start New) */
+.btn-treez.-primary {
   background-color: #a9e079;
-  transition: background-color 0.15s;
+  color: #0f1709;
 }
-.btn-treez-green:hover:not(:disabled) {
+.btn-treez.-primary:hover:not(:disabled) {
   background-color: #96d066;
 }
 
-/* Custom select dropdown arrow matching Treez MUI ArrowDropDown */
-select {
+/* Secondary — text-only, subtle green hover (Back, Cancel, Start Over) */
+.btn-treez.-secondary {
+  background-color: transparent;
+  color: #1a4007;
+  padding: 0 12px;
+}
+.btn-treez.-secondary:hover:not(:disabled) {
+  background-color: #e8f7d0;
+}
+
+/* Outline — bordered (Download, alternate actions) */
+.btn-treez.-outline {
+  background-color: transparent;
+  color: #1a4007;
+  border: 1px solid #1a4007;
+}
+.btn-treez.-outline:hover:not(:disabled) {
+  background-color: #e8f7d0;
+}
+
+/* Danger — red outline (Rollback) */
+.btn-treez.-danger {
+  background-color: transparent;
+  color: #d32f2f;
+  border: 1px solid #d32f2f;
+}
+.btn-treez.-danger:hover:not(:disabled) {
+  background-color: #fef2f2;
+}
+
+/* Small size modifier */
+.btn-treez.-sm {
+  height: 36px;
+  font-size: 13px;
+  padding: 0 16px;
+}
+
+/* ── Form elements ─────────────────────────────────────────────────────────
+   `.treez-input` and `.treez-select` provide consistent styling. */
+
+.treez-input,
+.treez-select {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background-color: white;
+  padding: 7px 12px;
+  font-family: "Roboto", sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: #111827;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.treez-input:focus,
+.treez-select:focus {
+  border-color: #a9e079;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(169, 224, 121, 0.25);
+}
+.treez-input::placeholder {
+  color: #9ca3af;
+}
+.treez-input:disabled,
+.treez-select:disabled {
+  background-color: #f9fafb;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Select retains the custom MUI-style arrow */
+.treez-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='rgba(0,0,0,0.54)'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 20px;
+  padding-right: 36px;
+}
+
+/* ── Legacy compat (keep for any stragglers) ───────────────────────────── */
+select:not(.treez-select) {
   appearance: none;
   -webkit-appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='rgba(0,0,0,0.54)'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
@@ -50,4 +139,16 @@ select {
   background-position: right 8px center;
   background-size: 20px;
   padding-right: 32px !important;
+}
+
+/* ── Step indicator ────────────────────────────────────────────────────── */
+
+.step-connector {
+  flex: 1;
+  height: 2px;
+  background-color: #e0e0e0;
+  transition: background-color 0.3s;
+}
+.step-connector.-completed {
+  background-color: #a9e079;
 }

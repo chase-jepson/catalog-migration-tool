@@ -478,17 +478,7 @@ export function ImportStep({
               type="button"
               onClick={handleStartImport}
               disabled={derivedRows.length === 0}
-              className="btn-treez-green font-[Roboto,sans-serif] font-medium disabled:cursor-not-allowed disabled:opacity-40"
-              style={{
-                padding: "0 20px",
-                borderRadius: "15px",
-                border: "none",
-                color: "#0f1709",
-                fontSize: "14px",
-                height: "40px",
-                letterSpacing: "0.4px",
-                lineHeight: "24px",
-              }}
+              className="btn-treez -primary"
             >
               Start Import
             </button>
@@ -540,15 +530,7 @@ export function ImportStep({
                 <button
                   type="button"
                   onClick={handleRetry}
-                  className="btn-treez-green flex-1 font-[Roboto,sans-serif] font-medium"
-                  style={{
-                    padding: "0 20px",
-                    borderRadius: "15px",
-                    border: "none",
-                    color: "#0f1709",
-                    fontSize: "14px",
-                    height: "40px",
-                  }}
+                  className="btn-treez -primary flex-1"
                 >
                   Retry from {failedFileLabel}
                 </button>
@@ -556,15 +538,7 @@ export function ImportStep({
               <button
                 type="button"
                 onClick={onStartNew}
-                className={`btn-treez-text font-[Roboto,sans-serif] font-medium ${failedFileIndex >= 0 ? "" : "flex-1"}`}
-                style={{
-                  padding: "8px 10px",
-                  borderRadius: "16px",
-                  border: "none",
-                  color: "#1a4007",
-                  fontSize: "15px",
-                  height: "40px",
-                }}
+                className={`btn-treez -secondary ${failedFileIndex >= 0 ? "" : "flex-1"}`}
               >
                 Start Over
               </button>

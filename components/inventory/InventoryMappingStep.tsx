@@ -205,7 +205,7 @@ export function InventoryMappingStep({
                             e.target.value === "" ? null : e.target.value,
                           )
                         }
-                        className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-700 focus:border-treez-accent-muted0 focus:outline-none focus:ring-1 focus:ring-treez-accent-muted0"
+                        className="treez-select"
                       >
                         <option value="">-- Not mapped --</option>
                         {headers.map((h) => (

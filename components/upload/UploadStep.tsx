@@ -190,7 +190,7 @@ export function UploadStep({
           <button
             type="button"
             onClick={handleSheetConfirm}
-            className="rounded-md bg-treez-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-treez-primary"
+            className="btn-treez -primary -sm"
           >
             Parse selected sheet
           </button>

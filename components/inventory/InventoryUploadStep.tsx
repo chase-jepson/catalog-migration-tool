@@ -346,16 +346,7 @@ export function InventoryUploadStep({
           <button
             type="button"
             onClick={handleSheetConfirm}
-            className="btn-treez-green font-[Roboto,sans-serif] font-medium"
-            style={{
-              padding: "0 16px",
-              borderRadius: "15px",
-              border: "none",
-              color: "#0f1709",
-              fontSize: "14px",
-              height: "36px",
-              letterSpacing: "0.4px",
-            }}
+            className="btn-treez -primary -sm"
           >
             Parse selected sheet
           </button>
@@ -416,7 +407,7 @@ export function InventoryUploadStep({
                     onChange={(e) =>
                       handleRoleChange(file.fileName, e.target.value as InventoryFileRole)
                     }
-                    className="mt-1 w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-700 focus:border-treez-accent-muted0 focus:outline-none focus:ring-1 focus:ring-treez-accent-muted0"
+                    className="treez-select mt-1"
                   >
                     {INVENTORY_FILE_ROLES.map((r) => (
                       <option key={r.role} value={r.role}>
@@ -508,7 +499,7 @@ export function InventoryUploadStep({
             value={dispensaryLicense}
             onChange={(e) => handleLicenseChange(e.target.value)}
             placeholder="e.g., C12-0000331-LIC"
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-treez-accent-muted0 focus:outline-none focus:ring-1 focus:ring-treez-accent-muted0"
+            className="treez-input"
           />
           <p className="text-xs text-gray-500">
             Required. This license number will be included in every row of the import.

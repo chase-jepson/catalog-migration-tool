@@ -22,6 +22,9 @@ describe("applyPOSDefaults", () => {
 
     const sku = mappings.find((m) => m.fieldKey === "productIdentifier");
     expect(sku?.sourceHeader).toBe("SKU");
+
+    const desc = mappings.find((m) => m.fieldKey === "description");
+    expect(desc?.sourceHeader).toBe("Online description");
   });
 
   it("returns correct mappings for each POS system", () => {

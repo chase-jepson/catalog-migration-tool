@@ -80,17 +80,7 @@ export function FileDropZone({ onFilesSelected, disabled }: FileDropZoneProps) {
             type="button"
             disabled={disabled}
             onClick={() => inputRef.current?.click()}
-            className="btn-treez-green font-[Roboto,sans-serif] font-medium disabled:cursor-not-allowed disabled:opacity-50"
-            style={{
-              padding: "0 16px",
-              borderRadius: "15px",
-              border: "none",
-              color: "#0f1709",
-              fontSize: "14px",
-              height: "36px",
-              letterSpacing: "0.4px",
-              lineHeight: "24px",
-            }}
+            className="btn-treez -primary -sm"
           >
             Choose file
           </button>

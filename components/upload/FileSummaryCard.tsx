@@ -116,7 +116,7 @@ export function FileSummaryCard({
                 onSelectedPOSChange(e.target.value);
                 setShowPOSDropdown(false);
               }}
-              className="mt-2 w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-treez-accent-muted0 focus:outline-none focus:ring-1 focus:ring-treez-accent-muted0"
+              className="treez-select mt-2"
             >
               <option value="">-- Select POS --</option>
               {POS_OPTIONS.map((pos) => (

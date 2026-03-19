@@ -508,17 +508,7 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
             <button
               type="button"
               onClick={() => setCurrentStep((s) => s - 1)}
-              className="btn-treez-text font-[Roboto,sans-serif] font-medium"
-              style={{
-                padding: "8px 10px",
-                borderRadius: "16px",
-                border: "none",
-                color: "#1a4007",
-                fontSize: "15px",
-                height: "40px",
-                letterSpacing: "0.43px",
-                lineHeight: "24px",
-              }}
+              className="btn-treez -secondary"
             >
               Back
             </button>
@@ -527,19 +517,7 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
             href="https://gitlab.com/chase_jepson/catalog-migration-tool-v2/-/issues/new?issuable_template=Bug%20Report"
             target="_blank"
             rel="noopener noreferrer"
-            className="font-[Roboto,sans-serif]"
-            style={{
-              fontSize: "12px",
-              color: "#9e9e9e",
-              textDecoration: "none",
-              letterSpacing: "0.3px",
-            }}
-            onMouseEnter={(e) => {
-              (e.target as HTMLAnchorElement).style.color = "#616161";
-            }}
-            onMouseLeave={(e) => {
-              (e.target as HTMLAnchorElement).style.color = "#9e9e9e";
-            }}
+            className="font-[Roboto,sans-serif] text-xs tracking-wide text-gray-400 no-underline transition-colors hover:text-gray-500"
           >
             Report an issue
           </a>
@@ -549,17 +527,7 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
             type="button"
             disabled={!canProceed}
             onClick={() => setCurrentStep((s) => s + 1)}
-            className="btn-treez-green font-[Roboto,sans-serif] font-medium disabled:cursor-not-allowed disabled:opacity-40"
-            style={{
-              padding: "0 20px",
-              borderRadius: "15px",
-              border: "none",
-              color: "#0f1709",
-              fontSize: "14px",
-              height: "40px",
-              letterSpacing: "0.4px",
-              lineHeight: "24px",
-            }}
+            className="btn-treez -primary"
           >
             {nextButtonLabel}
           </button>
@@ -578,17 +546,7 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
                 }
               }
             }}
-            className="btn-treez-green font-[Roboto,sans-serif] font-medium"
-            style={{
-              padding: "0 20px",
-              borderRadius: "15px",
-              border: "none",
-              color: "#0f1709",
-              fontSize: "14px",
-              height: "40px",
-              letterSpacing: "0.4px",
-              lineHeight: "24px",
-            }}
+            className="btn-treez -primary"
           >
             Done
           </button>

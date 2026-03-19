@@ -205,7 +205,7 @@ export const POS_DEFAULTS: Record<string, Record<string, string>> = {
     classification: "Strain Type",
     weight: "Product grams",
     basePrice: "Price",
-    description: "Alternate description",
+    description: "Online description",
     menuTitle: "Online title",
     availableOnline: "Is available online",
     imageFilename: "Image URL",

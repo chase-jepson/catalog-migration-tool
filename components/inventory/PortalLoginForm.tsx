@@ -62,8 +62,7 @@ export function PortalLoginForm({ onAuthenticated }: PortalLoginFormProps) {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           disabled={loading}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-[#1a4007] focus:outline-none focus:ring-1 focus:ring-[#1a4007] disabled:opacity-50"
-          style={{ fontFamily: "Roboto, sans-serif" }}
+          className="treez-input"
         />
         <input
           type="password"
@@ -71,25 +70,14 @@ export function PortalLoginForm({ onAuthenticated }: PortalLoginFormProps) {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           disabled={loading}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-[#1a4007] focus:outline-none focus:ring-1 focus:ring-[#1a4007] disabled:opacity-50"
-          style={{ fontFamily: "Roboto, sans-serif" }}
+          className="treez-input"
         />
       </div>
 
       <button
         type="submit"
         disabled={loading || !email || !password}
-        className="btn-treez-green w-full font-[Roboto,sans-serif] font-medium disabled:cursor-not-allowed disabled:opacity-40"
-        style={{
-          padding: "0 20px",
-          borderRadius: "15px",
-          border: "none",
-          color: "#0f1709",
-          fontSize: "14px",
-          height: "40px",
-          letterSpacing: "0.4px",
-          lineHeight: "24px",
-        }}
+        className="btn-treez -primary w-full"
       >
         {loading ? (
           <span className="flex items-center justify-center gap-2">

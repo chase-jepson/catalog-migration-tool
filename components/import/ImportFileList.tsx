@@ -46,7 +46,7 @@ function StatusIcon({ status }: { status: ImportFileState["status"] }) {
     case "uploading":
     case "processing":
       return (
-        <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-treez-accent border-t-transparent" />
+        <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-treez-primary border-t-transparent" />
       );
     default:
       // pending -- gray circle
@@ -130,7 +130,7 @@ export function ImportFileList({ files, currentIndex, eta }: ImportFileListProps
               {isCurrent && isActive && (
                 <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-200">
                   <div
-                    className="h-full rounded-full bg-treez-accent transition-all duration-300"
+                    className="h-full rounded-full bg-treez-primary transition-all duration-300"
                     style={{ width: `${percent}%` }}
                   />
                 </div>

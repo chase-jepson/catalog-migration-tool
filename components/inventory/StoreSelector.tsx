@@ -228,30 +228,14 @@ export function StoreSelector({
             <button
               type="button"
               onClick={handleCancelChange}
-              className="btn-treez-text font-[Roboto,sans-serif] font-medium"
-              style={{
-                padding: "0 16px",
-                borderRadius: "15px",
-                border: "none",
-                color: "#1a4007",
-                fontSize: "14px",
-                height: "32px",
-              }}
+              className="btn-treez -secondary -sm"
             >
               Cancel
             </button>
             <button
               type="button"
               onClick={handleConfirmChange}
-              className="btn-treez-green font-[Roboto,sans-serif] font-medium"
-              style={{
-                padding: "0 16px",
-                borderRadius: "15px",
-                border: "none",
-                color: "#0f1709",
-                fontSize: "14px",
-                height: "32px",
-              }}
+              className="btn-treez -primary -sm"
             >
               Change Store
             </button>

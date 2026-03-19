@@ -440,17 +440,7 @@ export function InventoryImportStep({
                 type="button"
                 onClick={handleDownload}
                 disabled={activeRows.length === 0}
-                className="btn-treez-text flex-1 font-[Roboto,sans-serif] font-medium disabled:cursor-not-allowed disabled:opacity-40"
-                style={{
-                  padding: "0 20px",
-                  borderRadius: "15px",
-                  border: "1px solid #1a4007",
-                  color: "#1a4007",
-                  fontSize: "14px",
-                  height: "40px",
-                  letterSpacing: "0.4px",
-                  lineHeight: "24px",
-                }}
+                className="btn-treez -outline flex-1"
               >
                 Download
               </button>
@@ -458,17 +448,7 @@ export function InventoryImportStep({
                 type="button"
                 onClick={portalJobId ? handlePortalExecute : handleStartImport}
                 disabled={activeRows.length === 0}
-                className="btn-treez-green flex-1 font-[Roboto,sans-serif] font-medium disabled:cursor-not-allowed disabled:opacity-40"
-                style={{
-                  padding: "0 20px",
-                  borderRadius: "15px",
-                  border: "none",
-                  color: "#0f1709",
-                  fontSize: "14px",
-                  height: "40px",
-                  letterSpacing: "0.4px",
-                  lineHeight: "24px",
-                }}
+                className="btn-treez -primary flex-1"
               >
                 Import
               </button>
@@ -562,16 +542,7 @@ export function InventoryImportStep({
                     <button
                       type="submit"
                       disabled={!reindexUsername || !reindexPassword}
-                      className="btn-treez-green w-full font-[Roboto,sans-serif] font-medium disabled:cursor-not-allowed disabled:opacity-40"
-                      style={{
-                        padding: "0 16px",
-                        borderRadius: "15px",
-                        border: "none",
-                        color: "#0f1709",
-                        fontSize: "13px",
-                        height: "36px",
-                        letterSpacing: "0.4px",
-                      }}
+                      className="btn-treez -primary -sm w-full"
                     >
                       Reindex
                     </button>
@@ -602,17 +573,7 @@ export function InventoryImportStep({
               <button
                 type="button"
                 onClick={onStartNew}
-                className="btn-treez-green flex-1 font-[Roboto,sans-serif] font-medium"
-                style={{
-                  padding: "0 20px",
-                  borderRadius: "15px",
-                  border: "none",
-                  color: "#0f1709",
-                  fontSize: "14px",
-                  height: "40px",
-                  letterSpacing: "0.4px",
-                  lineHeight: "24px",
-                }}
+                className="btn-treez -primary flex-1"
               >
                 Start New Migration
               </button>
@@ -620,15 +581,7 @@ export function InventoryImportStep({
                 <button
                   type="button"
                   onClick={handleRollback}
-                  className="btn-treez-rollback flex-1 font-[Roboto,sans-serif] font-medium"
-                  style={{
-                    padding: "0 16px",
-                    borderRadius: "15px",
-                    border: "1px solid #d32f2f",
-                    color: "#d32f2f",
-                    fontSize: "14px",
-                    height: "40px",
-                  }}
+                  className="btn-treez -danger flex-1"
                 >
                   Rollback Import
                 </button>
@@ -663,17 +616,7 @@ export function InventoryImportStep({
             <button
               type="button"
               onClick={onStartNew}
-              className="btn-treez-green w-full font-[Roboto,sans-serif] font-medium"
-              style={{
-                padding: "0 20px",
-                borderRadius: "15px",
-                border: "none",
-                color: "#0f1709",
-                fontSize: "14px",
-                height: "40px",
-                letterSpacing: "0.4px",
-                lineHeight: "24px",
-              }}
+              className="btn-treez -primary w-full"
             >
               Start New Migration
             </button>
@@ -691,32 +634,14 @@ export function InventoryImportStep({
               <button
                 type="button"
                 onClick={handleStartImport}
-                className="btn-treez-green flex-1 font-[Roboto,sans-serif] font-medium"
-                style={{
-                  padding: "0 20px",
-                  borderRadius: "15px",
-                  border: "none",
-                  color: "#0f1709",
-                  fontSize: "14px",
-                  height: "40px",
-                  letterSpacing: "0.4px",
-                  lineHeight: "24px",
-                }}
+                className="btn-treez -primary flex-1"
               >
                 Retry
               </button>
               <button
                 type="button"
                 onClick={onStartNew}
-                className="btn-treez-text font-[Roboto,sans-serif] font-medium"
-                style={{
-                  padding: "8px 10px",
-                  borderRadius: "16px",
-                  border: "none",
-                  color: "#1a4007",
-                  fontSize: "15px",
-                  height: "40px",
-                }}
+                className="btn-treez -secondary flex-1"
               >
                 Start Over
               </button>
