@@ -1,6 +1,7 @@
 stages:
   - test
   - build
+  - publish
 
 variables:
   NODE_VERSION: "20"
@@ -55,5 +56,40 @@ release:
       links:
         - name: "Chrome Extension ZIP"
           url: "${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_TAG}/raw/.output/catalog-migration-tool-chrome.zip?job=build"
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+
+publish_to_chrome_store:
+  stage: publish
+  image: curlimages/curl:latest
+  needs:
+    - job: build
+      artifacts: true
+  script:
+    # Get access token from refresh token
+    - |
+      ACCESS_TOKEN=$(curl -s -X POST https://oauth2.googleapis.com/token \
+        -d "client_id=${CWS_CLIENT_ID}" \
+        -d "client_secret=${CWS_CLIENT_SECRET}" \
+        -d "refresh_token=${CWS_REFRESH_TOKEN}" \
+        -d "grant_type=refresh_token" | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')
+    # Upload the zip to Chrome Web Store
+    - |
+      UPLOAD_RESULT=$(curl -s -X PUT \
+        "https://www.googleapis.com/upload/chromewebstore/v1.1/items/${CWS_EXTENSION_ID}" \
+        -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+        -H "x-goog-api-version: 2" \
+        -T .output/catalog-migration-tool-chrome.zip)
+      echo "Upload result: $UPLOAD_RESULT"
+      echo "$UPLOAD_RESULT" | grep -q '"FAILURE"' && exit 1 || true
+    # Publish the uploaded version
+    - |
+      PUBLISH_RESULT=$(curl -s -X POST \
+        "https://www.googleapis.com/chromewebstore/v1.1/items/${CWS_EXTENSION_ID}/publish" \
+        -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+        -H "x-goog-api-version: 2" \
+        -H "Content-Length: 0")
+      echo "Publish result: $PUBLISH_RESULT"
+      echo "$PUBLISH_RESULT" | grep -q '"OK"' || echo "$PUBLISH_RESULT" | grep -q '"PUBLISHED_WITH_FRICTION_WARNING"' || exit 1
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
