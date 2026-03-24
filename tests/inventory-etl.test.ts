@@ -784,8 +784,8 @@ describe("Inventory Transformer", () => {
       const result = processVendors(vendorRows, makeVendorMappings());
 
       expect(Object.keys(result)).toHaveLength(2);
-      expect(result["V1"]).toBeDefined();
-      expect(result["V2"]).toBeDefined();
+      expect(result["v1"]).toBeDefined();
+      expect(result["v2"]).toBeDefined();
     });
 
     it("merges vendor codes across rows and splits into licenses 1-3", () => {
@@ -826,12 +826,12 @@ describe("Inventory Transformer", () => {
       ];
       const result = processVendors(vendorRows, makeVendorMappings());
 
-      expect(result["V"].distributorLicense1Number).toBe("LIC-A");
-      expect(result["V"].distributorLicense2Number).toBe("LIC-B");
-      expect(result["V"].distributorLicense3Number).toBe("LIC-C");
-      expect(result["V"].distributorLicense1Type).toBe("Adult");
-      expect(result["V"].distributorLicense2Type).toBe("Adult");
-      expect(result["V"].distributorLicense3Type).toBe("Adult");
+      expect(result["v"].distributorLicense1Number).toBe("LIC-A");
+      expect(result["v"].distributorLicense2Number).toBe("LIC-B");
+      expect(result["v"].distributorLicense3Number).toBe("LIC-C");
+      expect(result["v"].distributorLicense1Type).toBe("Adult");
+      expect(result["v"].distributorLicense2Type).toBe("Adult");
+      expect(result["v"].distributorLicense3Type).toBe("Adult");
     });
 
     it("splits comma-separated codes in a single cell", () => {
@@ -850,8 +850,8 @@ describe("Inventory Transformer", () => {
       ];
       const result = processVendors(vendorRows, makeVendorMappings());
 
-      expect(result["V"].distributorLicense1Number).toBe("LIC-X");
-      expect(result["V"].distributorLicense2Number).toBe("LIC-Y");
+      expect(result["v"].distributorLicense1Number).toBe("LIC-X");
+      expect(result["v"].distributorLicense2Number).toBe("LIC-Y");
     });
 
     it("builds distributor address from parts", () => {
@@ -870,10 +870,10 @@ describe("Inventory Transformer", () => {
       ];
       const result = processVendors(vendorRows, makeVendorMappings());
 
-      expect(result["V"].distributorAddress).toBe("123 Main LA, CA 90001");
-      expect(result["V"].distributorDBA).toBe("VA");
-      expect(result["V"].distributorPhoneNumber).toBe("555-1234");
-      expect(result["V"].distributorEmail).toBe("v@test.com");
+      expect(result["v"].distributorAddress).toBe("123 Main LA, CA 90001");
+      expect(result["v"].distributorDBA).toBe("VA");
+      expect(result["v"].distributorPhoneNumber).toBe("555-1234");
+      expect(result["v"].distributorEmail).toBe("v@test.com");
     });
 
     it("sets distributor type to Non-Arms Length", () => {
@@ -891,7 +891,7 @@ describe("Inventory Transformer", () => {
         },
       ];
       const result = processVendors(vendorRows, makeVendorMappings());
-      expect(result["V"].distributorType).toBe("Non-Arms Length");
+      expect(result["v"].distributorType).toBe("Non-Arms Length");
     });
 
     it("skips vendors with empty name", () => {
@@ -928,7 +928,7 @@ describe("Inventory Transformer", () => {
       ];
       const result = processVendors(vendorRows, makeVendorMappings());
 
-      const exp = result["V"].distributorLicense1ExpirationDate;
+      const exp = result["v"].distributorLicense1ExpirationDate;
       expect(exp).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       // Should be ~2 years from now
       const expYear = parseInt(exp.substring(0, 4), 10);

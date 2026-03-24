@@ -96,8 +96,10 @@ export function buildInventoryCSV(rows: InventoryDerivedRow[]): string[][] {
  * Serialize a 2D string array to a CSV string.
  * Handles quoting of cells containing commas, quotes, or newlines.
  */
+const UTF8_BOM = "\uFEFF";
+
 export function serializeCSV(rows: string[][]): string {
-  return rows
+  return UTF8_BOM + rows
     .map((row) =>
       row
         .map((cell) => {

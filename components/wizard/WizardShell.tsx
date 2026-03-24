@@ -45,6 +45,8 @@ import type {
   InventoryFileAssignment,
   InventoryFileRole,
   PerRoleMappingsState,
+  PersistedMigrationState,
+  PersistedInventoryState,
 } from "../../lib/types";
 
 interface WizardShellProps {
@@ -87,6 +89,10 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
     ...EMPTY_PER_ROLE_MAPPINGS,
   });
 
+  const [showResumePrompt, setShowResumePrompt] = useState(false);
+  const [pendingState, setPendingState] = useState<
+    PersistedMigrationState | PersistedInventoryState | null
+  >(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const title = wizardType === "catalog" ? "Migrate Catalog" : "Migrate Inventory";
@@ -155,13 +161,62 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
     };
   }, [wizardType]);
 
-  // ── Clear persisted state on mount (always start fresh) ─────────────────
+  // ── Check for persisted state on mount ──────────────────────────────────
   useEffect(() => {
+    (async () => {
+      const saved =
+        wizardType === "inventory"
+          ? await loadInventoryState()
+          : await loadMigrationState();
+
+      if (saved && saved.parsedFiles.length > 0 && saved.currentStep > 0) {
+        setPendingState(saved);
+        setShowResumePrompt(true);
+      } else {
+        // No meaningful state to restore — start fresh
+        if (wizardType === "inventory") {
+          clearInventoryState();
+        } else {
+          clearMigrationState();
+        }
+        setRestored(true);
+      }
+    })();
+  }, [wizardType]);
+
+  const handleResume = useCallback(() => {
+    if (!pendingState) return;
+
+    setParsedFiles(pendingState.parsedFiles);
+    if (pendingState.parsedFiles.length > 0) {
+      setMergedFile(mergeFiles(pendingState.parsedFiles));
+    }
+    setSelectedPOS(pendingState.selectedPOS);
+    setMappings(pendingState.mappings);
+    setFixes(pendingState.fixes);
+    setCurrentStep(pendingState.currentStep);
+
+    if (wizardType === "inventory" && "selectedStore" in pendingState) {
+      const inv = pendingState as PersistedInventoryState;
+      setSelectedStore(inv.selectedStore);
+      setPerRoleMappings(inv.perRoleMappings);
+      setFileAssignments(inv.fileAssignments);
+      setDispensaryLicense(inv.dispensaryLicense);
+    }
+
+    setPendingState(null);
+    setShowResumePrompt(false);
+    setRestored(true);
+  }, [pendingState, wizardType]);
+
+  const handleStartFresh = useCallback(() => {
     if (wizardType === "inventory") {
       clearInventoryState();
     } else {
       clearMigrationState();
     }
+    setPendingState(null);
+    setShowResumePrompt(false);
     setRestored(true);
   }, [wizardType]);
 
@@ -490,11 +545,51 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
         />
       )}
 
+      {/* Resume prompt */}
+      {showResumePrompt && pendingState && (
+        <div className="flex flex-1 items-center justify-center bg-gray-50 p-8">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-md">
+            <h2 className="mb-2 text-base font-medium" style={{ color: "#0f1709" }}>
+              Resume previous migration?
+            </h2>
+            <p className="mb-1 text-sm" style={{ color: "#666" }}>
+              You have an in-progress {wizardType} migration
+              {pendingState.selectedPOS ? ` (${pendingState.selectedPOS})` : ""} with{" "}
+              {pendingState.parsedFiles.length} file
+              {pendingState.parsedFiles.length !== 1 ? "s" : ""} loaded.
+            </p>
+            <p className="mb-4 text-xs" style={{ color: "#999" }}>
+              Last updated {new Date(pendingState.updatedAt).toLocaleString()}
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={handleResume}
+                className="flex-1 cursor-pointer rounded-xl border-none px-4 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
+                style={{ backgroundColor: "#1a4007" }}
+              >
+                Resume
+              </button>
+              <button
+                type="button"
+                onClick={handleStartFresh}
+                className="flex-1 cursor-pointer rounded-xl bg-white px-4 py-2.5 text-sm font-medium transition-opacity hover:opacity-90"
+                style={{ color: "#1a4007", border: "1px solid #1a4007" }}
+              >
+                Start Fresh
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main content */}
-      <div className="flex flex-1 overflow-auto bg-gray-50">{renderStep()}</div>
+      {!showResumePrompt && (
+        <div className="flex flex-1 overflow-auto bg-gray-50">{renderStep()}</div>
+      )}
 
       {/* Footer — matches Treez drawer elevated bottom bar */}
-      <div
+      {!showResumePrompt && <div
         className="flex items-center justify-between bg-white"
         style={{
           padding: "16px 24px",
@@ -551,7 +646,7 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
             Done
           </button>
         ) : null}
-      </div>
+      </div>}
     </div>
   );
 }

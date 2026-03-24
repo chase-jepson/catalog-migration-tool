@@ -309,8 +309,8 @@ describe("processVendors", () => {
 
     const result = processVendors(vendorRows, makeVendorMappings());
 
-    expect(result["Vendor A"]).toBeDefined();
-    expect(result["Vendor A"].distributorAddress).toBe("123 Main St LA, CA 90001");
+    expect(result["vendor a"]).toBeDefined();
+    expect(result["vendor a"].distributorAddress).toBe("123 Main St LA, CA 90001");
   });
 
   it("creates 32 distributor columns", () => {
@@ -329,7 +329,7 @@ describe("processVendors", () => {
     ];
 
     const result = processVendors(vendorRows, makeVendorMappings());
-    const v = result["Vendor A"];
+    const v = result["vendor a"];
 
     expect(v.distributorName).toBe("Vendor A");
     expect(v.distributorDBA).toBe("VA");
@@ -370,12 +370,12 @@ describe("processVendors", () => {
 
     const result = processVendors(vendorRows, makeVendorMappings());
 
-    expect(result["V"].distributorLicense1Type).toBe("Adult");
-    expect(result["V"].distributorLicense1Number).toBe("LIC-1");
-    expect(result["V"].distributorLicense2Type).toBe("Adult");
-    expect(result["V"].distributorLicense2Number).toBe("LIC-2");
-    expect(result["V"].distributorLicense3Type).toBe("");
-    expect(result["V"].distributorLicense3Number).toBe("");
+    expect(result["v"].distributorLicense1Type).toBe("Adult");
+    expect(result["v"].distributorLicense1Number).toBe("LIC-1");
+    expect(result["v"].distributorLicense2Type).toBe("Adult");
+    expect(result["v"].distributorLicense2Number).toBe("LIC-2");
+    expect(result["v"].distributorLicense3Type).toBe("");
+    expect(result["v"].distributorLicense3Number).toBe("");
   });
 
   it("generates license expiration (today + 2 years) for non-empty licenses", () => {
@@ -396,9 +396,9 @@ describe("processVendors", () => {
     const result = processVendors(vendorRows, makeVendorMappings());
 
     // Expiration should be a valid date string
-    expect(result["V"].distributorLicense1ExpirationDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(result["v"].distributorLicense1ExpirationDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     // License 2 has no number, so no expiration
-    expect(result["V"].distributorLicense2ExpirationDate).toBe("");
+    expect(result["v"].distributorLicense2ExpirationDate).toBe("");
   });
 });
 
@@ -544,7 +544,7 @@ describe("joinChain", () => {
       { ExternalPackageId: "PKG-1", Units: "10", ProductSKU: "SKU-1", VendorName: "Vendor A" },
     ];
     const distributorData = {
-      "Vendor A": { distributorName: "Vendor A", distributorDBA: "VA" },
+      "vendor a": { distributorName: "Vendor A", distributorDBA: "VA" },
     } as any;
 
     const result = joinChain(inventoryData, [], distributorData, []);

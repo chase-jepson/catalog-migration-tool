@@ -795,7 +795,7 @@ describe("MED/REC prefix injection", () => {
 // ── Price Conversion ─────────────────────────────────────────────────────────
 
 describe("price conversion edge cases", () => {
-  it("$0 price falls back to 1 cent", () => {
+  it("$0 price returns 0 so validator catches it", () => {
     const row = derive({
       SKU: "PR-001",
       Product: "Free Sample",
@@ -803,10 +803,10 @@ describe("price conversion edge cases", () => {
       Weight: "1g",
       Price: "$0.00",
     });
-    expect(row.basePrice).toBe("1");
+    expect(row.basePrice).toBe("0");
   });
 
-  it("empty price falls back to 1 cent", () => {
+  it("empty price returns 0 so validator catches it", () => {
     const row = derive({
       SKU: "PR-002",
       Product: "No Price Product",
@@ -814,7 +814,7 @@ describe("price conversion edge cases", () => {
       Weight: "1g",
       Price: "",
     });
-    expect(row.basePrice).toBe("1");
+    expect(row.basePrice).toBe("0");
   });
 
   it("normal price converts to cents", () => {

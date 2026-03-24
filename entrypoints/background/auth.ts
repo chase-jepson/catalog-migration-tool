@@ -134,7 +134,22 @@ export async function getValidToken(tabId: number, tabUrl: string): Promise<stri
   refreshInProgress = refreshAccessToken(tokens.refreshToken, env);
   try {
     const refreshed = await refreshInProgress;
-    return refreshed?.accessToken ?? null;
+    if (!refreshed) return null;
+
+    // Persist refreshed tokens back to page localStorage so subsequent reads get the new token
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        func: (newTokens: string) => {
+          localStorage.setItem("tz-tokens", newTokens);
+        },
+        args: [JSON.stringify(refreshed)],
+      });
+    } catch {
+      // Non-fatal: token still works for this request, just won't be cached
+    }
+
+    return refreshed.accessToken;
   } finally {
     refreshInProgress = null;
   }

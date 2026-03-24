@@ -157,8 +157,18 @@ function deriveExtractionMethod(productName: string, description: string): strin
 
 // ── Status ───────────────────────────────────────────────────────────────────
 
+const INACTIVE_STATUS_VALUES = new Set([
+  "yes",          // Dutchie "Is retired"
+  "inactive",     // Generic
+  "disabled",     // Cova "Product Status"
+  "archived",     // Blaze
+  "retired",      // Generic
+  "discontinued", // Generic
+  "deleted",      // Soft-deleted products
+]);
+
 function deriveStatus(value: string): string {
-  return value.toLowerCase() === "yes" ? "inactive" : "active";
+  return INACTIVE_STATUS_VALUES.has(value.toLowerCase().trim()) ? "inactive" : "active";
 }
 
 // ── Weight / Amount Parsing ──────────────────────────────────────────────────
@@ -252,6 +262,10 @@ function extractGramsFromName(name: string): number {
 
   // Fractional ounce names
   if (/\b1\/8\s*(oz|ounce)?\b/i.test(name) || /\beighth\b/i.test(name)) return 3.5;
+  if (/\b(quarter|1\/4)\s*(oz|ounce)?\b/i.test(name)) return 7;
+  if (/\bhalf\s*[-]?\s*(oz|ounce)\b/i.test(name) || /\b1\/2\s*(oz|ounce)?\b/i.test(name)) return 14;
+  const nOzMatch = name.match(/\b(\d+)\s*(oz|ounce)s?\b/i);
+  if (nOzMatch) return parseFloat(nOzMatch[1]) * 28;
   if (/\bounces?\b/i.test(name)) return 28;
 
   return 0;
@@ -319,12 +333,12 @@ function extractMerchSize(productName: string): string {
 // ── Price Conversion ─────────────────────────────────────────────────────────
 
 function priceToCents(raw: string): string {
-  if (!raw) return "1";
+  if (!raw) return "0";
   const cleaned = raw.replace(/[$,\s]/g, "");
   const num = parseFloat(cleaned);
-  if (isNaN(num)) return "1";
+  if (isNaN(num)) return "0";
   const cents = Math.round(num * 100);
-  if (cents <= 0) return "1";
+  if (cents <= 0) return "0";
   return Math.min(cents, 99999999).toString();
 }
 

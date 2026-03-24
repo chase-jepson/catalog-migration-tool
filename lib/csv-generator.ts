@@ -43,12 +43,14 @@ function formatAmount(val: number): string {
  * Fields containing commas, quotes, or newlines are quoted;
  * embedded quotes are doubled.
  */
+const UTF8_BOM = "\uFEFF";
+
 export function arrayToCSV(data: string[][]): string {
-  return data
+  return UTF8_BOM + data
     .map((row) =>
       row
         .map((cell) => {
-          if (cell.includes(",") || cell.includes('"') || cell.includes("\n")) {
+          if (cell.includes(",") || cell.includes('"') || cell.includes("\n") || cell.includes("\r")) {
             return `"${cell.replace(/"/g, '""')}"`;
           }
           return cell;

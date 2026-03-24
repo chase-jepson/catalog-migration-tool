@@ -96,7 +96,7 @@ function formatDecimal2(val: any): string {
   if (Number.isNaN(num)) return String(val);
   // Use toFixed(2) then strip trailing zeros after decimal point
   const fixed = num.toFixed(2);
-  return fixed.replace(/\.?0+$/, "") || "0";
+  return fixed.replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "") || "0";
 }
 
 function emptyDistributor(): DistributorInfo {
@@ -250,7 +250,7 @@ export function processReceipts(
   });
 
   const dedupKey = (r: (typeof summedDescriptive)[0]) =>
-    `${r.ExternalPackageId}|${r.VendorName}|${r.ReceiveDate}|${r.OrderTitle}`;
+    `${r.ExternalPackageId}\0${r.VendorName}\0${r.ReceiveDate}\0${r.OrderTitle}`;
   const seenDedupKeys = new Set<string>();
   const deduped = summedDescriptive.filter((r) => {
     const key = dedupKey(r);
@@ -330,6 +330,7 @@ export function processVendors(
     {
       codes: Set<string>;
       rows: Record<string, string>[];
+      originalName: string;
     }
   >();
 
@@ -337,10 +338,11 @@ export function processVendors(
     const name = getVal(row, fm, "vnd_vendorName");
     if (!name) continue;
 
-    let group = vendorGroups.get(name);
+    const nameKey = name.toLowerCase();
+    let group = vendorGroups.get(nameKey);
     if (!group) {
-      group = { codes: new Set(), rows: [] };
-      vendorGroups.set(name, group);
+      group = { codes: new Set(), rows: [], originalName: name };
+      vendorGroups.set(nameKey, group);
     }
     group.rows.push(row);
 
@@ -354,8 +356,8 @@ export function processVendors(
     }
   }
 
-  // Step 2: Build distributor info for each unique vendor
-  for (const [name, group] of vendorGroups) {
+  // Step 2: Build distributor info for each unique vendor (keyed by lowercase for case-insensitive lookup)
+  for (const [nameKey, group] of vendorGroups) {
     // Use first row for address/contact info
     const row = group.rows[0];
     const codes = Array.from(group.codes);
@@ -387,8 +389,8 @@ export function processVendors(
     const lic2 = codes[1] ?? "";
     const lic3 = codes[2] ?? "";
 
-    result[name] = {
-      distributorName: name,
+    result[nameKey] = {
+      distributorName: group.originalName,
       distributorDBA: getVal(row, fm, "vnd_abbreviation"),
       distributorAddress: address,
       distributorPhoneNumber: getVal(row, fm, "vnd_contactPhone"),
@@ -520,11 +522,11 @@ export function joinChain(
   if (Object.keys(distributorData).length > 0) {
     result = result.map((row) => {
       const vendorName = row.VendorName ?? "";
-      // Try exact match
-      let distInfo = distributorData[vendorName];
+      // Try exact match (case-insensitive)
+      let distInfo = distributorData[vendorName.toLowerCase()];
       // Try pipe-separated parts
       if (!distInfo && vendorName.includes("|")) {
-        const parts = vendorName.split("|").map((p: string) => p.trim());
+        const parts = vendorName.split("|").map((p: string) => p.trim().toLowerCase());
         for (const part of parts) {
           distInfo = distributorData[part];
           if (distInfo) break;
