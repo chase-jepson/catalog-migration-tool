@@ -6,6 +6,7 @@ import type { DerivedRow, OutputCSVs } from "../lib/types";
 function makeRow(overrides: Partial<DerivedRow> = {}): DerivedRow {
   return {
     excluded: false,
+    excludeReason: "",
     productId: "P - SKU-001",
     productName: "Test Product",
     brand: "TestBrand",
@@ -222,6 +223,7 @@ describe("generateZip", () => {
       variants: [["ImportProductReferenceId"], ["P - 1"]],
       attributeJoins: [["ImportProductReferenceId"], ["P - 1"]],
       images: [["ImportVariantReferenceId"], ["S1"]],
+      skippedReport: [["Row #", "Product Name", "SKU", "Category (Source)", "Reason"]],
     };
     const blob = await generateZip(csvs);
     expect(blob).toBeInstanceOf(Blob);

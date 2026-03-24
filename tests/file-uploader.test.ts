@@ -41,6 +41,7 @@ describe("getUploadSequence", () => {
     variants: [["ImportProductReferenceId"], ["P1"]],
     attributeJoins: [["ImportProductReferenceId"], ["P1"]],
     images: [["ImportVariantReferenceId"], ["V1"]],
+    skippedReport: [["Row #", "Product Name", "SKU", "Category (Source)", "Reason"]],
     ...overrides,
   });
 

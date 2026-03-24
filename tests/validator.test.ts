@@ -7,6 +7,7 @@ import { PRODUCT_CATEGORIES, VALID_CLASSIFICATIONS, PRODUCT_SUBCATEGORIES } from
 function makeRow(overrides: Partial<DerivedRow> = {}): DerivedRow {
   return {
     excluded: false,
+    excludeReason: "",
     productId: "P - SKU-001",
     productName: "Test Product",
     brand: "TestBrand",

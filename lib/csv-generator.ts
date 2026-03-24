@@ -309,6 +309,22 @@ export function buildOutputCSVs(derived: DerivedRow[], selectedPOS?: string): Ou
     imagesOutput.push([d.skuBarcode, "", imageUrl, "", currentOrder.toString(), ""]);
   }
 
+  // ── 7. Skipped Products Report ───────────────────────────────────────────
+  const skippedOutput: string[][] = [
+    ["Row #", "Product Name", "SKU", "Category (Source)", "Reason"],
+  ];
+  for (let i = 0; i < derived.length; i++) {
+    const d = derived[i];
+    if (!d.excluded) continue;
+    skippedOutput.push([
+      (i + 2).toString(), // +2: 1-indexed + header row
+      d.productName || "(empty)",
+      d.skuBarcode || "(empty)",
+      d.category === "__EXCLUDE__" ? "(excluded)" : (d.category || "(none)"),
+      d.excludeReason || "Unknown",
+    ]);
+  }
+
   return {
     brands: brandsOutput,
     attributes: attributesOutput,
@@ -316,6 +332,7 @@ export function buildOutputCSVs(derived: DerivedRow[], selectedPOS?: string): Ou
     variants: variantsOutput,
     attributeJoins: attrJoinsOutput,
     images: imagesOutput,
+    skippedReport: skippedOutput,
   };
 }
 
@@ -328,6 +345,7 @@ const OUTPUT_FILE_LABELS: Record<keyof OutputCSVs, string> = {
   variants: "05 - Variants",
   attributeJoins: "06 - Attribute Joins",
   images: "07 - Images",
+  skippedReport: "08 - Skipped Products",
 };
 
 /**

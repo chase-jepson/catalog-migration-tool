@@ -12,6 +12,7 @@ import { validateDerivedRows } from "../../lib/validator";
 import { mergeFiles } from "../../lib/parser";
 import { PRODUCT_SUBCATEGORIES } from "../../lib/constants";
 import { getDefaultSubCategory } from "../../lib/category-mapper";
+import { arrayToCSV } from "../../lib/csv-generator";
 
 // ── Error grouping ────────────────────────────────────────────────────────
 
@@ -236,9 +237,18 @@ export function ReviewStep({
   const handleSkipInvalid = () => {
     if (!derivedRows.length || !validation) return;
 
-    const invalidIndices = new Set(validation.errors.map((e) => e.rowIndex));
+    // Build reason map: rowIndex → list of error messages
+    const reasonMap = new Map<number, string[]>();
+    for (const err of validation.errors) {
+      const reasons = reasonMap.get(err.rowIndex) ?? [];
+      reasons.push(`${err.field}: ${err.message}`);
+      reasonMap.set(err.rowIndex, reasons);
+    }
+
     const updated = derivedRows.map((row, i) =>
-      invalidIndices.has(i) ? { ...row, excluded: true } : row,
+      reasonMap.has(i)
+        ? { ...row, excluded: true, excludeReason: reasonMap.get(i)!.join("; ") }
+        : row,
     );
 
     setDerivedRows(updated);
@@ -311,15 +321,49 @@ export function ReviewStep({
         )}
         {status === "ready" && !validation && (
           <div className="p-3 mt-2 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-sm text-green-700">
-              {derivedRows.filter((r) => !r.excluded).length.toLocaleString()} rows ready
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-green-700">
+                {derivedRows.filter((r) => !r.excluded).length.toLocaleString()} rows ready
+                {derivedRows.some((r) => r.excluded) && (
+                  <span className="text-gray-500">
+                    {" "}
+                    &middot; {derivedRows.filter((r) => r.excluded).length} skipped
+                  </span>
+                )}
+              </p>
               {derivedRows.some((r) => r.excluded) && (
-                <span className="text-gray-500">
-                  {" "}
-                  &middot; {derivedRows.filter((r) => r.excluded).length} skipped
-                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const rows: string[][] = [
+                      ["Row #", "Product Name", "SKU", "Category (Source)", "Reason"],
+                    ];
+                    derivedRows.forEach((r, i) => {
+                      if (!r.excluded) return;
+                      rows.push([
+                        (i + 2).toString(),
+                        r.productName || "(empty)",
+                        r.skuBarcode || "(empty)",
+                        r.category === "__EXCLUDE__" ? "(excluded)" : (r.category || "(none)"),
+                        r.excludeReason || "Unknown",
+                      ]);
+                    });
+                    const csv = arrayToCSV(rows);
+                    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = "skipped-products.csv";
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="text-xs font-medium cursor-pointer bg-transparent border-none underline"
+                  style={{ color: "#1a4007" }}
+                >
+                  Download skipped report
+                </button>
               )}
-            </p>
+            </div>
           </div>
         )}
       </div>

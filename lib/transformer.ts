@@ -652,6 +652,15 @@ export function deriveRows(
 
     const isExcluded =
       category === EXCLUDED_CATEGORY || !category || !rawName || /^payment\s*fee$/i.test(rawName);
+    const excludeReason = isExcluded
+      ? category === EXCLUDED_CATEGORY
+        ? "Category excluded (sample/display)"
+        : !rawName
+          ? "Missing product name"
+          : !category
+            ? "Could not resolve category"
+            : "Excluded product (payment fee)"
+      : "";
     const uom = isExcluded ? "each" : (UOM_BY_CATEGORY[category] ?? "each");
 
     // Track resolution
@@ -810,6 +819,7 @@ export function deriveRows(
 
     return {
       excluded: isExcluded,
+      excludeReason,
       productId: `P - ${rawId}`,
       productName: rawName,
       brand,

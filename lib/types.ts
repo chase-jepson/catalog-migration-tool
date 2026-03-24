@@ -90,6 +90,7 @@ import type { ProductCategory } from "./constants";
 
 export interface DerivedRow {
   excluded: boolean;
+  excludeReason: string;
   productId: string;
   productName: string;
   brand: string;
@@ -224,6 +225,7 @@ export interface OutputCSVs {
   variants: string[][];
   attributeJoins: string[][];
   images: string[][];
+  skippedReport: string[][];
 }
 
 // ── Phase 3: Transform Result ───────────────────────────────────────────────
