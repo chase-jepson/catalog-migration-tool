@@ -24,6 +24,10 @@ import {
   clearInventoryState,
 } from "../../lib/inventory-migration-store";
 import {
+  normalizeInventoryResumeState,
+  normalizeMigrationResumeState,
+} from "../../lib/resume-state";
+import {
   createEmptyInventoryMappings,
   INVENTORY_POS_DEFAULTS,
   INVENTORY_MAPPING_FIELDS,
@@ -169,8 +173,15 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
           ? await loadInventoryState()
           : await loadMigrationState();
 
-      if (saved && saved.parsedFiles.length > 0 && saved.currentStep > 0) {
-        setPendingState(saved);
+      const normalizedSaved =
+        saved == null
+          ? null
+          : wizardType === "inventory"
+            ? normalizeInventoryResumeState(saved as PersistedInventoryState)
+            : normalizeMigrationResumeState(saved as PersistedMigrationState);
+
+      if (normalizedSaved && normalizedSaved.parsedFiles.length > 0 && normalizedSaved.currentStep > 0) {
+        setPendingState(normalizedSaved);
         setShowResumePrompt(true);
       } else {
         // No meaningful state to restore — start fresh
@@ -192,8 +203,11 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
       setMergedFile(mergeFiles(pendingState.parsedFiles));
     }
     setSelectedPOS(pendingState.selectedPOS);
+    setDetectedPOS(pendingState.detectedPOS ?? null);
     setMappings(pendingState.mappings);
     setFixes(pendingState.fixes);
+    setDerivedRows(("derivedRows" in pendingState ? pendingState.derivedRows : []) ?? []);
+    setImportDone(false);
     setCurrentStep(pendingState.currentStep);
 
     if (wizardType === "inventory" && "selectedStore" in pendingState) {
@@ -202,6 +216,9 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
       setPerRoleMappings(inv.perRoleMappings);
       setFileAssignments(inv.fileAssignments);
       setDispensaryLicense(inv.dispensaryLicense);
+      setInventoryDerivedRows(inv.inventoryDerivedRows ?? []);
+      setPortalJobId(inv.portalJobId ?? null);
+      setPortalStoreId(inv.portalStoreId ?? null);
     }
 
     setPendingState(null);
@@ -231,10 +248,14 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
           parsedFiles,
           mergedHeaders: mergedFile?.headers ?? [],
           selectedPOS,
+          detectedPOS,
           selectedStore,
           mappings,
           perRoleMappings,
           fixes,
+          inventoryDerivedRows,
+          portalJobId,
+          portalStoreId,
           currentStep,
           updatedAt: new Date().toISOString(),
           fileAssignments,
@@ -245,8 +266,10 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
           parsedFiles,
           mergedHeaders: mergedFile?.headers ?? [],
           selectedPOS,
+          detectedPOS,
           mappings,
           fixes,
+          derivedRows,
           currentStep,
           updatedAt: new Date().toISOString(),
         });
@@ -260,10 +283,15 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
     parsedFiles,
     mergedFile,
     selectedPOS,
+    detectedPOS,
     selectedStore,
     mappings,
     perRoleMappings,
     fixes,
+    derivedRows,
+    inventoryDerivedRows,
+    portalJobId,
+    portalStoreId,
     currentStep,
     restored,
     wizardType,
@@ -344,6 +372,9 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
     setDispensaryLicense("TEMP-C00-00000000-LIC");
     setPerRoleMappings({ ...EMPTY_PER_ROLE_MAPPINGS });
     setCanProceed(false);
+    setImportDone(false);
+    setPortalJobId(null);
+    setPortalStoreId(null);
     setCurrentStep(0);
   }, []);
 
@@ -367,6 +398,9 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
     setDispensaryLicense("TEMP-C00-00000000-LIC");
     setPerRoleMappings({ ...EMPTY_PER_ROLE_MAPPINGS });
     setCanProceed(false);
+    setImportDone(false);
+    setPortalJobId(null);
+    setPortalStoreId(null);
     setCurrentStep(0);
   }, [wizardType]);
 
@@ -427,6 +461,7 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
               dispensaryLicense={dispensaryLicense}
               portalJobId={portalJobId}
               portalStoreId={portalStoreId}
+              onDone={() => setImportDone(true)}
               onStartNew={handleStartNew}
             />
           );

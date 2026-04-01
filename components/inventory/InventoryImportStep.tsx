@@ -21,6 +21,7 @@ interface InventoryImportStepProps {
   dispensaryLicense: string;
   portalJobId: string | null;
   portalStoreId: string | null;
+  onDone?: () => void;
   onStartNew: () => void;
 }
 
@@ -29,7 +30,9 @@ type Phase =
   | "generating"
   | "uploading"
   | "processing"
-  | "done"
+  | "success"
+  | "completed-with-failures"
+  | "failed"
   | "error"
   | "rolling-back"
   | "rolled-back";
@@ -41,6 +44,7 @@ export function InventoryImportStep({
   dispensaryLicense,
   portalJobId,
   portalStoreId,
+  onDone,
   onStartNew,
 }: InventoryImportStepProps) {
   const [phase, setPhase] = useState<Phase>("pre-import");
@@ -206,12 +210,15 @@ export function InventoryImportStep({
             if (job.status === "FINISHED" || allProcessed) {
               setTotalImported(job.countProcessed);
               setProgressPercent(100);
-              setPhase("done");
+              setPhase("success");
+              onDone?.();
               return;
             } else if (job.status === "FINISHED_WITH_FAILURES") {
               setTotalImported(job.countProcessed - job.countError);
+              setErrorMessage(`${job.countError ?? 0} rows failed during import.`);
               setProgressPercent(100);
-              setPhase("done");
+              setPhase("completed-with-failures");
+              onDone?.();
               return;
             } else {
               throw new Error(`Import stopped: ${job.status} (${job.countError} errors)`);
@@ -289,15 +296,18 @@ export function InventoryImportStep({
           setTotalImported(job.succeeded_rows ?? 0);
           setProgressPercent(100);
           if (job.status === "COMPLETED") {
-            setPhase("done");
+            setPhase("success");
+            onDone?.();
           } else if (job.status === "FAILED") {
             setErrorMessage(
               `Import failed: ${job.error_summary ?? "Unknown error"}. ${job.succeeded_rows ?? 0} rows succeeded, ${job.failed_rows ?? 0} failed.`,
             );
-            setPhase("done");
-          } else {
-            setErrorMessage(`Import was rolled back.`);
-            setPhase("error");
+            setPhase("failed");
+          } else if (job.status === "ROLLED_BACK") {
+            setRollbackResult(null);
+            setErrorMessage("");
+            setPhase("rolled-back");
+            onDone?.();
           }
           return;
         }
@@ -308,7 +318,7 @@ export function InventoryImportStep({
         setPhase("error");
       }
     }
-  }, [portalJobId]);
+  }, [portalJobId, onDone]);
 
   // ── Portal Rollback ─────────────────────────────────────────────────────────
   const handleRollback = useCallback(async () => {
@@ -326,11 +336,12 @@ export function InventoryImportStep({
       });
       setRollbackResult(result.deleted_counts);
       setPhase("rolled-back");
+      onDone?.();
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "Rollback failed");
       setPhase("error");
     }
-  }, [portalJobId]);
+  }, [portalJobId, onDone]);
 
   // ── Reindex OpenSearch ────────────────────────────────────────────────────────
   const handleReindex = useCallback(async () => {
@@ -382,7 +393,11 @@ export function InventoryImportStep({
     <div className="flex h-full w-full flex-col p-4">
       {/* Header */}
       <h2 className="mb-3 text-sm font-medium text-gray-900">
-        {phase === "done" ? "Import Complete" : "Import Inventory to Treez"}
+        {phase === "success" || phase === "completed-with-failures" || phase === "rolled-back"
+          ? "Import Complete"
+          : phase === "failed"
+            ? "Import Failed"
+            : "Import Inventory to Treez"}
       </h2>
 
       {selectedStore && <p className="mb-3 text-xs text-gray-500">Store: {selectedStore.name}</p>}
@@ -486,16 +501,31 @@ export function InventoryImportStep({
         )}
 
         {/* Done state */}
-        {phase === "done" && (
+        {(phase === "success" || phase === "completed-with-failures") && (
           <div className="space-y-3">
-            <div className="rounded border border-green-200 bg-green-50 px-3 py-2 text-center">
-              <p className="text-sm font-medium text-green-800">
-                Inventory import completed successfully
+            <div
+              className={`rounded border px-3 py-2 text-center ${
+                phase === "success"
+                  ? "border-green-200 bg-green-50"
+                  : "border-amber-200 bg-amber-50"
+              }`}
+            >
+              <p
+                className={`text-sm font-medium ${
+                  phase === "success" ? "text-green-800" : "text-amber-800"
+                }`}
+              >
+                {phase === "success"
+                  ? "Inventory import completed successfully"
+                  : "Inventory import completed with failures"}
               </p>
               {totalImported > 0 && (
-                <p className="text-xs text-green-600">
+                <p className={`text-xs ${phase === "success" ? "text-green-600" : "text-amber-700"}`}>
                   {totalImported.toLocaleString()} rows imported
                 </p>
+              )}
+              {phase === "completed-with-failures" && errorMessage && (
+                <p className="mt-1 text-xs text-amber-700">{errorMessage}</p>
               )}
             </div>
 
@@ -574,6 +604,39 @@ export function InventoryImportStep({
                 type="button"
                 onClick={onStartNew}
                 className="btn-treez -primary flex-1"
+              >
+                Start New Migration
+              </button>
+              {portalJobId && (
+                <button
+                  type="button"
+                  onClick={handleRollback}
+                  className="btn-treez -danger flex-1"
+                >
+                  Rollback Import
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {phase === "failed" && (
+          <div className="space-y-3">
+            <div className="rounded border border-red-200 bg-red-50 px-3 py-2">
+              <p className="text-sm font-medium text-red-800">Inventory import failed</p>
+              <p className="mt-1 text-sm text-red-700">{errorMessage}</p>
+              {totalImported > 0 && (
+                <p className="mt-1 text-xs text-red-600">
+                  {totalImported.toLocaleString()} rows were imported before failure
+                </p>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={onStartNew}
+                className="btn-treez -secondary flex-1"
               >
                 Start New Migration
               </button>

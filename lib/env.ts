@@ -1,3 +1,5 @@
+import { API_BASE_URLS, MSO_API_BASE_URLS } from "./runtime-origins";
+
 export type TreezEnv = "production" | "sandbox" | "dev";
 
 const ENV_MAP: Record<string, TreezEnv> = {
@@ -16,23 +18,9 @@ export function detectEnvironment(url: string): TreezEnv | null {
 }
 
 export function getApiBaseUrl(env: TreezEnv): string {
-  switch (env) {
-    case "production":
-      return "https://api.treez.io";
-    case "sandbox":
-      return "https://api.sandbox.treez.io";
-    case "dev":
-      return "https://api-dev.treez.io";
-  }
+  return API_BASE_URLS[env];
 }
 
 export function getMsoApiBaseUrl(env: TreezEnv): string {
-  switch (env) {
-    case "production":
-      return "https://api.mso.treez.io";
-    case "sandbox":
-      return "https://api.sandbox.treez.io";
-    case "dev":
-      return "https://api.dev.treez.io";
-  }
+  return MSO_API_BASE_URLS[env];
 }

@@ -77,8 +77,10 @@ export interface PersistedMigrationState {
   parsedFiles: ParsedFile[];
   mergedHeaders: string[];
   selectedPOS: string;
+  detectedPOS?: POSDetectionResult | null;
   mappings: FieldMapping[];
   fixes: RowFix[];
+  derivedRows?: DerivedRow[];
   currentStep: number;
   updatedAt: string;
   importProgress?: ImportProgress;
@@ -420,10 +422,14 @@ export interface PersistedInventoryState {
   parsedFiles: ParsedFile[];
   mergedHeaders: string[];
   selectedPOS: string;
+  detectedPOS?: POSDetectionResult | null;
   selectedStore: StoreInfo | null;
   mappings: FieldMapping[];
   perRoleMappings: PerRoleMappingsState;
   fixes: RowFix[];
+  inventoryDerivedRows?: InventoryDerivedRow[];
+  portalJobId?: string | null;
+  portalStoreId?: string | null;
   currentStep: number;
   updatedAt: string;
   importProgress?: ImportProgress;

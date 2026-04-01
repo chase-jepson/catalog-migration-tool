@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { detectEnvironment, getApiBaseUrl, getMsoApiBaseUrl } from "../lib/env";
+import {
+  HOST_PERMISSIONS,
+  REQUIRED_FETCH_ORIGINS,
+  isOriginCoveredByHostPermission,
+} from "../lib/runtime-origins";
 
 describe("detectEnvironment", () => {
   it('returns "production" for app.treez.io', () => {
@@ -45,10 +50,20 @@ describe("getMsoApiBaseUrl", () => {
   });
 
   it("returns correct URL for sandbox", () => {
-    expect(getMsoApiBaseUrl("sandbox")).toBe("https://api.sandbox.treez.io");
+    expect(getMsoApiBaseUrl("sandbox")).toBe("https://api.mso.sandbox.treez.io");
   });
 
   it("returns correct URL for dev", () => {
-    expect(getMsoApiBaseUrl("dev")).toBe("https://api.dev.treez.io");
+    expect(getMsoApiBaseUrl("dev")).toBe("https://api-mso-dev.treez.io");
+  });
+});
+
+describe("host permission coverage", () => {
+  it("covers every runtime fetch origin declared by the extension", () => {
+    const uncoveredOrigins = REQUIRED_FETCH_ORIGINS.filter(
+      (origin) => !isOriginCoveredByHostPermission(origin, HOST_PERMISSIONS),
+    );
+
+    expect(uncoveredOrigins).toEqual([]);
   });
 });

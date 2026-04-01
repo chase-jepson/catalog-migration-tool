@@ -1,5 +1,6 @@
 import { IMPORT_PAGE_PATTERNS } from "../../lib/constants";
 import { onMessage } from "../../lib/messaging";
+import { PORTAL_BASE_URL } from "../../lib/runtime-origins";
 import { getValidToken } from "./auth";
 
 export default defineBackground(() => {
@@ -132,8 +133,6 @@ export default defineBackground(() => {
   });
 
   // ── Portal API handlers ──────────────────────────────────────────────────
-
-  const PORTAL_BASE_URL = "https://customer-success.mso.treez.io";
 
   // Handle portalLogin -- authenticate with portal and return token + user info
   onMessage("portalLogin", async (message) => {
