@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import type { ParsedFile, POSDetectionResult } from "../../lib/types";
-import { validateFile, parseFile, getSheetNames } from "../../lib/parser";
+import { validateFile, parseFile, getSheetNames, ensureParsedFileIds } from "../../lib/parser";
 import { detectPOS } from "../../lib/pos-detection";
 import { FileDropZone } from "./FileDropZone";
 import { FileSummaryCard } from "./FileSummaryCard";
@@ -99,7 +99,7 @@ export function UploadStep({
           newParsed.push(parsed);
         }
 
-        const allFiles = [...parsedFiles, ...newParsed];
+        const allFiles = ensureParsedFileIds([...parsedFiles, ...newParsed]);
         onParsedFilesChange(allFiles);
         setStatus("done");
         setPendingSheet(null);
@@ -118,8 +118,8 @@ export function UploadStep({
   }, [pendingSheet, parseFiles]);
 
   const handleRemoveFile = useCallback(
-    (fileName: string) => {
-      const updated = parsedFiles.filter((f) => f.fileName !== fileName);
+    (fileId: string) => {
+      const updated = parsedFiles.filter((f) => (f.id ?? f.fileName) !== fileId);
       onParsedFilesChange(updated);
       if (updated.length === 0) {
         setStatus("idle");
@@ -202,7 +202,7 @@ export function UploadStep({
         <div className="space-y-3">
           {parsedFiles.map((file, idx) => (
             <FileSummaryCard
-              key={file.fileName}
+              key={file.id ?? file.fileName}
               file={file}
               detectedPOS={detectedPOS}
               selectedPOS={selectedPOS}

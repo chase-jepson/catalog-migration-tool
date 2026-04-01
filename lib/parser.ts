@@ -2,6 +2,19 @@ import * as XLSX from "xlsx";
 import type { ParsedFile } from "./types";
 import { MAX_FILE_SIZE } from "./constants";
 
+export function createParsedFileId(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+export function ensureParsedFileId(file: ParsedFile): ParsedFile {
+  if (file.id) return file;
+  return { ...file, id: createParsedFileId() };
+}
+
+export function ensureParsedFileIds(files: ParsedFile[]): ParsedFile[] {
+  return files.map(ensureParsedFileId);
+}
+
 /**
  * Validate a file for acceptable extension and size.
  * Returns an error string or null if valid.
@@ -102,6 +115,7 @@ export async function parseFile(file: File, sheetName?: string): Promise<ParsedF
   const headers = jsonData.length > 0 ? Object.keys(jsonData[0]) : [];
 
   return {
+    id: createParsedFileId(),
     fileName: file.name,
     fileSize: file.size,
     headers,
@@ -126,9 +140,10 @@ export async function getSheetNames(file: File): Promise<string[]> {
  * Missing values are filled with empty string.
  */
 export function mergeFiles(files: ParsedFile[]): ParsedFile {
+  const normalizedFiles = ensureParsedFileIds(files);
   // Collect all unique headers across files
   const allHeaders = new Set<string>();
-  for (const f of files) {
+  for (const f of normalizedFiles) {
     f.headers.forEach((h) => allHeaders.add(h));
   }
 
@@ -137,7 +152,7 @@ export function mergeFiles(files: ParsedFile[]): ParsedFile {
 
   // Merge rows, filling missing columns with ''
   const rows: Record<string, string>[] = [];
-  for (const f of files) {
+  for (const f of normalizedFiles) {
     for (const row of f.rows) {
       const merged: Record<string, string> = { "Source File": f.fileName };
       for (const h of allHeaders) {
@@ -148,8 +163,9 @@ export function mergeFiles(files: ParsedFile[]): ParsedFile {
   }
 
   return {
-    fileName: files.map((f) => f.fileName).join(", "),
-    fileSize: files.reduce((sum, f) => sum + f.fileSize, 0),
+    id: createParsedFileId(),
+    fileName: normalizedFiles.map((f) => f.fileName).join(", "),
+    fileSize: normalizedFiles.reduce((sum, f) => sum + f.fileSize, 0),
     headers,
     rows,
     rowCount: rows.length,

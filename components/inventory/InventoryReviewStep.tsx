@@ -23,6 +23,7 @@ import { sendMessage } from "../../lib/messaging";
 import { getPortalAuth } from "../../lib/portal-auth";
 import { ErrorGroupList } from "../review/ErrorGroupList";
 import { PortalLoginForm } from "./PortalLoginForm";
+import { buildInventoryETLInput } from "../../lib/inventory-file-assignments";
 
 interface InventoryReviewStepProps {
   fileAssignments: InventoryFileAssignment[];
@@ -45,22 +46,6 @@ type Status =
   | "portal-login"
   | "portal-validating"
   | "portal-done";
-
-/**
- * Build ETLInput from file assignments.
- */
-function buildETLInput(assignments: InventoryFileAssignment[]): ETLInput | null {
-  const inventoryAssign = assignments.find((a) => a.role === "inventory");
-  if (!inventoryAssign) return null;
-
-  return {
-    inventoryFile: inventoryAssign.file,
-    receiptsFile: assignments.find((a) => a.role === "receipts")?.file,
-    vendorsFile: assignments.find((a) => a.role === "vendors")?.file,
-    adjustmentsFile: assignments.find((a) => a.role === "adjustments")?.file,
-    catalogFile: assignments.find((a) => a.role === "catalog_export")?.file,
-  };
-}
 
 /**
  * Apply row-level fixes to derived rows.
@@ -148,14 +133,15 @@ export function InventoryReviewStep({
       setPortalSkipped(false);
 
       requestAnimationFrame(() => {
-        const etlInput = buildETLInput(fileAssignments);
-        if (!etlInput) {
-          setStatus("ready");
+        const etlInputResult = buildInventoryETLInput(fileAssignments);
+        if (!etlInputResult.ok) {
+          setPortalError(etlInputResult.reason);
+          setStatus("reviewing");
           onCanProceed(false);
           return;
         }
 
-        const rows = runInventoryETL(etlInput, perRoleMappings, dispensaryLicense);
+        const rows = runInventoryETL(etlInputResult.input, perRoleMappings, dispensaryLicense);
         const fixed = currentFixes.length > 0 ? applyFixes(rows, currentFixes) : rows;
 
         // Layer 1: per-field validation

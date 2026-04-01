@@ -1,6 +1,7 @@
 // ── Parsed File ─────────────────────────────────────────────────────────────
 
 export interface ParsedFile {
+  id?: string;
   fileName: string;
   fileSize: number;
   headers: string[];

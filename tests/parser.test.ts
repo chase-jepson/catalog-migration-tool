@@ -127,6 +127,17 @@ describe("parseFile", () => {
     expect(result.rowCount).toBe(10_000);
     expect(result.previewRows.length).toBeLessThanOrEqual(10);
   });
+
+  it("assigns unique IDs to files even when filenames match", async () => {
+    const content = readFixture("dutchie-sample.csv");
+
+    const first = await parseFile(csvToFile("same-name.csv", content));
+    const second = await parseFile(csvToFile("same-name.csv", content));
+
+    expect(first.id).toBeTruthy();
+    expect(second.id).toBeTruthy();
+    expect(first.id).not.toBe(second.id);
+  });
 });
 
 describe("getSheetNames", () => {

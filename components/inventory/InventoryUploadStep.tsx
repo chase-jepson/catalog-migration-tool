@@ -7,11 +7,16 @@ import type {
   InventoryFileRole,
 } from "../../lib/types";
 import { validateFile, parseFile, getSheetNames } from "../../lib/parser";
+import { ensureParsedFileIds } from "../../lib/parser";
 import { detectPOS } from "../../lib/pos-detection";
 import { formatFileSize } from "../../lib/parser";
 import { FileDropZone } from "../upload/FileDropZone";
 import { SheetSelector, getDefaultSheet } from "../upload/SheetSelector";
 import { INVENTORY_FILE_ROLES } from "../../lib/inventory-constants";
+import {
+  getDuplicateInventoryRoles,
+  hasDuplicateInventoryRoles,
+} from "../../lib/inventory-file-assignments";
 
 type ParsingStatus = "idle" | "parsing" | "done" | "error";
 
@@ -87,7 +92,14 @@ export function InventoryUploadStep({
       license: string,
     ) => {
       const hasInventoryFile = assignments.some((a) => a.role === "inventory");
-      return hasInventoryFile && pos !== "" && store !== null && license.trim() !== "";
+      const hasDuplicateRoles = hasDuplicateInventoryRoles(assignments);
+      return (
+        hasInventoryFile &&
+        !hasDuplicateRoles &&
+        pos !== "" &&
+        store !== null &&
+        license.trim() !== ""
+      );
     },
     [],
   );
@@ -172,12 +184,12 @@ export function InventoryUploadStep({
           newParsed.push(parsed);
         }
 
-        const allFiles = [...parsedFiles, ...newParsed];
+        const allFiles = ensureParsedFileIds([...parsedFiles, ...newParsed]);
         onParsedFilesChange(allFiles);
 
         // Auto-detect roles for new files
         const newAssignments = [...fileAssignments];
-        for (const file of newParsed) {
+        for (const file of allFiles.slice(parsedFiles.length)) {
           const detectedRole = autoDetectRole(file);
           if (detectedRole) {
             newAssignments.push({ file, role: detectedRole });
@@ -212,9 +224,11 @@ export function InventoryUploadStep({
   }, [pendingSheet, parseFiles]);
 
   const handleRemoveFile = useCallback(
-    (fileName: string) => {
-      const updated = parsedFiles.filter((f) => f.fileName !== fileName);
-      const updatedAssignments = fileAssignments.filter((a) => a.file.fileName !== fileName);
+    (fileId: string) => {
+      const updated = parsedFiles.filter((f) => (f.id ?? f.fileName) !== fileId);
+      const updatedAssignments = fileAssignments.filter(
+        (a) => (a.file.id ?? a.file.fileName) !== fileId,
+      );
       onParsedFilesChange(updated);
       onFileAssignmentsChange(updatedAssignments);
       if (updated.length === 0) {
@@ -238,9 +252,9 @@ export function InventoryUploadStep({
   );
 
   const handleRoleChange = useCallback(
-    (fileName: string, newRole: InventoryFileRole) => {
+    (fileId: string, newRole: InventoryFileRole) => {
       const updated = fileAssignments.map((a) =>
-        a.file.fileName === fileName ? { ...a, role: newRole } : a,
+        (a.file.id ?? a.file.fileName) === fileId ? { ...a, role: newRole } : a,
       );
       onFileAssignmentsChange(updated);
       updateCanProceed(updated, selectedPOS, dispensaryLicense);
@@ -273,14 +287,8 @@ export function InventoryUploadStep({
 
   // Role assignment status
   const assignedRoles = new Set(fileAssignments.map((a) => a.role));
-
-  // Duplicate role detection: find roles assigned to multiple files
-  const roleCounts = new Map<InventoryFileRole, string[]>();
-  for (const a of fileAssignments) {
-    const list = roleCounts.get(a.role) ?? [];
-    list.push(a.file.fileName);
-    roleCounts.set(a.role, list);
-  }
+  const duplicateRoles = getDuplicateInventoryRoles(fileAssignments);
+  const duplicateRoleNames = Object.keys(duplicateRoles);
 
   return (
     <div className="w-full space-y-4 p-4">
@@ -335,6 +343,14 @@ export function InventoryUploadStep({
         </div>
       )}
 
+      {duplicateRoleNames.length > 0 && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+          <p className="text-sm text-red-700">
+            Each file role can only be assigned once. Resolve duplicate roles before continuing.
+          </p>
+        </div>
+      )}
+
       {/* Sheet selector for multi-sheet XLSX */}
       {pendingSheet && (
         <div className="space-y-2">
@@ -357,9 +373,11 @@ export function InventoryUploadStep({
       {parsedFiles.length > 0 && status === "done" && (
         <div className="space-y-3">
           {parsedFiles.map((file, idx) => {
-            const assignment = fileAssignments.find((a) => a.file.fileName === file.fileName);
+            const assignment = fileAssignments.find(
+              (a) => (a.file.id ?? a.file.fileName) === (file.id ?? file.fileName),
+            );
             const currentRole = assignment?.role ?? "inventory";
-            const duplicateFiles = roleCounts.get(currentRole) ?? [];
+            const duplicateFiles = duplicateRoles[currentRole] ?? [];
             const hasDuplicate = duplicateFiles.length > 1;
             const otherFileName = hasDuplicate
               ? duplicateFiles.find((n) => n !== file.fileName)
@@ -367,7 +385,7 @@ export function InventoryUploadStep({
 
             return (
               <div
-                key={file.fileName}
+                key={file.id ?? file.fileName}
                 className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm"
               >
                 <div className="flex items-start justify-between gap-2">
@@ -384,7 +402,7 @@ export function InventoryUploadStep({
                   {/* Remove button */}
                   <button
                     type="button"
-                    onClick={() => handleRemoveFile(file.fileName)}
+                    onClick={() => handleRemoveFile(file.id ?? file.fileName)}
                     className="shrink-0 rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                     title="Remove file"
                   >
@@ -405,12 +423,16 @@ export function InventoryUploadStep({
                   <select
                     value={currentRole}
                     onChange={(e) =>
-                      handleRoleChange(file.fileName, e.target.value as InventoryFileRole)
+                      handleRoleChange(file.id ?? file.fileName, e.target.value as InventoryFileRole)
                     }
                     className="treez-select mt-1"
                   >
                     {INVENTORY_FILE_ROLES.map((r) => (
-                      <option key={r.role} value={r.role}>
+                      <option
+                        key={r.role}
+                        value={r.role}
+                        disabled={r.role !== currentRole && assignedRoles.has(r.role)}
+                      >
                         {r.label}
                         {r.required ? " (required)" : ""}
                       </option>

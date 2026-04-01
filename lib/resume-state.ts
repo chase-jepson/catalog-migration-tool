@@ -1,11 +1,13 @@
 import type { PersistedInventoryState, PersistedMigrationState } from "./types";
+import { ensureParsedFileIds } from "./parser";
 
 export function normalizeMigrationResumeState(
   state: PersistedMigrationState,
 ): PersistedMigrationState {
+  const parsedFiles = ensureParsedFileIds(state.parsedFiles);
   let currentStep = state.currentStep;
 
-  if (!state.parsedFiles.length) {
+  if (!parsedFiles.length) {
     currentStep = 0;
   } else if (currentStep >= 2 && state.mappings.length === 0) {
     currentStep = 1;
@@ -17,6 +19,7 @@ export function normalizeMigrationResumeState(
 
   return {
     ...state,
+    parsedFiles,
     currentStep,
     detectedPOS: state.detectedPOS ?? null,
     derivedRows: state.derivedRows ?? [],
@@ -26,9 +29,17 @@ export function normalizeMigrationResumeState(
 export function normalizeInventoryResumeState(
   state: PersistedInventoryState,
 ): PersistedInventoryState {
+  const parsedFiles = ensureParsedFileIds(state.parsedFiles);
+  const fileIdMap = new Map(parsedFiles.map((file) => [file.fileName, file]));
+  const fileAssignments = state.fileAssignments.map((assignment) => ({
+    ...assignment,
+    file: assignment.file.id
+      ? assignment.file
+      : (fileIdMap.get(assignment.file.fileName) ?? assignment.file),
+  }));
   let currentStep = state.currentStep;
 
-  if (!state.parsedFiles.length || state.fileAssignments.length === 0) {
+  if (!parsedFiles.length || fileAssignments.length === 0) {
     currentStep = 0;
   } else if (currentStep >= 2 && !state.selectedStore) {
     currentStep = 0;
@@ -43,6 +54,8 @@ export function normalizeInventoryResumeState(
 
   return {
     ...state,
+    parsedFiles,
+    fileAssignments,
     currentStep,
     detectedPOS: state.detectedPOS ?? null,
     inventoryDerivedRows: state.inventoryDerivedRows ?? [],
