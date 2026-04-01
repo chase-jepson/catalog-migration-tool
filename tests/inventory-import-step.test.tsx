@@ -2,19 +2,13 @@ import { act, createElement, type ComponentProps } from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { InventoryImportStep } from "../components/inventory/InventoryImportStep";
-import { getPortalAuth } from "../lib/portal-auth";
 import { sendMessage } from "../lib/messaging";
 
 vi.mock("../lib/messaging", () => ({
   sendMessage: vi.fn(),
 }));
 
-vi.mock("../lib/portal-auth", () => ({
-  getPortalAuth: vi.fn(),
-}));
-
 const sendMessageMock = vi.mocked(sendMessage);
-const getPortalAuthMock = vi.mocked(getPortalAuth);
 
 function renderPortalImportStep(
   overrides: Partial<ComponentProps<typeof InventoryImportStep>> = {},
@@ -50,7 +44,6 @@ describe("InventoryImportStep", () => {
   beforeEach(() => {
     cleanup();
     vi.useFakeTimers();
-    getPortalAuthMock.mockResolvedValue({ token: "portal-token" } as any);
   });
 
   afterEach(() => {

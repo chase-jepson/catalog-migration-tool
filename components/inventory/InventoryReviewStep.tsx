@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
   InventoryDerivedRow,
   InventoryFileAssignment,
-  PortalAuthState,
   PortalStore,
+  PortalSessionInfo,
   PortalValidationResult,
   RowFix,
   RowValidationError,
@@ -20,7 +20,6 @@ import {
 } from "../../lib/inventory-validator";
 import { buildInventoryCSV, serializeCSV } from "../../lib/inventory-csv-generator";
 import { sendMessage } from "../../lib/messaging";
-import { getPortalAuth } from "../../lib/portal-auth";
 import { ErrorGroupList } from "../review/ErrorGroupList";
 import { PortalLoginForm } from "./PortalLoginForm";
 import { buildInventoryETLInput } from "../../lib/inventory-file-assignments";
@@ -79,7 +78,7 @@ export function InventoryReviewStep({
   const [status, setStatus] = useState<Status>("processing");
   const [derivedRows, setDerivedRows] = useState<InventoryDerivedRow[]>([]);
   const [validation, setValidation] = useState<ValidationResult | null>(null);
-  const [portalAuth, setPortalAuth] = useState<PortalAuthState | null>(null);
+  const [portalAuth, setPortalAuth] = useState<PortalSessionInfo | null>(null);
   const [portalResult, setPortalResult] = useState<PortalValidationResult | null>(null);
   const [portalErrors, setPortalErrors] = useState<RowValidationError[]>([]);
   const [portalError, setPortalError] = useState("");
@@ -194,7 +193,7 @@ export function InventoryReviewStep({
 
   // ── Portal validation flow ─────────────────────────────────────────────────
   const runPortalValidation = useCallback(
-    async (auth: PortalAuthState) => {
+    async () => {
       setStatus("portal-validating");
       setPortalError("");
       setPortalErrors([]);
@@ -206,9 +205,7 @@ export function InventoryReviewStep({
         const fileName = `validation-${Date.now()}.csv`;
 
         // Step 2: Fetch portal stores to find matching store ID
-        const portalStores = await sendMessage("portalFetchStores", {
-          portalToken: auth.token,
-        });
+        const portalStores = await sendMessage("portalFetchStores", {});
 
         // Match by store name (case-insensitive)
         const storeName = selectedStore?.name?.toLowerCase() ?? "";
@@ -229,7 +226,6 @@ export function InventoryReviewStep({
 
         // Step 3: Send to portal for validation
         const result = await sendMessage("portalValidate", {
-          portalToken: auth.token,
           csvContent,
           storeId: matchedStore.id,
           fileName,
@@ -260,10 +256,10 @@ export function InventoryReviewStep({
     if (status !== "ready" || portalSkipped || portalResult) return;
     if (validation && validation.errorCount === 0) {
       // Check for existing auth
-      getPortalAuth().then((auth) => {
+      sendMessage("portalGetSession", {}).then((auth) => {
         if (auth) {
           setPortalAuth(auth);
-          runPortalValidation(auth);
+          runPortalValidation();
         } else {
           setStatus("portal-login");
           onCanProceed(false);
@@ -274,9 +270,9 @@ export function InventoryReviewStep({
   }, [status]);
 
   const handlePortalAuthenticated = useCallback(
-    (auth: PortalAuthState) => {
+    (auth: PortalSessionInfo) => {
       setPortalAuth(auth);
-      runPortalValidation(auth);
+      runPortalValidation();
     },
     [runPortalValidation],
   );
@@ -289,7 +285,7 @@ export function InventoryReviewStep({
 
   const handleRetryPortal = useCallback(() => {
     if (portalAuth) {
-      runPortalValidation(portalAuth);
+      runPortalValidation();
     } else {
       setStatus("portal-login");
       onCanProceed(false);

@@ -12,7 +12,6 @@ import {
   MAX_POLL_DURATION_MS,
 } from "../../lib/import-poller";
 import { detectEnvironment, getApiBaseUrl } from "../../lib/env";
-import { getPortalAuth } from "../../lib/portal-auth";
 import type { InventoryDerivedRow, PortalReindexResult, StoreInfo } from "../../lib/types";
 
 interface InventoryImportStepProps {
@@ -238,9 +237,7 @@ export function InventoryImportStep({
   const handlePortalCancel = useCallback(async () => {
     if (!portalJobId) return;
     try {
-      const auth = await getPortalAuth();
-      if (!auth) throw new Error("Portal session expired.");
-      await sendMessage("portalCancel", { portalToken: auth.token, jobId: portalJobId });
+      await sendMessage("portalCancel", { jobId: portalJobId });
       setErrorMessage("Job cancelled. You can start a new migration.");
       setPhase("error");
     } catch (err) {
@@ -257,14 +254,11 @@ export function InventoryImportStep({
     setProgressPercent(0);
 
     try {
-      const auth = await getPortalAuth();
-      if (!auth) throw new Error("Portal session expired. Please go back and re-authenticate.");
-
       setPhase("uploading");
       setStatusMessage("Executing import via portal...");
       setProgressPercent(10);
 
-      await sendMessage("portalExecute", { portalToken: auth.token, jobId: portalJobId });
+      await sendMessage("portalExecute", { jobId: portalJobId });
       setProgressPercent(25);
 
       // Poll for completion
@@ -279,13 +273,7 @@ export function InventoryImportStep({
         }
         await new Promise((r) => setTimeout(r, 5000));
 
-        const freshAuth = await getPortalAuth();
-        if (!freshAuth) throw new Error("Portal session expired during import.");
-
-        const job = await sendMessage("portalGetJob", {
-          portalToken: freshAuth.token,
-          jobId: portalJobId,
-        });
+        const job = await sendMessage("portalGetJob", { jobId: portalJobId });
 
         const processed = job.processed_invoices ?? 0;
         const total = job.total_invoices ?? 1;
@@ -327,13 +315,7 @@ export function InventoryImportStep({
     setStatusMessage("Rolling back import...");
 
     try {
-      const auth = await getPortalAuth();
-      if (!auth) throw new Error("Portal session expired. Cannot rollback.");
-
-      const result = await sendMessage("portalRollback", {
-        portalToken: auth.token,
-        jobId: portalJobId,
-      });
+      const result = await sendMessage("portalRollback", { jobId: portalJobId });
       setRollbackResult(result.deleted_counts);
       setPhase("rolled-back");
       onDone?.();
@@ -350,11 +332,7 @@ export function InventoryImportStep({
     setReindexError("");
 
     try {
-      const auth = await getPortalAuth();
-      if (!auth) throw new Error("Portal session expired. Please re-authenticate.");
-
       const result = await sendMessage("portalReindex", {
-        portalToken: auth.token,
         storeId: portalStoreId,
         username: reindexUsername,
         password: reindexPassword,

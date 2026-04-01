@@ -350,6 +350,13 @@ export interface PortalAuthState {
   expiresAt: number;
 }
 
+export interface PortalSessionInfo {
+  email: string;
+  firstName: string;
+  lastName: string;
+  expiresAt: number;
+}
+
 export interface PortalValidationIssue {
   row_number: number | null;
   field_name: string | null;
