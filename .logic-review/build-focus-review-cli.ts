@@ -7,6 +7,9 @@ import { buildFocusedReviewData } from "./focus-review";
 import { generateCatalogReviewSite } from "./generate-site";
 import { buildCatalogReviewData } from "./run-review";
 
+const DEFAULT_EXCLUDED_POS = ["Blaze"];
+const DEFAULT_PREFERRED_POS = ["Dutchie", "Flowhub", "Cova"];
+
 function resolveDefaultInputRoot(): string {
   const candidates = [
     resolve(".test-data/exports/catalog"),
@@ -44,7 +47,10 @@ async function main() {
     originalRowMode: "full",
   });
   const feedback = loadReviewFeedback(feedbackPath);
-  const focusedData = buildFocusedReviewData(data, feedback);
+  const focusedData = buildFocusedReviewData(data, feedback, {
+    excludedPOS: DEFAULT_EXCLUDED_POS,
+    preferredPOS: DEFAULT_PREFERRED_POS,
+  });
 
   rmSync(resolve(outputRoot, "review-data.json"), { force: true });
   rmSync(resolve(outputRoot, "review-data.js"), { force: true });

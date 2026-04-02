@@ -137,4 +137,136 @@ describe("buildFocusedReviewData", () => {
 
     expect(focused.rows.map((row) => row.id)).toEqual(["file-1:0", "file-1:1", "file-1:2"]);
   });
+
+  it("excludes configured POS rows and prefers requested POS for filler rows", () => {
+    const data: CatalogReviewData = {
+      generatedAt: "2026-04-02T00:00:00.000Z",
+      inputRoot: "/tmp/input",
+      files: [
+        {
+          id: "file-1",
+          posFolder: "blaze",
+          fileName: "blaze.csv",
+          filePath: "/tmp/input/blaze/blaze.csv",
+          detectedPOS: "Blaze",
+          detectedPOSConfidence: 1,
+          totalRows: 1,
+        },
+        {
+          id: "file-2",
+          posFolder: "dutchie",
+          fileName: "dutchie.csv",
+          filePath: "/tmp/input/dutchie/dutchie.csv",
+          detectedPOS: "Dutchie",
+          detectedPOSConfidence: 1,
+          totalRows: 1,
+        },
+        {
+          id: "file-3",
+          posFolder: "meadow",
+          fileName: "meadow.csv",
+          filePath: "/tmp/input/meadow/meadow.csv",
+          detectedPOS: "Meadow",
+          detectedPOSConfidence: 1,
+          totalRows: 1,
+        },
+      ],
+      rows: [
+        {
+          id: "file-1:0",
+          source: {
+            fileId: "file-1",
+            filePath: "/tmp/input/blaze/blaze.csv",
+            fileName: "blaze.csv",
+            posFolder: "blaze",
+            detectedPOS: "Blaze",
+            detectedPOSConfidence: 1,
+            rowIndex: 0,
+            originalRow: { Name: "Blaze row" },
+          },
+          derived: { productName: "Blaze row", category: "Misc" },
+          validation: { errors: [], warnings: [] },
+          confidence: {
+            score: 10,
+            categoryConfidence: 0.1,
+            amountConfidence: 0.1,
+            thcConfidence: 0.1,
+            uomConfidence: 0.1,
+            reasons: [],
+          },
+        },
+        {
+          id: "file-2:0",
+          source: {
+            fileId: "file-2",
+            filePath: "/tmp/input/dutchie/dutchie.csv",
+            fileName: "dutchie.csv",
+            posFolder: "dutchie",
+            detectedPOS: "Dutchie",
+            detectedPOSConfidence: 1,
+            rowIndex: 0,
+            originalRow: { Name: "Dutchie row" },
+          },
+          derived: { productName: "Dutchie row", category: "Flower" },
+          validation: { errors: [], warnings: [] },
+          confidence: {
+            score: 20,
+            categoryConfidence: 0.5,
+            amountConfidence: 0.5,
+            thcConfidence: 0.5,
+            uomConfidence: 0.5,
+            reasons: [],
+          },
+        },
+        {
+          id: "file-3:0",
+          source: {
+            fileId: "file-3",
+            filePath: "/tmp/input/meadow/meadow.csv",
+            fileName: "meadow.csv",
+            posFolder: "meadow",
+            detectedPOS: "Meadow",
+            detectedPOSConfidence: 1,
+            rowIndex: 0,
+            originalRow: { Name: "Meadow row" },
+          },
+          derived: { productName: "Meadow row", category: "Topical" },
+          validation: { errors: [], warnings: [] },
+          confidence: {
+            score: 30,
+            categoryConfidence: 0.7,
+            amountConfidence: 0.7,
+            thcConfidence: 0.7,
+            uomConfidence: 0.7,
+            reasons: [],
+          },
+        },
+      ],
+    };
+
+    const feedback: ReviewFeedbackPayload = {
+      exportedAt: "2026-04-02T00:00:00.000Z",
+      totalNotes: 1,
+      notes: [
+        {
+          rowId: "file-1:0",
+          note: "Skip blaze for now",
+          fileName: "blaze.csv",
+          rowIndex: 1,
+          productName: "Blaze row",
+        },
+      ],
+    };
+
+    const focused = buildFocusedReviewData(data, feedback, {
+      excludedPOS: ["Blaze"],
+      preferredPOS: ["Dutchie"],
+      lowConfidenceLimit: 1,
+      similarNameLimit: 0,
+      nearbyRowWindow: 0,
+    });
+
+    expect(focused.rows.map((row) => row.id)).toEqual(["file-2:0"]);
+    expect(focused.files.map((file) => file.id)).toEqual(["file-2"]);
+  });
 });
