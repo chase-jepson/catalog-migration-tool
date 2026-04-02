@@ -8,4 +8,5 @@ node_modules/
 .worktrees/
 dist/
 dev/output/
+.logic-review/output/
 *.log

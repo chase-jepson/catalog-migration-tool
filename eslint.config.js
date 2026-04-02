@@ -38,6 +38,6 @@ export default tseslint.config(
 
   // Ignore build output and generated files
   {
-    ignores: ["node_modules/", ".output/", ".wxt/", "dist/"],
+    ignores: ["node_modules/", ".output/", ".wxt/", "dist/", ".logic-review/output/"],
   },
 );
