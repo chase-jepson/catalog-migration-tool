@@ -1,4 +1,4 @@
-import { detectEnvironment, getApiBaseUrl, type TreezEnv } from "../../lib/env";
+import { detectEnvironment, type TreezEnv } from "../../lib/env";
 
 export interface StoredTokens {
   accessToken: string;

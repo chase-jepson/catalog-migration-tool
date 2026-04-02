@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { INVENTORY_ROLE_FIELDS } from "../../lib/inventory-constants";
 import type { PerRoleMappings } from "../../lib/inventory-transformer";
-import type { FieldMapping, InventoryFileAssignment, InventoryFileRole } from "../../lib/types";
+import type { InventoryFileAssignment, InventoryFileRole } from "../../lib/types";
 
 interface InventoryMappingStepProps {
   fileAssignments: InventoryFileAssignment[];

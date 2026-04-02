@@ -1,5 +1,6 @@
 import { defineConfig } from "wxt";
 import tailwindcss from "@tailwindcss/vite";
+import { HOST_PERMISSIONS } from "./lib/runtime-origins";
 
 export default defineConfig({
   extensionApi: "chrome",
@@ -15,21 +16,7 @@ export default defineConfig({
     },
     action: {},
     permissions: ["storage", "unlimitedStorage", "activeTab", "tabs", "scripting"],
-    host_permissions: [
-      "https://app.treez.io/*",
-      "https://app.sandbox.treez.io/*",
-      "https://app.dev.treez.io/*",
-      "https://api.treez.io/*",
-      "https://api.sandbox.treez.io/*",
-      "https://api-dev.treez.io/*",
-      "https://api-prod.treez.io/*",
-      "https://api.mso.treez.io/*",
-      "https://api.mso.sandbox.treez.io/*",
-      "https://api-mso-dev.treez.io/*",
-      "https://oauth.treez.io/*",
-      "https://oauth-dev.treez.io/*",
-      "https://*.s3.us-west-2.amazonaws.com/*",
-    ],
+    host_permissions: [...HOST_PERMISSIONS],
   },
   vite: () => ({
     plugins: [tailwindcss()],

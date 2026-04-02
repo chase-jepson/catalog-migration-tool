@@ -118,7 +118,7 @@ The output is a 56-column CSV matching the Treez inventory import spec, with fie
 
 - **Framework**: Vitest with jsdom environment
 - **Location**: All tests in `tests/` directory
-- **Coverage**: 434 unit tests across 19 test files
+- **Coverage**: 610 tests across 26 test files (`595` passing + `15` skipped in the default local run)
 - **Integration tests**: `tests/inventory-integration.test.ts` runs the full ETL pipeline against real Dutchie export files (skipped in CI -- requires fixture files not committed to repo)
 
 Run tests: `pnpm test` | Watch mode: `pnpm test:watch`

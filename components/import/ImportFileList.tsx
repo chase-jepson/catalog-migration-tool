@@ -60,6 +60,8 @@ const STATUS_TEXT: Record<string, string> = {
 };
 
 export function ImportFileList({ files, currentIndex, eta }: ImportFileListProps) {
+  void eta;
+
   return (
     <div className="space-y-1">
       {files.map((file, idx) => {

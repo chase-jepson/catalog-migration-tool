@@ -11,7 +11,6 @@ import {
   UOM_BY_CATEGORY,
   VALID_CLASSIFICATIONS,
 } from "../lib/constants";
-import type { MappingGroup, FieldMapping } from "../lib/types";
 
 describe("POS_SYSTEMS", () => {
   it("contains all 6 POS systems", () => {

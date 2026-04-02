@@ -2,22 +2,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { saveAs } from "file-saver";
 import { buildOutputCSVs, generateZip } from "../../lib/csv-generator";
 import { sendMessage } from "../../lib/messaging";
-import { buildUploadPayload, getUploadSequence, API_OBJECT_TYPES } from "../../lib/file-uploader";
-import {
-  calculateETA,
-  getAdaptiveInterval,
-  isTerminalStatus,
-  MAX_POLL_DURATION_MS,
-} from "../../lib/import-poller";
 import { detectEnvironment, getMsoApiBaseUrl } from "../../lib/env";
 import { ImportFileList } from "./ImportFileList";
+import { runCatalogImportSequence } from "../../lib/catalog-import-runner";
 import type {
   DerivedRow,
   ParsedFile,
   FieldMapping,
   RowFix,
   ImportFileState,
-  ImportObjectType,
   OutputCSVs,
 } from "../../lib/types";
 import { OUTPUT_FILE_ORDER, OUTPUT_FILE_LABELS } from "../../lib/types";
@@ -47,9 +40,9 @@ function buildInitialFileStates(csvs: OutputCSVs): ImportFileState[] {
 
 export function ImportStep({
   derivedRows,
-  parsedFiles,
-  mappings,
-  fixes,
+  parsedFiles: _parsedFiles,
+  mappings: _mappings,
+  fixes: _fixes,
   selectedPOS,
   onStartNew,
   onDone,
@@ -57,7 +50,6 @@ export function ImportStep({
   const [phase, setPhase] = useState<Phase>("pre-import");
   const [fileStates, setFileStates] = useState<ImportFileState[]>([]);
   const [currentFileIndex, setCurrentFileIndex] = useState(-1);
-  const [startTime, setStartTime] = useState(0);
   const [eta, setEta] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [failedFileIndex, setFailedFileIndex] = useState(-1);
@@ -99,173 +91,44 @@ export function ImportStep({
 
   // ── Import Execution ──────────────────────────────────────────────────────
 
-  const runImport = useCallback(
-    async (resumeFromIndex = 0) => {
-      if (!csvsRef.current) return;
-      const csvs = csvsRef.current;
-      const sequence = getUploadSequence(csvs);
+  async function runImport(resumeFromIndex = 0) {
+    if (!csvsRef.current) return;
 
-      cancelledRef.current = false;
-      setPhase("importing");
-      setStartTime(Date.now());
-      setFailedFileIndex(-1);
-      setErrorMessage("");
+    cancelledRef.current = false;
+    setPhase("importing");
+    setFailedFileIndex(-1);
+    setErrorMessage("");
 
-      const sequenceKeys = sequence.map((s) => s.key);
+    const result = await runCatalogImportSequence({
+      csvs: csvsRef.current,
+      initialFileStates: fileStates,
+      resumeFromIndex,
+      startTime: Date.now(),
+      getTokenAndUrl,
+      sendMessage,
+      isCancelled: () => cancelledRef.current,
+      onFileStatesChange: setFileStates,
+      onCurrentFileIndexChange: setCurrentFileIndex,
+      onEtaChange: setEta,
+    });
 
-      for (let i = 0; i < fileStates.length; i++) {
-        const fileKey = fileStates[i].key;
-        const seqIdx = sequenceKeys.indexOf(fileKey);
+    if (!result.ok) {
+      setFailedFileIndex(result.failedFileIndex);
+      setErrorMessage(result.errorMessage);
+      setPhase("error");
+      return;
+    }
 
-        if (seqIdx === -1) {
-          setFileStates((prev) =>
-            prev.map((f, idx) =>
-              idx === i ? { ...f, status: "done", processedCount: 0, rowCount: 0 } : f,
-            ),
-          );
-          continue;
-        }
-
-        if (i < resumeFromIndex && fileStates[i].status === "done") continue;
-        if (cancelledRef.current) break;
-
-        setCurrentFileIndex(i);
-        const file = sequence[seqIdx];
-        const now = new Date();
-        const pad = (n: number) => n.toString().padStart(2, "0");
-        const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}-${pad(now.getMinutes())}`;
-        const fileName = `${file.label} - ${ts}.csv`;
-
-        try {
-          const { apiBaseUrl, token } = await getTokenAndUrl();
-          const objectType = API_OBJECT_TYPES[file.key];
-          const { csvContent, contentLength } = buildUploadPayload(file.data, fileName);
-
-          setFileStates((prev) =>
-            prev.map((f, idx) => (idx === i ? { ...f, status: "uploading" } : f)),
-          );
-
-          const { presignedUrl } = await sendMessage("getPresignedUrl", {
-            apiBaseUrl,
-            token,
-            params: { name: fileName, contentLength, objectType, objectId: objectType },
-          });
-
-          const uploadResult = await sendMessage("uploadToS3", {
-            presignedUrl,
-            csvContent,
-            contentLength,
-          });
-          if (!uploadResult.ok) throw new Error(uploadResult.error ?? "S3 upload failed");
-
-          setFileStates((prev) =>
-            prev.map((f, idx) => (idx === i ? { ...f, status: "processing" } : f)),
-          );
-
-          const totalRows = file.data.length - 1;
-          const interval = getAdaptiveInterval(totalRows);
-          const pollStart = Date.now();
-          let jobId: string | null = null;
-
-          while (true) {
-            if (cancelledRef.current) break;
-            if (Date.now() - pollStart > MAX_POLL_DURATION_MS) {
-              throw new Error(`Import timed out after 60 minutes for ${file.label}`);
-            }
-
-            await new Promise((resolve) => setTimeout(resolve, interval));
-
-            const { apiBaseUrl: pollApiUrl, token: pollToken } = await getTokenAndUrl();
-            const jobs = await sendMessage("fetchImportReport", {
-              apiBaseUrl: pollApiUrl,
-              token: pollToken,
-            });
-
-            const job: any = jobId
-              ? jobs.find((j) => j.id === jobId)
-              : jobs.find((j) => j.name === fileName);
-
-            if (job) {
-              if (!jobId) jobId = job.id;
-
-              setFileStates((prev) =>
-                prev.map((f, idx) =>
-                  idx === i
-                    ? {
-                        ...f,
-                        processedCount: job.countProcessed,
-                        errorCount: job.countError,
-                        rowCount: job.totalRows ?? f.rowCount,
-                      }
-                    : f,
-                ),
-              );
-
-              const completedSoFar = fileStates.filter(
-                (f, idx) => idx < i && (f.status === "done" || f.status === "done_with_warnings"),
-              ).length;
-              const fileProgress = job.totalRows ? job.countProcessed / job.totalRows : 0;
-              setEta(
-                calculateETA(
-                  startTime || Date.now(),
-                  completedSoFar,
-                  fileStates.length,
-                  fileProgress,
-                ),
-              );
-
-              const allProcessed =
-                job.totalRows != null && job.totalRows > 0 && job.countProcessed >= job.totalRows;
-
-              if (isTerminalStatus(job.status) || allProcessed) {
-                if (job.status === "FINISHED_WITH_FAILURES") {
-                  setFileStates((prev) =>
-                    prev.map((f, idx) => (idx === i ? { ...f, status: "done_with_warnings" } : f)),
-                  );
-                } else if (job.status === "FINISHED" || allProcessed) {
-                  setFileStates((prev) =>
-                    prev.map((f, idx) => (idx === i ? { ...f, status: "done" } : f)),
-                  );
-                } else {
-                  throw new Error(
-                    `Import stopped early for ${file.label}: ${job.status} (${job.countError} errors)`,
-                  );
-                }
-                break;
-              }
-            }
-          }
-        } catch (err) {
-          if (cancelledRef.current) break;
-          const msg = err instanceof Error ? err.message : "Import failed";
-          setFileStates((prev) =>
-            prev.map((f, idx) => (idx === i ? { ...f, status: "failed", error: msg } : f)),
-          );
-          setFailedFileIndex(i);
-          setErrorMessage(`${fileStates[i]?.label ?? "File"} failed: ${msg}`);
-          setPhase("error");
-          return;
-        }
-      }
-
-      if (!cancelledRef.current) {
-        const total = fileStates.reduce((sum, f) => {
-          if (f.status === "done" || f.status === "done_with_warnings")
-            return sum + f.processedCount;
-          return sum;
-        }, 0);
-        setTotalImported(total);
-        setCurrentFileIndex(-1);
-        setPhase("done");
-        onDone?.();
-      }
-    },
-    [fileStates, getTokenAndUrl, startTime],
-  );
+    if (!cancelledRef.current) {
+      setTotalImported(result.totalImported);
+      setPhase("done");
+      onDone?.();
+    }
+  }
 
   // ── Start Import: generate CSVs, download ZIP, then run import ──────────
 
-  const handleStartImport = useCallback(async () => {
+  async function handleStartImport() {
     setPhase("downloading");
     try {
       const activeRows = derivedRows.filter((r) => !r.excluded);
@@ -279,126 +142,31 @@ export function ImportStep({
       // Immediately start import after download
       cancelledRef.current = false;
       setPhase("importing");
-      setStartTime(Date.now());
+      const startedAt = Date.now();
       setFailedFileIndex(-1);
       setErrorMessage("");
 
-      const sequence = getUploadSequence(csvs);
-      const sequenceKeys = sequence.map((s) => s.key);
+      const result = await runCatalogImportSequence({
+        csvs,
+        initialFileStates: states,
+        startTime: startedAt,
+        getTokenAndUrl,
+        sendMessage,
+        isCancelled: () => cancelledRef.current,
+        onFileStatesChange: setFileStates,
+        onCurrentFileIndexChange: setCurrentFileIndex,
+        onEtaChange: setEta,
+      });
 
-      for (let i = 0; i < states.length; i++) {
-        const fileKey = states[i].key;
-        const seqIdx = sequenceKeys.indexOf(fileKey);
-
-        if (seqIdx === -1) {
-          states[i] = { ...states[i], status: "done", processedCount: 0, rowCount: 0 };
-          setFileStates([...states]);
-          continue;
-        }
-
-        if (cancelledRef.current) break;
-
-        setCurrentFileIndex(i);
-        const file = sequence[seqIdx];
-        const now = new Date();
-        const pad = (n: number) => n.toString().padStart(2, "0");
-        const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}-${pad(now.getMinutes())}`;
-        const fileName = `${file.label} - ${ts}.csv`;
-
-        try {
-          const { apiBaseUrl, token } = await getTokenAndUrl();
-          const objectType = API_OBJECT_TYPES[file.key];
-          const { csvContent, contentLength } = buildUploadPayload(file.data, fileName);
-
-          states[i] = { ...states[i], status: "uploading" };
-          setFileStates([...states]);
-
-          const { presignedUrl } = await sendMessage("getPresignedUrl", {
-            apiBaseUrl,
-            token,
-            params: { name: fileName, contentLength, objectType, objectId: objectType },
-          });
-
-          const uploadResult = await sendMessage("uploadToS3", {
-            presignedUrl,
-            csvContent,
-            contentLength,
-          });
-          if (!uploadResult.ok) throw new Error(uploadResult.error ?? "S3 upload failed");
-
-          states[i] = { ...states[i], status: "processing" };
-          setFileStates([...states]);
-
-          const totalRows = file.data.length - 1;
-          const interval = getAdaptiveInterval(totalRows);
-          const pollStart = Date.now();
-          let jobId: string | null = null;
-
-          while (true) {
-            if (cancelledRef.current) break;
-            if (Date.now() - pollStart > MAX_POLL_DURATION_MS) {
-              throw new Error(`Import timed out after 60 minutes for ${file.label}`);
-            }
-
-            await new Promise((resolve) => setTimeout(resolve, interval));
-
-            const { apiBaseUrl: pollApiUrl, token: pollToken } = await getTokenAndUrl();
-            const jobs = await sendMessage("fetchImportReport", {
-              apiBaseUrl: pollApiUrl,
-              token: pollToken,
-            });
-            const job: any = jobId
-              ? jobs.find((j) => j.id === jobId)
-              : jobs.find((j) => j.name === fileName);
-
-            if (job) {
-              if (!jobId) jobId = job.id;
-              states[i] = {
-                ...states[i],
-                processedCount: job.countProcessed,
-                errorCount: job.countError,
-                rowCount: job.totalRows ?? states[i].rowCount,
-              };
-              setFileStates([...states]);
-
-              const allProcessed =
-                job.totalRows != null && job.totalRows > 0 && job.countProcessed >= job.totalRows;
-
-              if (isTerminalStatus(job.status) || allProcessed) {
-                if (job.status === "FINISHED_WITH_FAILURES") {
-                  states[i] = { ...states[i], status: "done_with_warnings" };
-                } else if (job.status === "FINISHED" || allProcessed) {
-                  states[i] = { ...states[i], status: "done" };
-                } else {
-                  throw new Error(
-                    `Import stopped early for ${file.label}: ${job.status} (${job.countError} errors)`,
-                  );
-                }
-                setFileStates([...states]);
-                break;
-              }
-            }
-          }
-        } catch (err) {
-          if (cancelledRef.current) break;
-          const msg = err instanceof Error ? err.message : "Import failed";
-          states[i] = { ...states[i], status: "failed", error: msg };
-          setFileStates([...states]);
-          setFailedFileIndex(i);
-          setErrorMessage(`${states[i]?.label ?? "File"} failed: ${msg}`);
-          setPhase("error");
-          return;
-        }
+      if (!result.ok) {
+        setFailedFileIndex(result.failedFileIndex);
+        setErrorMessage(result.errorMessage);
+        setPhase("error");
+        return;
       }
 
       if (!cancelledRef.current) {
-        const total = states.reduce((sum, f) => {
-          if (f.status === "done" || f.status === "done_with_warnings")
-            return sum + f.processedCount;
-          return sum;
-        }, 0);
-        setTotalImported(total);
-        setCurrentFileIndex(-1);
+        setTotalImported(result.totalImported);
         setPhase("done");
         onDone?.();
       }
@@ -406,9 +174,9 @@ export function ImportStep({
       setErrorMessage(err instanceof Error ? err.message : "Failed to generate CSV files");
       setPhase("error");
     }
-  }, [derivedRows, getTokenAndUrl]);
+  }
 
-  const handleRetry = useCallback(() => {
+  function handleRetry() {
     if (failedFileIndex >= 0) {
       setFileStates((prev) =>
         prev.map((f, idx) =>
@@ -419,13 +187,7 @@ export function ImportStep({
       );
       runImport(failedFileIndex);
     }
-  }, [failedFileIndex, runImport]);
-
-  const handleDownloadAgain = useCallback(async () => {
-    if (!csvsRef.current) return;
-    const blob = await generateZip(csvsRef.current);
-    saveAs(blob, "treez-import.zip");
-  }, []);
+  }
 
   // ── Render ────────────────────────────────────────────────────────────────
 

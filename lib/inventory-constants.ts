@@ -1,7 +1,6 @@
 import type {
   FieldMapping,
   InventoryFileRole,
-  InventoryMappingGroup,
   MappingFieldDef,
 } from "./types";
 

@@ -1,10 +1,10 @@
 import { defineExtensionMessaging } from "@webext-core/messaging";
 import type {
   ImportJob,
-  PortalAuthState,
   PortalJobStatus,
   PortalReindexResult,
   PortalRollbackResult,
+  PortalSessionInfo,
   PortalStore,
   PortalValidationResult,
   StoreInfo,
@@ -33,20 +33,15 @@ interface ProtocolMap {
     orgId: string;
     entityIds: string[];
   }): StoreInfo[];
-  portalLogin(data: { username: string; password: string }): PortalAuthState;
-  portalFetchStores(data: { portalToken: string }): PortalStore[];
-  portalValidate(data: {
-    portalToken: string;
-    csvContent: string;
-    storeId: string;
-    fileName: string;
-  }): PortalValidationResult;
-  portalExecute(data: { portalToken: string; jobId: string }): { status: string; job_id: string };
-  portalGetJob(data: { portalToken: string; jobId: string }): PortalJobStatus;
-  portalRollback(data: { portalToken: string; jobId: string }): PortalRollbackResult;
-  portalCancel(data: { portalToken: string; jobId: string }): { status: string; job_id: string };
+  portalLogin(data: { username: string; password: string }): PortalSessionInfo;
+  portalGetSession(data: Record<string, never>): PortalSessionInfo | null;
+  portalFetchStores(data: Record<string, never>): PortalStore[];
+  portalValidate(data: { csvContent: string; storeId: string; fileName: string }): PortalValidationResult;
+  portalExecute(data: { jobId: string }): { status: string; job_id: string };
+  portalGetJob(data: { jobId: string }): PortalJobStatus;
+  portalRollback(data: { jobId: string }): PortalRollbackResult;
+  portalCancel(data: { jobId: string }): { status: string; job_id: string };
   portalReindex(data: {
-    portalToken: string;
     storeId: string;
     username: string;
     password: string;

@@ -1,4 +1,3 @@
-import type { TreezEnv } from "./env";
 import type { FieldMapping, MappingFieldDef, MappingGroup } from "./types";
 
 // ── Existing v2 Constants ───────────────────────────────────────────────────

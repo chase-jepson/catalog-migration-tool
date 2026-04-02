@@ -2,7 +2,6 @@ import {
   PRODUCT_CATEGORIES,
   PRODUCT_SUBCATEGORIES,
   UOM_BY_CATEGORY,
-  EACH_UOM_CATEGORIES,
 } from "./constants";
 import type { CategoryResolution } from "./types";
 

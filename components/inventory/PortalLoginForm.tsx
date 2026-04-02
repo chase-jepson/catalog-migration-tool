@@ -1,10 +1,9 @@
 import { useCallback, useState } from "react";
 import { sendMessage } from "../../lib/messaging";
-import { setPortalAuth } from "../../lib/portal-auth";
-import type { PortalAuthState } from "../../lib/types";
+import type { PortalSessionInfo } from "../../lib/types";
 
 interface PortalLoginFormProps {
-  onAuthenticated: (auth: PortalAuthState) => void;
+  onAuthenticated: (auth: PortalSessionInfo) => void;
 }
 
 export function PortalLoginForm({ onAuthenticated }: PortalLoginFormProps) {
@@ -26,7 +25,6 @@ export function PortalLoginForm({ onAuthenticated }: PortalLoginFormProps) {
           username: email,
           password,
         });
-        await setPortalAuth(auth);
         onAuthenticated(auth);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Login failed");

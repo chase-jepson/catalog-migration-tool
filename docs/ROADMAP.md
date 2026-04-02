@@ -33,7 +33,7 @@
   - Brand normalization (4,349 variant → canonical mappings)
 - 40+ transformation rules from real export review
 - Local ETL runner + interactive HTML review page for iterating
-- 558 tests across 21 test files
+- 610 tests across 26 test files (`595` passing + `15` skipped in the default local run)
 
 ---
 

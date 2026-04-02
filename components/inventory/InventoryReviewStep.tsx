@@ -2,15 +2,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
   InventoryDerivedRow,
   InventoryFileAssignment,
-  PortalAuthState,
   PortalStore,
+  PortalSessionInfo,
   PortalValidationResult,
   RowFix,
   RowValidationError,
   ValidationResult,
   StoreInfo,
 } from "../../lib/types";
-import type { PerRoleMappings, ETLInput } from "../../lib/inventory-transformer";
+import type { PerRoleMappings } from "../../lib/inventory-transformer";
 import { runInventoryETL } from "../../lib/inventory-transformer";
 import {
   validateInventoryRows,
@@ -20,9 +20,9 @@ import {
 } from "../../lib/inventory-validator";
 import { buildInventoryCSV, serializeCSV } from "../../lib/inventory-csv-generator";
 import { sendMessage } from "../../lib/messaging";
-import { getPortalAuth } from "../../lib/portal-auth";
 import { ErrorGroupList } from "../review/ErrorGroupList";
 import { PortalLoginForm } from "./PortalLoginForm";
+import { buildInventoryETLInput } from "../../lib/inventory-file-assignments";
 
 interface InventoryReviewStepProps {
   fileAssignments: InventoryFileAssignment[];
@@ -45,22 +45,6 @@ type Status =
   | "portal-login"
   | "portal-validating"
   | "portal-done";
-
-/**
- * Build ETLInput from file assignments.
- */
-function buildETLInput(assignments: InventoryFileAssignment[]): ETLInput | null {
-  const inventoryAssign = assignments.find((a) => a.role === "inventory");
-  if (!inventoryAssign) return null;
-
-  return {
-    inventoryFile: inventoryAssign.file,
-    receiptsFile: assignments.find((a) => a.role === "receipts")?.file,
-    vendorsFile: assignments.find((a) => a.role === "vendors")?.file,
-    adjustmentsFile: assignments.find((a) => a.role === "adjustments")?.file,
-    catalogFile: assignments.find((a) => a.role === "catalog_export")?.file,
-  };
-}
 
 /**
  * Apply row-level fixes to derived rows.
@@ -94,7 +78,7 @@ export function InventoryReviewStep({
   const [status, setStatus] = useState<Status>("processing");
   const [derivedRows, setDerivedRows] = useState<InventoryDerivedRow[]>([]);
   const [validation, setValidation] = useState<ValidationResult | null>(null);
-  const [portalAuth, setPortalAuth] = useState<PortalAuthState | null>(null);
+  const [portalAuth, setPortalAuth] = useState<PortalSessionInfo | null>(null);
   const [portalResult, setPortalResult] = useState<PortalValidationResult | null>(null);
   const [portalErrors, setPortalErrors] = useState<RowValidationError[]>([]);
   const [portalError, setPortalError] = useState("");
@@ -148,14 +132,15 @@ export function InventoryReviewStep({
       setPortalSkipped(false);
 
       requestAnimationFrame(() => {
-        const etlInput = buildETLInput(fileAssignments);
-        if (!etlInput) {
-          setStatus("ready");
+        const etlInputResult = buildInventoryETLInput(fileAssignments);
+        if (!etlInputResult.ok) {
+          setPortalError(etlInputResult.reason);
+          setStatus("reviewing");
           onCanProceed(false);
           return;
         }
 
-        const rows = runInventoryETL(etlInput, perRoleMappings, dispensaryLicense);
+        const rows = runInventoryETL(etlInputResult.input, perRoleMappings, dispensaryLicense);
         const fixed = currentFixes.length > 0 ? applyFixes(rows, currentFixes) : rows;
 
         // Layer 1: per-field validation
@@ -208,7 +193,7 @@ export function InventoryReviewStep({
 
   // ── Portal validation flow ─────────────────────────────────────────────────
   const runPortalValidation = useCallback(
-    async (auth: PortalAuthState) => {
+    async () => {
       setStatus("portal-validating");
       setPortalError("");
       setPortalErrors([]);
@@ -220,9 +205,7 @@ export function InventoryReviewStep({
         const fileName = `validation-${Date.now()}.csv`;
 
         // Step 2: Fetch portal stores to find matching store ID
-        const portalStores = await sendMessage("portalFetchStores", {
-          portalToken: auth.token,
-        });
+        const portalStores = await sendMessage("portalFetchStores", {});
 
         // Match by store name (case-insensitive)
         const storeName = selectedStore?.name?.toLowerCase() ?? "";
@@ -243,7 +226,6 @@ export function InventoryReviewStep({
 
         // Step 3: Send to portal for validation
         const result = await sendMessage("portalValidate", {
-          portalToken: auth.token,
           csvContent,
           storeId: matchedStore.id,
           fileName,
@@ -266,7 +248,7 @@ export function InventoryReviewStep({
         onCanProceed(true); // Allow proceeding if portal is unreachable
       }
     },
-    [derivedRows, selectedStore, onCanProceed],
+    [derivedRows, selectedStore, onCanProceed, onPortalJobId, onPortalStoreId],
   );
 
   // ── Auto-trigger portal validation when local passes ───────────────────────
@@ -274,10 +256,10 @@ export function InventoryReviewStep({
     if (status !== "ready" || portalSkipped || portalResult) return;
     if (validation && validation.errorCount === 0) {
       // Check for existing auth
-      getPortalAuth().then((auth) => {
+      sendMessage("portalGetSession", {}).then((auth) => {
         if (auth) {
           setPortalAuth(auth);
-          runPortalValidation(auth);
+          runPortalValidation();
         } else {
           setStatus("portal-login");
           onCanProceed(false);
@@ -288,9 +270,9 @@ export function InventoryReviewStep({
   }, [status]);
 
   const handlePortalAuthenticated = useCallback(
-    (auth: PortalAuthState) => {
+    (auth: PortalSessionInfo) => {
       setPortalAuth(auth);
-      runPortalValidation(auth);
+      runPortalValidation();
     },
     [runPortalValidation],
   );
@@ -303,7 +285,7 @@ export function InventoryReviewStep({
 
   const handleRetryPortal = useCallback(() => {
     if (portalAuth) {
-      runPortalValidation(portalAuth);
+      runPortalValidation();
     } else {
       setStatus("portal-login");
       onCanProceed(false);

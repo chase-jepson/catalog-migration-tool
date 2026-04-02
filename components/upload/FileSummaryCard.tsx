@@ -8,7 +8,7 @@ interface FileSummaryCardProps {
   detectedPOS: POSDetectionResult | null;
   selectedPOS: string;
   onSelectedPOSChange: (pos: string) => void;
-  onRemoveFile: (fileName: string) => void;
+  onRemoveFile: (fileId: string) => void;
   showPOS?: boolean;
 }
 
@@ -59,7 +59,7 @@ export function FileSummaryCard({
         {/* Remove button */}
         <button
           type="button"
-          onClick={() => onRemoveFile(file.fileName)}
+          onClick={() => onRemoveFile(file.id ?? file.fileName)}
           className="shrink-0 rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
           title="Remove file"
         >

@@ -79,7 +79,7 @@ function err(
  */
 export function validateInventoryRows(
   rows: InventoryDerivedRow[],
-  options: InventoryValidationOptions = {},
+  _options: InventoryValidationOptions = {},
 ): ValidationResult {
   const errors: RowValidationError[] = [];
   const today = new Date().toISOString().slice(0, 10);

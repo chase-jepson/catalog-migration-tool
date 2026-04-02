@@ -1,11 +1,15 @@
 import { IMPORT_PAGE_PATTERNS } from "../../lib/constants";
 import { onMessage } from "../../lib/messaging";
+import { PORTAL_BASE_URL } from "../../lib/runtime-origins";
 import { getValidToken } from "./auth";
+import {
+  clearPortalAuth,
+  getPortalAuth,
+  getPortalSessionInfo,
+  setPortalAuth,
+} from "./portal-session";
 
 export default defineBackground(() => {
-  // Allow content scripts to access session storage
-  chrome.storage.session.setAccessLevel({ accessLevel: "TRUSTED_AND_UNTRUSTED_CONTEXTS" });
-
   // When extension icon is clicked, tell the content script to open the drawer
   chrome.action.onClicked.addListener(async (tab) => {
     if (!tab.id || !tab.url) return;
@@ -133,9 +137,15 @@ export default defineBackground(() => {
 
   // ── Portal API handlers ──────────────────────────────────────────────────
 
-  const PORTAL_BASE_URL = "https://customer-success.mso.treez.io";
+  function requirePortalAuthToken(): string {
+    const auth = getPortalAuth();
+    if (!auth) {
+      throw new Error("Portal session expired. Please sign in again.");
+    }
+    return auth.token;
+  }
 
-  // Handle portalLogin -- authenticate with portal and return token + user info
+  // Handle portalLogin -- authenticate with portal and store token in background memory
   onMessage("portalLogin", async (message) => {
     const { username, password } = message.data;
     const res = await fetch(`${PORTAL_BASE_URL}/api/auth/login`, {
@@ -157,12 +167,15 @@ export default defineBackground(() => {
       throw new Error(`Portal login failed (${res.status}): ${text}`);
     }
 
-    return res.json();
+    const auth = (await res.json()) as import("../../lib/types").PortalAuthState;
+    return setPortalAuth(auth);
   });
 
+  onMessage("portalGetSession", async () => getPortalSessionInfo());
+
   // Handle portalFetchStores -- get list of configured stores from portal
-  onMessage("portalFetchStores", async (message) => {
-    const { portalToken } = message.data;
+  onMessage("portalFetchStores", async () => {
+    const portalToken = requirePortalAuthToken();
     const res = await fetch(`${PORTAL_BASE_URL}/api/stores`, {
       credentials: "omit",
       headers: { Authorization: `Bearer ${portalToken}` },
@@ -177,7 +190,8 @@ export default defineBackground(() => {
 
   // Handle portalValidate -- upload CSV to portal for server-side validation
   onMessage("portalValidate", async (message) => {
-    const { portalToken, csvContent, storeId, fileName } = message.data;
+    const portalToken = requirePortalAuthToken();
+    const { csvContent, storeId, fileName } = message.data;
 
     // Build multipart form data
     const blob = new Blob([csvContent], { type: "text/csv" });
@@ -205,7 +219,8 @@ export default defineBackground(() => {
 
   // Handle portalExecute -- approve and launch a VALIDATED import job
   onMessage("portalExecute", async (message) => {
-    const { portalToken, jobId } = message.data;
+    const portalToken = requirePortalAuthToken();
+    const { jobId } = message.data;
     const res = await fetch(`${PORTAL_BASE_URL}/api/import/jobs/${jobId}/execute`, {
       method: "POST",
       credentials: "omit",
@@ -225,7 +240,8 @@ export default defineBackground(() => {
 
   // Handle portalGetJob -- poll job status
   onMessage("portalGetJob", async (message) => {
-    const { portalToken, jobId } = message.data;
+    const portalToken = requirePortalAuthToken();
+    const { jobId } = message.data;
     const res = await fetch(`${PORTAL_BASE_URL}/api/import/jobs/${jobId}`, {
       credentials: "omit",
       headers: { Authorization: `Bearer ${portalToken}` },
@@ -238,7 +254,8 @@ export default defineBackground(() => {
 
   // Handle portalRollback -- rollback a completed/failed import
   onMessage("portalRollback", async (message) => {
-    const { portalToken, jobId } = message.data;
+    const portalToken = requirePortalAuthToken();
+    const { jobId } = message.data;
     const res = await fetch(`${PORTAL_BASE_URL}/api/import/jobs/${jobId}/rollback`, {
       method: "POST",
       credentials: "omit",
@@ -258,7 +275,8 @@ export default defineBackground(() => {
 
   // Handle portalCancel -- cancel a VALIDATED import job
   onMessage("portalCancel", async (message) => {
-    const { portalToken, jobId } = message.data;
+    const portalToken = requirePortalAuthToken();
+    const { jobId } = message.data;
     const res = await fetch(`${PORTAL_BASE_URL}/api/import/jobs/${jobId}/cancel`, {
       method: "POST",
       credentials: "omit",
@@ -278,7 +296,8 @@ export default defineBackground(() => {
 
   // Handle portalReindex -- trigger OpenSearch reindex for a store
   onMessage("portalReindex", async (message) => {
-    const { portalToken, storeId, username, password } = message.data;
+    const portalToken = requirePortalAuthToken();
+    const { storeId, username, password } = message.data;
     const res = await fetch(`${PORTAL_BASE_URL}/api/import/reindex/${storeId}`, {
       method: "POST",
       credentials: "omit",
@@ -296,5 +315,9 @@ export default defineBackground(() => {
       throw new Error(`Reindex failed (${res.status}): ${text}`);
     }
     return res.json();
+  });
+
+  chrome.runtime.onSuspend.addListener(() => {
+    clearPortalAuth();
   });
 });

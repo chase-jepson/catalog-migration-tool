@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { buildOutputCSVs, arrayToCSV, generateZip } from "../lib/csv-generator";
 import type { DerivedRow, OutputCSVs } from "../lib/types";
 

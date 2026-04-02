@@ -1,6 +1,7 @@
 // ── Parsed File ─────────────────────────────────────────────────────────────
 
 export interface ParsedFile {
+  id?: string;
   fileName: string;
   fileSize: number;
   headers: string[];
@@ -77,16 +78,16 @@ export interface PersistedMigrationState {
   parsedFiles: ParsedFile[];
   mergedHeaders: string[];
   selectedPOS: string;
+  detectedPOS?: POSDetectionResult | null;
   mappings: FieldMapping[];
   fixes: RowFix[];
+  derivedRows?: DerivedRow[];
   currentStep: number;
   updatedAt: string;
   importProgress?: ImportProgress;
 }
 
 // ── Phase 3: Derived Row ────────────────────────────────────────────────────
-
-import type { ProductCategory } from "./constants";
 
 export interface DerivedRow {
   excluded: boolean;
@@ -347,6 +348,13 @@ export interface PortalAuthState {
   expiresAt: number;
 }
 
+export interface PortalSessionInfo {
+  email: string;
+  firstName: string;
+  lastName: string;
+  expiresAt: number;
+}
+
 export interface PortalValidationIssue {
   row_number: number | null;
   field_name: string | null;
@@ -420,10 +428,14 @@ export interface PersistedInventoryState {
   parsedFiles: ParsedFile[];
   mergedHeaders: string[];
   selectedPOS: string;
+  detectedPOS?: POSDetectionResult | null;
   selectedStore: StoreInfo | null;
   mappings: FieldMapping[];
   perRoleMappings: PerRoleMappingsState;
   fixes: RowFix[];
+  inventoryDerivedRows?: InventoryDerivedRow[];
+  portalJobId?: string | null;
+  portalStoreId?: string | null;
   currentStep: number;
   updatedAt: string;
   importProgress?: ImportProgress;
