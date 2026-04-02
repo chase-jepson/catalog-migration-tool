@@ -248,7 +248,7 @@ export function InventoryReviewStep({
         onCanProceed(true); // Allow proceeding if portal is unreachable
       }
     },
-    [derivedRows, selectedStore, onCanProceed],
+    [derivedRows, selectedStore, onCanProceed, onPortalJobId, onPortalStoreId],
   );
 
   // ── Auto-trigger portal validation when local passes ───────────────────────

@@ -231,7 +231,7 @@ export function InventoryImportStep({
         setPhase("error");
       }
     }
-  }, [derivedRows, selectedStore, getTokenAndUrl]);
+  }, [derivedRows, selectedStore, getTokenAndUrl, onDone]);
 
   // ── Portal Cancel (discard validated job) ─────────────────────────────────────
   const handlePortalCancel = useCallback(async () => {

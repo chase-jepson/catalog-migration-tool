@@ -10,7 +10,7 @@ Auto-detects Dutchie, Blaze, Flowhub, IndicaOnline, Meadow, and Cova. Manual map
 - **UI:** React 19, Tailwind CSS v4 (custom Treez design tokens)
 - **Language:** TypeScript 5.8+ (strict mode)
 - **Package Manager:** pnpm (required by WXT)
-- **Testing:** Vitest 4 with jsdom (434 tests across 19 files)
+- **Testing:** Vitest 4 with jsdom (610 tests across 26 files, including 1 integration suite that is skipped without local fixtures)
 - **File Parsing:** SheetJS (xlsx) for CSV/XLSX
 - **Messaging:** @webext-core/messaging (typed IPC)
 
@@ -93,7 +93,7 @@ pnpm format       # Prettier
 
 ## Testing
 
-- 434 unit tests across 19 files
+- 610 tests across 26 files (`595` passing + `15` skipped in the default local run)
 - Real POS export fixtures in `tests/fixtures/`
 - Key suites: transformer, validator, csv-generator, pos-detection, category-mapper
 - `inventory-integration.test.ts` — full ETL pipeline (skipped in CI without fixtures)

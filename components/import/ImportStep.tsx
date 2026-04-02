@@ -11,7 +11,6 @@ import type {
   FieldMapping,
   RowFix,
   ImportFileState,
-  ImportObjectType,
   OutputCSVs,
 } from "../../lib/types";
 import { OUTPUT_FILE_ORDER, OUTPUT_FILE_LABELS } from "../../lib/types";
@@ -41,9 +40,9 @@ function buildInitialFileStates(csvs: OutputCSVs): ImportFileState[] {
 
 export function ImportStep({
   derivedRows,
-  parsedFiles,
-  mappings,
-  fixes,
+  parsedFiles: _parsedFiles,
+  mappings: _mappings,
+  fixes: _fixes,
   selectedPOS,
   onStartNew,
   onDone,
@@ -92,47 +91,44 @@ export function ImportStep({
 
   // ── Import Execution ──────────────────────────────────────────────────────
 
-  const runImport = useCallback(
-    async (resumeFromIndex = 0) => {
-      if (!csvsRef.current) return;
+  async function runImport(resumeFromIndex = 0) {
+    if (!csvsRef.current) return;
 
-      cancelledRef.current = false;
-      setPhase("importing");
-      setFailedFileIndex(-1);
-      setErrorMessage("");
+    cancelledRef.current = false;
+    setPhase("importing");
+    setFailedFileIndex(-1);
+    setErrorMessage("");
 
-      const result = await runCatalogImportSequence({
-        csvs: csvsRef.current,
-        initialFileStates: fileStates,
-        resumeFromIndex,
-        startTime: Date.now(),
-        getTokenAndUrl,
-        sendMessage,
-        isCancelled: () => cancelledRef.current,
-        onFileStatesChange: setFileStates,
-        onCurrentFileIndexChange: setCurrentFileIndex,
-        onEtaChange: setEta,
-      });
+    const result = await runCatalogImportSequence({
+      csvs: csvsRef.current,
+      initialFileStates: fileStates,
+      resumeFromIndex,
+      startTime: Date.now(),
+      getTokenAndUrl,
+      sendMessage,
+      isCancelled: () => cancelledRef.current,
+      onFileStatesChange: setFileStates,
+      onCurrentFileIndexChange: setCurrentFileIndex,
+      onEtaChange: setEta,
+    });
 
-      if (!result.ok) {
-        setFailedFileIndex(result.failedFileIndex);
-        setErrorMessage(result.errorMessage);
-        setPhase("error");
-        return;
-      }
+    if (!result.ok) {
+      setFailedFileIndex(result.failedFileIndex);
+      setErrorMessage(result.errorMessage);
+      setPhase("error");
+      return;
+    }
 
-      if (!cancelledRef.current) {
-        setTotalImported(result.totalImported);
-        setPhase("done");
-        onDone?.();
-      }
-    },
-    [fileStates, getTokenAndUrl],
-  );
+    if (!cancelledRef.current) {
+      setTotalImported(result.totalImported);
+      setPhase("done");
+      onDone?.();
+    }
+  }
 
   // ── Start Import: generate CSVs, download ZIP, then run import ──────────
 
-  const handleStartImport = useCallback(async () => {
+  async function handleStartImport() {
     setPhase("downloading");
     try {
       const activeRows = derivedRows.filter((r) => !r.excluded);
@@ -178,9 +174,9 @@ export function ImportStep({
       setErrorMessage(err instanceof Error ? err.message : "Failed to generate CSV files");
       setPhase("error");
     }
-  }, [derivedRows, getTokenAndUrl]);
+  }
 
-  const handleRetry = useCallback(() => {
+  function handleRetry() {
     if (failedFileIndex >= 0) {
       setFileStates((prev) =>
         prev.map((f, idx) =>
@@ -191,13 +187,7 @@ export function ImportStep({
       );
       runImport(failedFileIndex);
     }
-  }, [failedFileIndex, runImport]);
-
-  const handleDownloadAgain = useCallback(async () => {
-    if (!csvsRef.current) return;
-    const blob = await generateZip(csvsRef.current);
-    saveAs(blob, "treez-import.zip");
-  }, []);
+  }
 
   // ── Render ────────────────────────────────────────────────────────────────
 

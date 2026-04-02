@@ -9,12 +9,12 @@ This review covers the extension source, configs, tests, docs, and dev utilities
 ## Verification Run
 
 - `pnpm test`
-  - Result: 20 test files passed, 1 skipped
-  - Result: 579 tests passed, 15 skipped, 0 failed
+  - Result: 25 test files passed, 1 skipped
+  - Result: 595 tests passed, 15 skipped, 0 failed
 - `pnpm typecheck`
   - Result: passed
 - `pnpm lint`
-  - Result: 0 errors, 45 warnings
+  - Result: 0 errors, 38 warnings
 
 ## Executive Summary
 
