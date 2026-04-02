@@ -13,6 +13,7 @@
     "zip": "wxt zip",
     "postinstall": "wxt prepare",
     "review:catalog": "node node_modules/.pnpm/node_modules/vite-node/dist/cli.mjs .logic-review/build-review-cli.ts",
+    "review:catalog:no-open": "node node_modules/.pnpm/node_modules/vite-node/dist/cli.mjs .logic-review/build-review-cli.ts --no-open",
     "review:catalog:data": "node node_modules/.pnpm/node_modules/vite-node/dist/cli.mjs .logic-review/run-review-cli.ts",
     "review:catalog:site": "node node_modules/.pnpm/node_modules/vite-node/dist/cli.mjs .logic-review/generate-site-cli.ts",
     "test": "vitest run",

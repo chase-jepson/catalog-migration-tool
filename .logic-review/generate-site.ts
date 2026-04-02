@@ -38,6 +38,7 @@ export function generateCatalogReviewSite(
 
   for (let pageIndex = 0; pageIndex < totalPages; pageIndex += 1) {
     const pageRows = rows.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize).map((row) => ({
+      id: row.id,
       fileId: row.source.fileId,
       rowIndex: row.source.rowIndex,
       originalRow: row.source.originalRow,
@@ -148,6 +149,7 @@ export function generateCatalogReviewSite(
     .page-controls {
       display: flex;
       gap: 10px;
+      flex-wrap: wrap;
       align-items: center;
       font-family: "Avenir Next", "Helvetica Neue", sans-serif;
     }
@@ -173,6 +175,18 @@ export function generateCatalogReviewSite(
       padding: 12px 14px;
       background: rgba(255, 255, 255, 0.88);
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
+    }
+    textarea {
+      width: 100%;
+      min-height: 104px;
+      resize: vertical;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.92);
+      font-family: "Avenir Next", "Helvetica Neue", sans-serif;
+      font-size: 14px;
+      line-height: 1.4;
     }
     main {
       padding: 20px 24px 40px;
@@ -266,6 +280,11 @@ export function generateCatalogReviewSite(
       display: grid;
       gap: 8px;
     }
+    .stack {
+      margin-top: 14px;
+      display: grid;
+      gap: 12px;
+    }
     .reason {
       display: flex;
       justify-content: space-between;
@@ -276,6 +295,65 @@ export function generateCatalogReviewSite(
       border: 1px solid rgba(139, 30, 36, 0.08);
       font-family: "Avenir Next", "Helvetica Neue", sans-serif;
       font-size: 13px;
+    }
+    .source-signals {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .signal {
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: #edf4e2;
+      border: 1px solid rgba(35, 69, 27, 0.12);
+      font-family: "Avenir Next", "Helvetica Neue", sans-serif;
+      font-size: 12px;
+    }
+    .notes {
+      border: 1px solid rgba(35, 69, 27, 0.12);
+      border-radius: 18px;
+      padding: 14px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+    .notes-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 10px;
+      font-family: "Avenir Next", "Helvetica Neue", sans-serif;
+    }
+    .notes-head h3 {
+      margin: 0;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .notes-status {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    details {
+      border: 1px solid rgba(35, 69, 27, 0.12);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.72);
+      overflow: hidden;
+    }
+    summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 14px;
+      font-family: "Avenir Next", "Helvetica Neue", sans-serif;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: #eef3e7;
+    }
+    summary::-webkit-details-marker {
+      display: none;
+    }
+    details table {
+      background: var(--surface-strong);
     }
     .empty {
       padding: 32px;
@@ -293,6 +371,10 @@ export function generateCatalogReviewSite(
       .summary {
         grid-auto-flow: row;
         justify-content: start;
+      }
+      .notes-head {
+        align-items: start;
+        flex-direction: column;
       }
     }
   </style>
@@ -313,6 +395,7 @@ export function generateCatalogReviewSite(
   <section class="controls">
     <input id="search" type="search" placeholder="Filter within the current page by file, product, category, or reason" />
     <div class="page-controls">
+      <button id="download-notes">Download Notes JSON</button>
       <button id="prev">Previous</button>
       <span id="page-indicator"></span>
       <button id="next">Next</button>
@@ -323,9 +406,11 @@ export function generateCatalogReviewSite(
   <script>
     const manifest = window.CATALOG_REVIEW_MANIFEST;
     window.CATALOG_REVIEW_PAGES = window.CATALOG_REVIEW_PAGES || {};
+    const notesStorageKey = "catalog-logic-review-notes";
 
     const results = document.getElementById("results");
     const search = document.getElementById("search");
+    const downloadNotesButton = document.getElementById("download-notes");
     const prevButton = document.getElementById("prev");
     const nextButton = document.getElementById("next");
     const pageIndicator = document.getElementById("page-indicator");
@@ -346,10 +431,48 @@ export function generateCatalogReviewSite(
         .replace(/'/g, "&#39;");
     }
 
+    function loadSavedNotes() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(notesStorageKey) || "{}");
+        return Object.fromEntries(
+          Object.entries(parsed).map(([rowId, value]) => {
+            if (typeof value === "string") {
+              return [rowId, { note: value }];
+            }
+            return [rowId, value];
+          }),
+        );
+      } catch {
+        return {};
+      }
+    }
+
+    let savedNotes = loadSavedNotes();
+
+    function persistNotes() {
+      localStorage.setItem(notesStorageKey, JSON.stringify(savedNotes));
+    }
+
+    function updateNotesSummary() {
+      const count = Object.values(savedNotes).filter((value) => String(value.note || "").trim() !== "").length;
+      downloadNotesButton.textContent = count ? "Download Notes JSON (" + count + ")" : "Download Notes JSON";
+    }
+
     function renderTable(entries) {
       return entries
         .map(([key, value]) => "<tr><th>" + escapeHtml(key) + "</th><td>" + escapeHtml(value === "" ? "(empty)" : value) + "</td></tr>")
         .join("");
+    }
+
+    function findSourceSignals(originalRow) {
+      const signals = [];
+      for (const [key, value] of Object.entries(originalRow)) {
+        const haystack = (key + " " + value).toLowerCase();
+        if (/(^|\\b)(thc|cbd|cannabinoid|potency|terp|infused)(\\b|$)/.test(haystack)) {
+          signals.push(key + ": " + value);
+        }
+      }
+      return signals;
     }
 
     function renderRows(filterText) {
@@ -363,6 +486,7 @@ export function generateCatalogReviewSite(
               row.derived.productName || "",
               row.derived.category || "",
               row.derived.subCategory || "",
+              ...Object.entries(row.originalRow).flatMap(([key, value]) => [key, value]),
               ...row.confidence.reasons.map((reason) => reason.message),
             ].join(" ").toLowerCase();
             return haystack.includes(query);
@@ -377,6 +501,9 @@ export function generateCatalogReviewSite(
       results.innerHTML = filtered
         .map((row) => {
           const fileMeta = manifest.filesById[row.fileId];
+          const sourceSignals = findSourceSignals(row.originalRow);
+          const note = savedNotes[row.id]?.note || "";
+          const allSourceEntries = Object.entries(row.originalRow);
           return "<section class=\\"card\\">" +
             "<div class=\\"card-top\\">" +
               "<div>" +
@@ -384,15 +511,34 @@ export function generateCatalogReviewSite(
                 "<div class=\\"meta\\">" +
                   "<span>" + escapeHtml(fileMeta.posFolder) + " / " + escapeHtml(fileMeta.fileName) + "</span>" +
                   "<span>Row " + escapeHtml(row.rowIndex + 1) + "</span>" +
+                  "<span>Review ID " + escapeHtml(row.id) + "</span>" +
                   "<span>POS " + escapeHtml(fileMeta.detectedPOS) + " (" + escapeHtml(Math.round(fileMeta.detectedPOSConfidence * 100)) + "%)</span>" +
                 "</div>" +
               "</div>" +
               "<div class=\\"score\\">Confidence<strong>" + escapeHtml(row.confidence.score) + "</strong></div>" +
             "</div>" +
+            "<div class=\\"stack\\">" +
+              "<div class=\\"source-signals\\">" +
+                (sourceSignals.length
+                  ? sourceSignals.map((signal) => "<span class=\\"signal\\">Source signal: " + escapeHtml(signal) + "</span>").join("")
+                  : '<span class="signal">No THC/CBD/potency signal found in source row</span>') +
+              "</div>" +
+            "</div>" +
             "<div class=\\"columns\\">" +
-              "<section class=\\"pane\\"><h3>Original</h3><table>" + renderTable(Object.entries(row.originalRow)) + "</table></section>" +
+              "<section class=\\"pane\\"><h3>Original Key Row Data</h3><table>" + renderTable(allSourceEntries.slice(0, 12)) + "</table></section>" +
               "<section class=\\"pane\\"><h3>Transformed</h3><table>" + renderTable(Object.entries(row.derived)) + "</table></section>" +
             "</div>" +
+            "<details>" +
+              "<summary>All Source Fields (" + escapeHtml(allSourceEntries.length) + ")</summary>" +
+              "<table>" + renderTable(allSourceEntries) + "</table>" +
+            "</details>" +
+            "<section class=\\"notes\\">" +
+              "<div class=\\"notes-head\\">" +
+                "<h3>Reviewer Notes</h3>" +
+                "<span class=\\"notes-status\\" data-note-status=\\"" + escapeHtml(row.id) + "\\">Autosaved locally in this browser</span>" +
+              "</div>" +
+              "<textarea data-note-id=\\"" + escapeHtml(row.id) + "\\" placeholder=\\"Add review notes here. These notes are saved locally and can be exported as JSON for logic updates.\\">" + escapeHtml(note) + "</textarea>" +
+            "</section>" +
             "<div class=\\"reasons\\">" +
               (row.confidence.reasons.length
                 ? row.confidence.reasons.map((reason) => "<div class=\\"reason\\"><span>" + escapeHtml(reason.message) + "</span><strong>-" + escapeHtml(reason.deduction) + "</strong></div>").join("")
@@ -408,6 +554,60 @@ export function generateCatalogReviewSite(
       summaryPage.textContent = "Rows " + (((currentPage - 1) * manifest.pageSize) + 1) + "-" + Math.min(currentPage * manifest.pageSize, manifest.totalRows);
       prevButton.disabled = currentPage <= 1;
       nextButton.disabled = currentPage >= manifest.totalPages;
+    }
+
+    function bindNoteInputs() {
+      results.querySelectorAll("[data-note-id]").forEach((textarea) => {
+        textarea.addEventListener("input", (event) => {
+          const noteId = event.target.getAttribute("data-note-id");
+          const value = event.target.value;
+          const row = currentRows.find((candidate) => candidate.id === noteId);
+          const fileMeta = row ? manifest.filesById[row.fileId] : null;
+          if (value.trim()) {
+            savedNotes[noteId] = {
+              note: value,
+              fileName: fileMeta ? fileMeta.fileName : null,
+              rowIndex: row ? row.rowIndex + 1 : null,
+              productName: row ? row.derived.productName || null : null,
+            };
+          } else {
+            delete savedNotes[noteId];
+          }
+          persistNotes();
+          updateNotesSummary();
+
+          const status = results.querySelector('[data-note-status="' + noteId + '"]');
+          if (status) {
+            status.textContent = value.trim() ? "Saved locally" : "Autosaved locally in this browser";
+          }
+        });
+      });
+    }
+
+    function downloadNotes() {
+      const noteEntries = Object.entries(savedNotes)
+        .filter(([, noteEntry]) => String(noteEntry.note || "").trim() !== "")
+        .map(([rowId, noteEntry]) => ({
+          rowId,
+          note: noteEntry.note,
+          fileName: noteEntry.fileName ?? null,
+          rowIndex: noteEntry.rowIndex ?? null,
+          productName: noteEntry.productName ?? null,
+        }));
+
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        totalNotes: noteEntries.length,
+        notes: noteEntries,
+      };
+
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "catalog-logic-review-notes.json";
+      link.click();
+      URL.revokeObjectURL(url);
     }
 
     function loadPage(pageNumber) {
@@ -430,6 +630,7 @@ export function generateCatalogReviewSite(
       currentRows = await loadPage(pageNumber);
       updateControls();
       renderRows(search.value);
+      bindNoteInputs();
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
@@ -439,8 +640,13 @@ export function generateCatalogReviewSite(
     nextButton.addEventListener("click", () => {
       if (currentPage < manifest.totalPages) setPage(currentPage + 1);
     });
-    search.addEventListener("input", () => renderRows(search.value));
+    search.addEventListener("input", () => {
+      renderRows(search.value);
+      bindNoteInputs();
+    });
+    downloadNotesButton.addEventListener("click", downloadNotes);
 
+    updateNotesSummary();
     setPage(1);
   </script>
 </body>

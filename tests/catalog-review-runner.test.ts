@@ -30,6 +30,25 @@ describe("buildCatalogReviewData", () => {
     );
     expect(reviewData.rows[0].source.filePath).toContain("dutchie-export.csv");
     expect(reviewData.rows[0].derived.productName).toBeTruthy();
+    expect(Object.keys(reviewData.rows[0].source.originalRow).length).toBeLessThan(12);
+  });
+
+  it("can keep the full original source row for site generation", async () => {
+    const root = mkdtempSync(join(tmpdir(), "catalog-review-runner-"));
+    const inputRoot = join(root, "exports", "catalog", "Dutchie");
+    const outputRoot = join(root, "output");
+    mkdirSync(inputRoot, { recursive: true });
+    mkdirSync(outputRoot, { recursive: true });
+
+    writeFileSync(join(inputRoot, "dutchie-export.csv"), fixture("dutchie-sample.csv"));
+
+    const reviewData = await buildCatalogReviewData({
+      inputRoot: join(root, "exports", "catalog"),
+      outputRoot,
+      originalRowMode: "full",
+    });
+
+    expect(Object.keys(reviewData.rows[0].source.originalRow).length).toBeGreaterThan(10);
   });
 
   it("writes review-data.json to the requested output directory", async () => {

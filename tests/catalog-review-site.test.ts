@@ -35,7 +35,11 @@ describe("generateCatalogReviewSite", () => {
             detectedPOS: "Dutchie",
             detectedPOSConfidence: 0.95,
             rowIndex: 0,
-            originalRow: { Product: "Low Confidence Item" },
+            originalRow: {
+              Product: "Low Confidence Item",
+              Potency: "THC 100mg",
+              Category: "Edible",
+            },
           },
           derived: {
             productName: "Low Confidence Item",
@@ -64,7 +68,7 @@ describe("generateCatalogReviewSite", () => {
             detectedPOS: "Dutchie",
             detectedPOSConfidence: 0.95,
             rowIndex: 1,
-            originalRow: { Product: "High Confidence Item" },
+            originalRow: { Product: "High Confidence Item", Category: "Flower" },
           },
           derived: {
             productName: "High Confidence Item",
@@ -93,11 +97,15 @@ describe("generateCatalogReviewSite", () => {
     expect(html).toContain("Confidence");
     expect(html).toContain("manifest.js");
     expect(html).toContain("page-");
+    expect(html).toContain("Download Notes JSON");
+    expect(html).toContain("All Source Fields");
+    expect(html).toContain("Reviewer Notes");
     expect(manifest).toContain("filesById");
     expect(page.indexOf("Low Confidence Item")).toBeLessThan(page.indexOf("High Confidence Item"));
     expect(page).toContain("Category resolved to Misc");
     expect(page).toContain("Low Confidence Item");
     expect(page).toContain("High Confidence Item");
+    expect(page).toContain("THC 100mg");
     expect(outputPath).toBe(join(outputRoot, "index.html"));
   });
 });

@@ -13,6 +13,7 @@ import type { FieldMapping } from "../lib/types";
 export interface BuildCatalogReviewDataOptions {
   inputRoot: string;
   outputRoot: string;
+  originalRowMode?: "compact" | "full";
 }
 
 function makeFile(filePath: string): File {
@@ -115,6 +116,7 @@ function buildCatalogReviewRows(
   parsedRows: Record<string, string>[],
   derivedRows: ReturnType<typeof deriveRows>["derivedRows"],
   mappings: FieldMapping[],
+  originalRowMode: "compact" | "full",
 ) {
   const validation = validateDerivedRows(derivedRows);
   const rows: CatalogReviewRow[] = derivedRows.map((derivedRow, rowIndex) => {
@@ -137,7 +139,10 @@ function buildCatalogReviewRows(
         detectedPOS: fileSummary.detectedPOS,
         detectedPOSConfidence: fileSummary.detectedPOSConfidence,
         rowIndex,
-        originalRow: buildOriginalReviewRow(parsedRows[rowIndex] ?? {}, mappings),
+        originalRow:
+          originalRowMode === "full"
+            ? buildFullOriginalReviewRow(parsedRows[rowIndex] ?? {})
+            : buildCompactOriginalReviewRow(parsedRows[rowIndex] ?? {}, mappings),
       },
       derived: {
         productName: derivedRow.productName,
@@ -163,7 +168,7 @@ function buildCatalogReviewRows(
   return rows;
 }
 
-function buildOriginalReviewRow(
+function buildCompactOriginalReviewRow(
   originalRow: Record<string, string>,
   mappings: FieldMapping[],
 ): Record<string, string> {
@@ -211,6 +216,12 @@ function buildOriginalReviewRow(
   return result;
 }
 
+function buildFullOriginalReviewRow(originalRow: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(originalRow).filter(([, value]) => value.trim() !== ""),
+  );
+}
+
 function truncateValue(value: string, maxLength = 240): string {
   if (value.length <= maxLength) return value;
   return `${value.slice(0, maxLength)}...`;
@@ -219,6 +230,7 @@ function truncateValue(value: string, maxLength = 240): string {
 export async function buildCatalogReviewData({
   inputRoot,
   outputRoot,
+  originalRowMode = "compact",
 }: BuildCatalogReviewDataOptions): Promise<CatalogReviewData> {
   mkdirSync(outputRoot, { recursive: true });
   const discoveredFiles = discoverExportFiles(inputRoot);
@@ -259,7 +271,15 @@ export async function buildCatalogReviewData({
     };
 
     files.push(fileSummary);
-    rows.push(...buildCatalogReviewRows(fileSummary, parsed.rows, derived, detection.mappings));
+    rows.push(
+      ...buildCatalogReviewRows(
+        fileSummary,
+        parsed.rows,
+        derived,
+        detection.mappings,
+        originalRowMode,
+      ),
+    );
   }
 
   rows.sort((left, right) => left.confidence.score - right.confidence.score);
