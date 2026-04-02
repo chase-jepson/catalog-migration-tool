@@ -99,7 +99,10 @@ describe("generateCatalogReviewSite", () => {
     expect(html).toContain("page-");
     expect(html).toContain("Download Notes JSON");
     expect(html).toContain("All Source Fields");
-    expect(html).toContain("Reviewer Notes");
+    expect(html).toContain("Reviewer Feedback");
+    expect(html).toContain("Expected Category");
+    expect(html).toContain("Expected THC Presence");
+    expect(manifest).toContain("notesStorageKey");
     expect(manifest).toContain("filesById");
     expect(page.indexOf("Low Confidence Item")).toBeLessThan(page.indexOf("High Confidence Item"));
     expect(page).toContain("Category resolved to Misc");

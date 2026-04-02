@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { PRODUCT_CATEGORIES } from "../lib/constants";
 import type { CatalogReviewData } from "./review-types";
 
 export interface GenerateCatalogReviewSiteOptions {
@@ -55,12 +56,16 @@ export function generateCatalogReviewSite(
   }
 
   const manifest = {
+    buildId: data.generatedAt.replace(/[^a-zA-Z0-9]/g, "-"),
+    notesStorageKey: `catalog-logic-review-notes:${data.generatedAt}`,
     generatedAt: data.generatedAt,
     inputRoot: data.inputRoot,
     totalRows: rows.length,
     totalPages,
     pageSize,
     filesById,
+    categoryOptions: [...PRODUCT_CATEGORIES],
+    uomOptions: ["", "each", "grams", "milligrams", "ounces", "kilograms", "pounds"],
   };
   writeFileSync(
     join(outputRoot, "manifest.js"),
@@ -153,7 +158,7 @@ export function generateCatalogReviewSite(
       align-items: center;
       font-family: "Avenir Next", "Helvetica Neue", sans-serif;
     }
-    button, input {
+    button, input, select, textarea {
       font: inherit;
     }
     button {
@@ -168,24 +173,20 @@ export function generateCatalogReviewSite(
       opacity: 0.45;
       cursor: default;
     }
-    input[type="search"] {
+    input, select, textarea {
       width: 100%;
-      border-radius: 16px;
-      border: 1px solid var(--border);
-      padding: 12px 14px;
-      background: rgba(255, 255, 255, 0.88);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
-    }
-    textarea {
-      width: 100%;
-      min-height: 104px;
-      resize: vertical;
       border-radius: 16px;
       border: 1px solid var(--border);
       padding: 12px 14px;
       background: rgba(255, 255, 255, 0.92);
-      font-family: "Avenir Next", "Helvetica Neue", sans-serif;
-      font-size: 14px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
+    }
+    input[type="search"] {
+      background: rgba(255, 255, 255, 0.88);
+    }
+    textarea {
+      min-height: 104px;
+      resize: vertical;
       line-height: 1.4;
     }
     main {
@@ -258,6 +259,9 @@ export function generateCatalogReviewSite(
       text-transform: uppercase;
       font-family: "Avenir Next", "Helvetica Neue", sans-serif;
     }
+    .pane-body {
+      padding: 12px;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -275,15 +279,10 @@ export function generateCatalogReviewSite(
       color: var(--muted);
       font-weight: 600;
     }
-    .reasons {
+    .reasons, .stack {
       margin-top: 14px;
       display: grid;
       gap: 8px;
-    }
-    .stack {
-      margin-top: 14px;
-      display: grid;
-      gap: 12px;
     }
     .reason {
       display: flex;
@@ -406,7 +405,6 @@ export function generateCatalogReviewSite(
   <script>
     const manifest = window.CATALOG_REVIEW_MANIFEST;
     window.CATALOG_REVIEW_PAGES = window.CATALOG_REVIEW_PAGES || {};
-    const notesStorageKey = "catalog-logic-review-notes";
 
     const results = document.getElementById("results");
     const search = document.getElementById("search");
@@ -433,12 +431,10 @@ export function generateCatalogReviewSite(
 
     function loadSavedNotes() {
       try {
-        const parsed = JSON.parse(localStorage.getItem(notesStorageKey) || "{}");
+        const parsed = JSON.parse(localStorage.getItem(manifest.notesStorageKey) || "{}");
         return Object.fromEntries(
           Object.entries(parsed).map(([rowId, value]) => {
-            if (typeof value === "string") {
-              return [rowId, { note: value }];
-            }
+            if (typeof value === "string") return [rowId, { note: value }];
             return [rowId, value];
           }),
         );
@@ -450,11 +446,23 @@ export function generateCatalogReviewSite(
     let savedNotes = loadSavedNotes();
 
     function persistNotes() {
-      localStorage.setItem(notesStorageKey, JSON.stringify(savedNotes));
+      localStorage.setItem(manifest.notesStorageKey, JSON.stringify(savedNotes));
     }
 
     function updateNotesSummary() {
-      const count = Object.values(savedNotes).filter((value) => String(value.note || "").trim() !== "").length;
+      const count = Object.values(savedNotes)
+        .filter((value) => {
+          return (
+            String(value.note || "").trim() !== "" ||
+            String(value.evidence || "").trim() !== "" ||
+            String(value.expectedCategory || "").trim() !== "" ||
+            String(value.expectedAmount || "").trim() !== "" ||
+            String(value.expectedUom || "").trim() !== "" ||
+            String(value.expectedThcPresence || "").trim() !== "" ||
+            (value.issueTypes || []).length > 0
+          );
+        })
+        .length;
       downloadNotesButton.textContent = count ? "Download Notes JSON (" + count + ")" : "Download Notes JSON";
     }
 
@@ -462,6 +470,23 @@ export function generateCatalogReviewSite(
       return entries
         .map(([key, value]) => "<tr><th>" + escapeHtml(key) + "</th><td>" + escapeHtml(value === "" ? "(empty)" : value) + "</td></tr>")
         .join("");
+    }
+
+    function buildSelect(options, selectedValue, attributes) {
+      return "<select " + attributes + ">" +
+        options.map((option) => {
+          const selected = option === selectedValue ? " selected" : "";
+          const label = option === "" ? "(unset)" : option;
+          return "<option value=\\"" + escapeHtml(option) + "\\"" + selected + ">" + escapeHtml(label) + "</option>";
+        }).join("") +
+      "</select>";
+    }
+
+    function buildCheckboxes(options, selectedValues, rowId) {
+      return options.map((option) => {
+        const checked = selectedValues.includes(option) ? " checked" : "";
+        return "<label class=\\"signal\\"><input type=\\"checkbox\\" data-issue-type=\\"" + escapeHtml(rowId) + "\\" value=\\"" + escapeHtml(option) + "\\"" + checked + "> " + escapeHtml(option) + "</label>";
+      }).join("");
     }
 
     function findSourceSignals(originalRow) {
@@ -502,8 +527,10 @@ export function generateCatalogReviewSite(
         .map((row) => {
           const fileMeta = manifest.filesById[row.fileId];
           const sourceSignals = findSourceSignals(row.originalRow);
-          const note = savedNotes[row.id]?.note || "";
+          const noteEntry = savedNotes[row.id] || {};
+          const note = noteEntry.note || "";
           const allSourceEntries = Object.entries(row.originalRow);
+
           return "<section class=\\"card\\">" +
             "<div class=\\"card-top\\">" +
               "<div>" +
@@ -534,10 +561,35 @@ export function generateCatalogReviewSite(
             "</details>" +
             "<section class=\\"notes\\">" +
               "<div class=\\"notes-head\\">" +
-                "<h3>Reviewer Notes</h3>" +
-                "<span class=\\"notes-status\\" data-note-status=\\"" + escapeHtml(row.id) + "\\">Autosaved locally in this browser</span>" +
+                "<h3>Reviewer Feedback</h3>" +
+                "<span class=\\"notes-status\\" data-note-status=\\"" + escapeHtml(row.id) + "\\">Autosaved locally for this run</span>" +
               "</div>" +
-              "<textarea data-note-id=\\"" + escapeHtml(row.id) + "\\" placeholder=\\"Add review notes here. These notes are saved locally and can be exported as JSON for logic updates.\\">" + escapeHtml(note) + "</textarea>" +
+              "<div class=\\"stack\\">" +
+                "<div class=\\"columns\\">" +
+                  "<section class=\\"pane\\"><h3>Expected Category</h3><div class=\\"pane-body\\">" +
+                    buildSelect(["", ...manifest.categoryOptions], noteEntry.expectedCategory || "", "data-expected-category=\\"" + escapeHtml(row.id) + "\\"") +
+                  "</div></section>" +
+                  "<section class=\\"pane\\"><h3>Expected THC Presence</h3><div class=\\"pane-body\\">" +
+                    buildSelect(["", "yes", "no", "unknown"], noteEntry.expectedThcPresence || "", "data-expected-thc-presence=\\"" + escapeHtml(row.id) + "\\"") +
+                  "</div></section>" +
+                "</div>" +
+                "<div class=\\"columns\\">" +
+                  "<section class=\\"pane\\"><h3>Expected Amount</h3><div class=\\"pane-body\\"><input data-expected-amount=\\"" + escapeHtml(row.id) + "\\" value=\\"" + escapeHtml(noteEntry.expectedAmount || "") + "\\" placeholder=\\"e.g. 3.5\\" /></div></section>" +
+                  "<section class=\\"pane\\"><h3>Expected UOM</h3><div class=\\"pane-body\\">" +
+                    buildSelect(manifest.uomOptions, noteEntry.expectedUom || "", "data-expected-uom=\\"" + escapeHtml(row.id) + "\\"") +
+                  "</div></section>" +
+                "</div>" +
+                "<section class=\\"notes\\">" +
+                  "<div class=\\"notes-head\\"><h3>Issue Types</h3></div>" +
+                  "<div class=\\"source-signals\\">" +
+                    buildCheckboxes(["category", "amount", "uom", "thc", "classification", "other"], noteEntry.issueTypes || [], row.id) +
+                  "</div>" +
+                "</section>" +
+                "<div class=\\"columns\\">" +
+                  "<section class=\\"pane\\"><h3>Evidence</h3><div class=\\"pane-body\\"><textarea data-evidence-id=\\"" + escapeHtml(row.id) + "\\" placeholder=\\"Point to the source-row evidence that justifies the correction.\\">" + escapeHtml(noteEntry.evidence || "") + "</textarea></div></section>" +
+                  "<section class=\\"pane\\"><h3>Reviewer Note</h3><div class=\\"pane-body\\"><textarea data-note-id=\\"" + escapeHtml(row.id) + "\\" placeholder=\\"Add review notes here. These notes are saved locally and can be exported as JSON for logic updates.\\">" + escapeHtml(note) + "</textarea></div></section>" +
+                "</div>" +
+              "</div>" +
             "</section>" +
             "<div class=\\"reasons\\">" +
               (row.confidence.reasons.length
@@ -557,46 +609,109 @@ export function generateCatalogReviewSite(
     }
 
     function bindNoteInputs() {
-      results.querySelectorAll("[data-note-id]").forEach((textarea) => {
-        textarea.addEventListener("input", (event) => {
-          const noteId = event.target.getAttribute("data-note-id");
-          const value = event.target.value;
-          const row = currentRows.find((candidate) => candidate.id === noteId);
-          const fileMeta = row ? manifest.filesById[row.fileId] : null;
-          if (value.trim()) {
-            savedNotes[noteId] = {
-              note: value,
-              fileName: fileMeta ? fileMeta.fileName : null,
-              rowIndex: row ? row.rowIndex + 1 : null,
-              productName: row ? row.derived.productName || null : null,
-            };
-          } else {
-            delete savedNotes[noteId];
-          }
-          persistNotes();
-          updateNotesSummary();
+      const collectIssueTypes = (noteId) =>
+        [...results.querySelectorAll('[data-issue-type="' + noteId + '"]:checked')].map((input) => input.value);
 
-          const status = results.querySelector('[data-note-status="' + noteId + '"]');
-          if (status) {
-            status.textContent = value.trim() ? "Saved locally" : "Autosaved locally in this browser";
-          }
+      const saveNoteEntry = (noteId) => {
+        const row = currentRows.find((candidate) => candidate.id === noteId);
+        const fileMeta = row ? manifest.filesById[row.fileId] : null;
+        const noteValue = results.querySelector('[data-note-id="' + noteId + '"]')?.value ?? "";
+        const evidenceValue = results.querySelector('[data-evidence-id="' + noteId + '"]')?.value ?? "";
+        const expectedCategory = results.querySelector('[data-expected-category="' + noteId + '"]')?.value ?? "";
+        const expectedAmount = results.querySelector('[data-expected-amount="' + noteId + '"]')?.value ?? "";
+        const expectedUom = results.querySelector('[data-expected-uom="' + noteId + '"]')?.value ?? "";
+        const expectedThcPresence =
+          results.querySelector('[data-expected-thc-presence="' + noteId + '"]')?.value ?? "";
+        const issueTypes = collectIssueTypes(noteId);
+
+        if (
+          !noteValue.trim() &&
+          !evidenceValue.trim() &&
+          !expectedCategory &&
+          !expectedAmount.trim() &&
+          !expectedUom &&
+          !expectedThcPresence &&
+          issueTypes.length === 0
+        ) {
+          delete savedNotes[noteId];
+        } else {
+          savedNotes[noteId] = {
+            note: noteValue,
+            evidence: evidenceValue,
+            expectedCategory,
+            expectedAmount: expectedAmount.trim(),
+            expectedUom,
+            expectedThcPresence,
+            issueTypes,
+            fileName: fileMeta ? fileMeta.fileName : null,
+            rowIndex: row ? row.rowIndex + 1 : null,
+            productName: row ? row.derived.productName || null : null,
+            originalRow: row ? row.originalRow : null,
+            transformedRow: row ? row.derived : null,
+            confidenceReasons: row ? row.confidence.reasons : null,
+          };
+        }
+
+        persistNotes();
+        updateNotesSummary();
+
+        const status = results.querySelector('[data-note-status="' + noteId + '"]');
+        if (status) {
+          status.textContent = savedNotes[noteId] ? "Saved locally for this run" : "Autosaved locally for this run";
+        }
+      };
+
+      const bindBySelector = (selector, attributeName) => {
+        results.querySelectorAll(selector).forEach((input) => {
+          const noteId = input.getAttribute(attributeName);
+          input.addEventListener("input", () => saveNoteEntry(noteId));
+          input.addEventListener("change", () => saveNoteEntry(noteId));
         });
-      });
+      };
+
+      bindBySelector("[data-note-id]", "data-note-id");
+      bindBySelector("[data-evidence-id]", "data-evidence-id");
+      bindBySelector("[data-expected-category]", "data-expected-category");
+      bindBySelector("[data-expected-amount]", "data-expected-amount");
+      bindBySelector("[data-expected-uom]", "data-expected-uom");
+      bindBySelector("[data-expected-thc-presence]", "data-expected-thc-presence");
+      bindBySelector("[data-issue-type]", "data-issue-type");
     }
 
     function downloadNotes() {
       const noteEntries = Object.entries(savedNotes)
-        .filter(([, noteEntry]) => String(noteEntry.note || "").trim() !== "")
+        .filter(([, noteEntry]) => {
+          return (
+            String(noteEntry.note || "").trim() !== "" ||
+            String(noteEntry.evidence || "").trim() !== "" ||
+            String(noteEntry.expectedCategory || "").trim() !== "" ||
+            String(noteEntry.expectedAmount || "").trim() !== "" ||
+            String(noteEntry.expectedUom || "").trim() !== "" ||
+            String(noteEntry.expectedThcPresence || "").trim() !== "" ||
+            (noteEntry.issueTypes || []).length > 0
+          );
+        })
         .map(([rowId, noteEntry]) => ({
           rowId,
-          note: noteEntry.note,
+          note: noteEntry.note ?? "",
           fileName: noteEntry.fileName ?? null,
           rowIndex: noteEntry.rowIndex ?? null,
           productName: noteEntry.productName ?? null,
+          expectedCategory: noteEntry.expectedCategory ?? null,
+          expectedAmount: noteEntry.expectedAmount ?? null,
+          expectedUom: noteEntry.expectedUom ?? null,
+          expectedThcPresence: noteEntry.expectedThcPresence ?? null,
+          issueTypes: noteEntry.issueTypes ?? [],
+          evidence: noteEntry.evidence ?? null,
+          originalRow: noteEntry.originalRow ?? null,
+          transformedRow: noteEntry.transformedRow ?? null,
+          confidenceReasons: noteEntry.confidenceReasons ?? null,
         }));
 
       const payload = {
         exportedAt: new Date().toISOString(),
+        buildId: manifest.buildId,
+        notesStorageKey: manifest.notesStorageKey,
         totalNotes: noteEntries.length,
         notes: noteEntries,
       };
