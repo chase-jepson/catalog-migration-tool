@@ -366,25 +366,22 @@ describe("CBD→Edible reclassification (strong name overrides)", () => {
   });
 });
 
-// ── Infused Merch → Misc ─────────────────────────────────────────────────────
+// ── Merch preservation for accessory/branding products ──────────────────────
 
-describe("infused merch → Misc reclassification", () => {
-  it("rolling papers with THC → Misc", () => {
+describe("merch accessory preservation", () => {
+  it("rolling papers with THC branding stay Merch", () => {
     const result = applyNameOverride("Merch", "Rolling Papers", "THC Infused Rolling Papers");
-    expect(result.category).toBe("Misc");
-    expect(result.subCategory).toBe("Misc - General");
+    expect(result.category).toBe("Merch");
   });
 
-  it("infused wraps → Misc", () => {
-    const result = applyNameOverride("Merch", "Other", "Cannabis Infused Blunt Wraps");
-    expect(result.category).toBe("Misc");
-    expect(result.subCategory).toBe("Misc - General");
+  it("terp wraps stay Merch", () => {
+    const result = applyNameOverride("Merch", "Other", "Lemonade - Terp Infused Wrap w/ Glass Tip");
+    expect(result.category).toBe("Merch");
   });
 
-  it("infused cones → Misc", () => {
-    const result = applyNameOverride("Merch", "Rolling Papers", "Infused Cones 3pk");
-    expect(result.category).toBe("Misc");
-    expect(result.subCategory).toBe("Misc - General");
+  it("shopping bag with THC branding stays Merch", () => {
+    const result = applyNameOverride("Merch", "Other", "Paper Shopping Bag THC");
+    expect(result.category).toBe("Merch");
   });
 
   it("plain rolling papers stay Merch", () => {
@@ -1343,6 +1340,15 @@ describe("non-cannabis flag from source row", () => {
     expect(row.category).toBe("CBD");
   });
 
+  it("Contains THC = N with hemp skincare → CBD", () => {
+    const result = deriveRows(
+      [{ SKU: "NMJ-005", Product: "Love Plus Hemp Skincare", Category: "Topical", Price: "20", "Contains THC": "N" }],
+      baseMappings,
+    );
+    const row = result.derivedRows[0];
+    expect(row.category).toBe("CBD");
+  });
+
   it("Is MMJ? = Y leaves category unchanged", () => {
     const result = deriveRows(
       [{ SKU: "NMJ-003", Product: "Blue Dream 3.5g", Category: "Flower", Weight: "3.5g", Price: "35", "Is MMJ?": "Y" }],
@@ -1360,6 +1366,41 @@ describe("non-cannabis flag from source row", () => {
       Price: "35",
     });
     expect(row.category).toBe("Flower");
+  });
+});
+
+describe("review-driven category fixes", () => {
+  it("dream drops resolve to tincture with milligram uom", () => {
+    const row = derive({
+      SKU: "REV-001",
+      Product: "ZZ INV Dream Drops",
+      Category: "Other",
+      Price: "15",
+    });
+    expect(row.category).toBe("Tincture");
+    expect(row.uom).toBe("milligrams");
+  });
+
+  it("bulk flower names with standalone 3.5 resolve to flower grams", () => {
+    const row = derive({
+      SKU: "REV-002",
+      Product: "BULK - Cannatonic 3.5 CBD",
+      Category: "Other",
+      Price: "28",
+    });
+    expect(row.category).toBe("Flower");
+    expect(row.uom).toBe("grams");
+    expect(row.amount).toBeCloseTo(3.5, 1);
+  });
+
+  it("invalid other category outputs are normalized to allowed categories", () => {
+    const row = derive({
+      SKU: "REV-003",
+      Product: "RAW | 70mm 2-Way Roller | Skinny & Regular",
+      Category: "Other",
+      Price: "10",
+    });
+    expect(row.category).toBe("Merch");
   });
 });
 

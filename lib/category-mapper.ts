@@ -116,7 +116,7 @@ const KEYWORD_RULES: KeywordRule[] = [
   // Merch -- "merch", "para" (paraphernalia), "gear", "access", etc.
   {
     keywords:
-      /\b(merch|merchandise|para|paraphernalia|gear|access|batter|battery|pipe|grinder|accessory|accessories|bong|lighter|rolling[\s-]?paper|non[\s-]?thc|clothing|glass|candle|hardware)\b/i,
+      /\b(merch|merchandise|para|paraphernalia|gear|access|batter|battery|pipe|grinder|accessory|accessories|bong|lighter|rolling[\s-]?paper|wraps?|cones?|rollers?|bags?|non[\s-]?thc|clothing|glass|candle|hardware)\b/i,
     category: "Merch",
   },
   { keywords: /\b(shirt|t[\s-]?shirt|tee)\b/i, category: "Merch", subCategory: "T Shirt" },
@@ -129,7 +129,7 @@ const KEYWORD_RULES: KeywordRule[] = [
   { keywords: /\b(plants?|clones?|seeds?)\b/i, category: "Plant" },
 
   // Tincture
-  { keywords: /\b(tinctures?|dropper)\b/i, category: "Tincture" },
+  { keywords: /\b(tinctures?|dropper|drops?)\b/i, category: "Tincture" },
   { keywords: /\b(syrup)\b/i, category: "Tincture", subCategory: "Syrup" },
   { keywords: /\b(spray)\b/i, category: "Tincture", subCategory: "Spray" },
 
@@ -204,6 +204,12 @@ const STRONG_NAME_OVERRIDES: {
     category: "Tincture",
   },
   // Edible products miscategorized as CBD — name clearly indicates edible type
+  {
+    namePattern: /\b(bulk|eighth|1\/8|quarter|1\/4|half[\s-]?(oz|ounce)|3\.5|7|14|28)\b/i,
+    overrideCategories: ["CBD"],
+    category: "Flower",
+    subCategory: "Pre-Pack",
+  },
   {
     namePattern: /\b(gumm(y|ies))\b/i,
     overrideCategories: ["CBD"],
@@ -324,7 +330,11 @@ const SUBCATEGORY_NAME_RULES: Record<string, SubCategoryNameRule[]> = {
     { keywords: /wax/i, subCategory: "Wax" },
   ],
   Flower: [
-    { keywords: /bulk/i, subCategory: "Bulk Flower" },
+    {
+      keywords: /bulk/i,
+      excludeKeywords: /\b(0\.5|1|3\.5|7|14|28|eighth|1\/8|quarter|1\/4)\b/i,
+      subCategory: "Bulk Flower",
+    },
     { keywords: /infused|coated|dusted|glazed/i, subCategory: "Infused Flower" },
     { keywords: /smalls?|popcorn/i, subCategory: "Pre-Pack Smalls" },
   ],
@@ -352,6 +362,7 @@ const SUBCATEGORY_NAME_RULES: Record<string, SubCategoryNameRule[]> = {
   ],
   Preroll: [{ keywords: /infused|hash|jeeter|diamond/i, subCategory: "Infused" }],
   Tincture: [
+    { keywords: /drops?/i, subCategory: "Dropper" },
     { keywords: /spray/i, subCategory: "Spray" },
     { keywords: /syrup/i, subCategory: "Syrup" },
   ],
@@ -571,15 +582,6 @@ export function applyNameOverride(
         return { category: rule.category, subCategory: newSub };
       }
     }
-  }
-
-  // Infused merch → Misc: rolling papers, wraps, cones with THC/infused
-  if (
-    currentCategory === "Merch" &&
-    /\b(infused|thc|cannabis)\b/i.test(productName) &&
-    /\b(papers?|wraps?|cones?|rolling|blunt\s*wraps?)\b/i.test(productName)
-  ) {
-    return { category: "Misc", subCategory: "Misc - General" };
   }
 
   // Only apply weak overrides when current resolution is weak

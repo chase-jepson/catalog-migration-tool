@@ -5,7 +5,7 @@ import type {
   CategoryResolution,
   TransformResult,
 } from "./types";
-import { UOM_BY_CATEGORY } from "./constants";
+import { PRODUCT_CATEGORIES, UOM_BY_CATEGORY } from "./constants";
 import {
   categoryKey,
   enhancedCategoryResolve,
@@ -253,6 +253,12 @@ function extractGramsFromName(name: string): number {
     if (!isNaN(val) && val > 0 && val <= 100) return val;
   }
 
+  const standaloneFlowerWeight = name.match(/(?:^|[\s\-–—(])((?:0\.5|1|3\.5|7|14|28))(?:$|[\s\-–—)])(?!\s*mg\b)/i);
+  if (standaloneFlowerWeight) {
+    const val = parseFloat(standaloneFlowerWeight[1]);
+    if (!isNaN(val) && val > 0) return val;
+  }
+
   const mgMatch = name.match(/(\d+)\s*mg\b/i);
   if (mgMatch) {
     const mg = parseFloat(mgMatch[1]);
@@ -456,6 +462,10 @@ function blankIfZero(val: string): string {
   return val;
 }
 
+function isValidProductCategory(category: string): boolean {
+  return PRODUCT_CATEGORIES.includes(category as (typeof PRODUCT_CATEGORIES)[number]);
+}
+
 // ── Hide From Menu ───────────────────────────────────────────────────────────
 
 function deriveHideFromMenu(
@@ -628,6 +638,21 @@ export function deriveRows(
       } else {
         // Default: CBD - General for non-cannabis products we can't further classify
         finalResolution = { category: "CBD", subCategory: "CBD - General" };
+      }
+    }
+
+    if (!isValidProductCategory(finalResolution.category)) {
+      const reResolved = enhancedCategoryResolve(
+        "",
+        "",
+        "",
+        rawName,
+        extraContext,
+      );
+      if (isValidProductCategory(reResolved.category)) {
+        finalResolution = reResolved;
+      } else {
+        finalResolution = { category: "Misc", subCategory: getDefaultSubCategory("Misc") };
       }
     }
 

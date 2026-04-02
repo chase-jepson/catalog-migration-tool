@@ -39,6 +39,11 @@ describe("resolveCategory", () => {
     expect(res.category).toBe("Merch");
   });
 
+  it("prefers accessory merch signals over beverage flavor words", () => {
+    const res = resolveCategory("Accessories", "", "Lemonade - Terp Infused Wrap w/ Glass Tip");
+    expect(res.category).toBe("Merch");
+  });
+
   it("resolves Misc from keyword", () => {
     const res = resolveCategory("Miscellaneous", "", "Bath Bomb");
     expect(res.category).toBe("Misc");
@@ -91,6 +96,11 @@ describe("resolveCategory", () => {
   it("falls back to Misc when nothing matches", () => {
     const res = resolveCategory("", "", "Unknown Product");
     expect(res.category).toBe("Misc");
+  });
+
+  it("treats dream drops as tincture instead of blank or misc", () => {
+    const res = resolveCategory("", "", "ZZ INV Dream Drops");
+    expect(res.category).toBe("Tincture");
   });
 
   // ── Returns proper CategoryResolution shape ───────────────────────────
