@@ -264,7 +264,6 @@ These are not the first fixes I would ship, but they should be planned after the
 
 ### Review-document drift
 
-- `docs/review-2026-03-24.md` still exists and contains findings that have since been fixed alongside findings that still appear relevant.
 - Once the current fixes land, it would be worth either superseding older review docs or making it explicit which one is authoritative.
 
 ## Suggested Fix Order
