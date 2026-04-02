@@ -73,7 +73,7 @@ export function InventoryUploadStep({
   onFileAssignmentsChange,
   selectedPOS,
   onSelectedPOSChange,
-  detectedPOS,
+  detectedPOS: _detectedPOS,
   onDetectedPOSChange,
   selectedStore,
   dispensaryLicense,
@@ -260,21 +260,6 @@ export function InventoryUploadStep({
       updateCanProceed(updated, selectedPOS, dispensaryLicense);
     },
     [fileAssignments, onFileAssignmentsChange, updateCanProceed, selectedPOS, dispensaryLicense],
-  );
-
-  const handlePOSChange = useCallback(
-    (pos: string) => {
-      onSelectedPOSChange(pos);
-      onCanProceed(computeCanProceed(fileAssignments, pos, selectedStore, dispensaryLicense));
-    },
-    [
-      fileAssignments,
-      selectedStore,
-      dispensaryLicense,
-      onSelectedPOSChange,
-      onCanProceed,
-      computeCanProceed,
-    ],
   );
 
   const handleLicenseChange = useCallback(

@@ -28,7 +28,6 @@ import {
   normalizeMigrationResumeState,
 } from "../../lib/resume-state";
 import {
-  createEmptyInventoryMappings,
   INVENTORY_POS_DEFAULTS,
   INVENTORY_MAPPING_FIELDS,
   INVENTORY_ROLE_POS_DEFAULTS,
@@ -547,7 +546,7 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
               } else {
                 try {
                   window.close();
-                } catch (_) {
+                } catch {
                   /* side panel fallback */
                 }
               }
@@ -671,7 +670,7 @@ export function WizardShell({ wizardType, onClose }: WizardShellProps) {
               } else {
                 try {
                   window.close();
-                } catch (_) {
+                } catch {
                   /* side panel fallback */
                 }
               }

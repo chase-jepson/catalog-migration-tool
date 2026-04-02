@@ -10,8 +10,6 @@ export default defineContentScript({
   runAt: "document_idle",
 
   main(ctx) {
-    const MOUNT_TIMEOUT = 10_000;
-
     /**
      * Find the first "Launch Import Wizard" button on the page.
      */

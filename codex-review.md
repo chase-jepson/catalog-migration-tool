@@ -14,7 +14,7 @@ This review covers the extension source, configs, tests, docs, and dev utilities
 - `pnpm typecheck`
   - Result: passed
 - `pnpm lint`
-  - Result: 0 errors, 38 warnings
+  - Result: 0 errors, 0 warnings
 
 ## Executive Summary
 

@@ -10,7 +10,7 @@ import type {
   ValidationResult,
   StoreInfo,
 } from "../../lib/types";
-import type { PerRoleMappings, ETLInput } from "../../lib/inventory-transformer";
+import type { PerRoleMappings } from "../../lib/inventory-transformer";
 import { runInventoryETL } from "../../lib/inventory-transformer";
 import {
   validateInventoryRows,

@@ -89,8 +89,6 @@ export interface PersistedMigrationState {
 
 // ── Phase 3: Derived Row ────────────────────────────────────────────────────
 
-import type { ProductCategory } from "./constants";
-
 export interface DerivedRow {
   excluded: boolean;
   excludeReason: string;

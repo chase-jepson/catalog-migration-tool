@@ -39,20 +39,14 @@ export function StoreSelector({
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  // Focus search when opened, reset highlight
+  // Focus search when opened
   useEffect(() => {
     if (open) {
       searchRef.current?.focus();
-      setHighlightIndex(0);
     }
   }, [open]);
 
   const filteredStores = stores.filter((s) => s.name.toLowerCase().includes(search.toLowerCase()));
-
-  // Reset highlight when search changes
-  useEffect(() => {
-    setHighlightIndex(0);
-  }, [search]);
 
   // Scroll highlighted item into view
   useEffect(() => {
@@ -122,7 +116,14 @@ export function StoreSelector({
       <div ref={dropdownRef} className="relative">
         <button
           type="button"
-          onClick={() => !loading && setOpen(!open)}
+          onClick={() => {
+            if (loading) return;
+            setOpen((prev) => {
+              const next = !prev;
+              if (next) setHighlightIndex(0);
+              return next;
+            });
+          }}
           disabled={loading}
           className="flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-left hover:bg-gray-50 transition-colors"
         >
@@ -184,7 +185,10 @@ export function StoreSelector({
                 type="text"
                 placeholder="Search Stores"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setHighlightIndex(0);
+                }}
                 onKeyDown={handleKeyDown}
                 className="flex-1 border-none bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none"
               />

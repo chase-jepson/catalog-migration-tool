@@ -1,7 +1,6 @@
 import { defineExtensionMessaging } from "@webext-core/messaging";
 import type {
   ImportJob,
-  PortalAuthState,
   PortalJobStatus,
   PortalReindexResult,
   PortalRollbackResult,

@@ -5,7 +5,7 @@ import type {
   CategoryResolution,
   TransformResult,
 } from "./types";
-import { UOM_BY_CATEGORY, EACH_UOM_CATEGORIES, VALID_CLASSIFICATIONS } from "./constants";
+import { UOM_BY_CATEGORY } from "./constants";
 import {
   categoryKey,
   enhancedCategoryResolve,
@@ -13,7 +13,6 @@ import {
   resolveSubCategoryFromName,
   getDefaultSubCategory,
   EXCLUDED_CATEGORY,
-  type CategoryInput,
 } from "./category-mapper";
 import {
   lookupBrandCategory,
@@ -297,7 +296,7 @@ function extractUnitCount(productName: string): string {
   if (nxMatch) return nxMatch[1];
   const xnMatch = name.match(/\bx\s*(\d+)\b/i);
   if (xnMatch) return xnMatch[1];
-  const bracketMatch = name.match(/[(\[](\d+)[)\]]/);
+  const bracketMatch = name.match(/[([](\d+)[)\]]/);
   if (bracketMatch) {
     const num = parseInt(bracketMatch[1], 10);
     if (num >= 2 && num <= 100) return bracketMatch[1];
@@ -455,12 +454,6 @@ function blankIfZero(val: string): string {
   const num = parseFloat(val);
   if (!isNaN(num) && num === 0) return "";
   return val;
-}
-
-function formatAmount(val: number): string {
-  if (!val || val < 0.0001) return "";
-  const rounded = Math.round(val * 10000) / 10000;
-  return rounded.toString();
 }
 
 // ── Hide From Menu ───────────────────────────────────────────────────────────
@@ -621,7 +614,6 @@ export function deriveRows(
 
     if (isNonCannabis && THC_CATEGORIES.has(finalResolution.category)) {
       // Re-route to non-THC category based on name/subcategory context
-      const nameLower = rawName.toLowerCase();
       const subLower = (finalResolution.subCategory || rawSubCategory).toLowerCase();
       if (/\b(gumm|chocolate|edible|cookie|brownie|mint|chew|candy)\b/i.test(rawName)) {
         finalResolution = { category: "CBD", subCategory: "Edible" };

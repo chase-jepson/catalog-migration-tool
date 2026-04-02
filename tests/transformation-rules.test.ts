@@ -8,7 +8,6 @@ import {
   resolveCategory,
   applyNameOverride,
   resolveSubCategoryFromName,
-  getDefaultSubCategory,
   enhancedCategoryResolve,
 } from "../lib/category-mapper";
 import {

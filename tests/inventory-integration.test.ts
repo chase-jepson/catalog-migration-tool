@@ -7,16 +7,11 @@ import * as fs from "fs";
 import * as path from "path";
 import * as XLSX from "xlsx";
 import { detectHeaderRow } from "../lib/parser";
-import {
-  runInventoryETL,
-  processReceipts,
-  processVendors,
-  processInventory,
-} from "../lib/inventory-transformer";
+import { runInventoryETL } from "../lib/inventory-transformer";
 import type { PerRoleMappings } from "../lib/inventory-transformer";
 import { buildInventoryCSV, INVENTORY_OUTPUT_COLUMNS } from "../lib/inventory-csv-generator";
 import { INVENTORY_ROLE_POS_DEFAULTS, INVENTORY_ROLE_FIELDS } from "../lib/inventory-constants";
-import type { ParsedFile, FieldMapping, InventoryFileRole } from "../lib/types";
+import type { ParsedFile, InventoryFileRole } from "../lib/types";
 
 // ── Paths ────────────────────────────────────────────────────────────────────
 
@@ -39,7 +34,6 @@ const filesExist =
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function parseFileSync(filePath: string): ParsedFile {
-  const ext = path.extname(filePath).toLowerCase();
   const buffer = fs.readFileSync(filePath);
   const workbook = XLSX.read(buffer, { type: "buffer" });
 
@@ -252,10 +246,6 @@ describe.skipIf(!filesExist)("Integration: Real Dutchie files → expected CSV",
     const emptyUnits = result.filter((r) => r.units === "");
     const zeroUnits = result.filter((r) => r.units === "0");
     const withUnits = result.filter((r) => r.units !== "" && r.units !== "0");
-
-    // Expected: 1880 empty, 1561 with values
-    const expectedEmpty = expected.rows.filter((r) => r["Units"] === "").length;
-    const expectedWithUnits = expected.rows.filter((r) => r["Units"] !== "").length;
 
     // Verify receipt-only rows get empty Units (not "0")
     // Note: exact counts differ due to 1:N join producing extra receipt-only rows

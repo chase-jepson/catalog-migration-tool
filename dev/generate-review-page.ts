@@ -130,7 +130,7 @@ for (const pos of allData) {
   posStats[posKey].flagged += pos.flaggedCount;
 }
 
-function renderRowCard(row: FlatRow, groupIdx: number, rowIdx: number): string {
+function renderRowCard(row: FlatRow, groupIdx: number): string {
   const rowKey = `${row.posName}__${row.rowIndex}`;
   const productName = esc(row.derived.productName || "(no name)");
   const posLabel = esc(row.posName);
@@ -355,7 +355,7 @@ for (let gi = 0; gi < groups.length; gi++) {
 `;
 
   for (let ri = 0; ri < g.rows.length; ri++) {
-    html += renderRowCard(g.rows[ri], gi, ri);
+    html += renderRowCard(g.rows[ri], gi);
   }
 
   html += `  </div>
