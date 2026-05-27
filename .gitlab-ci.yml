@@ -4,7 +4,7 @@ stages:
   - publish
 
 variables:
-  NODE_VERSION: "20"
+  NODE_VERSION: "22"
 
 .node_setup: &node_setup
   image: node:${NODE_VERSION}
