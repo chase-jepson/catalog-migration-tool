@@ -43,14 +43,17 @@ function formatAmount(val: number): string {
  * Fields containing commas, quotes, or newlines are quoted;
  * embedded quotes are doubled.
  */
-const UTF8_BOM = "\uFEFF";
-
 export function arrayToCSV(data: string[][]): string {
-  return UTF8_BOM + data
+  return data
     .map((row) =>
       row
         .map((cell) => {
-          if (cell.includes(",") || cell.includes('"') || cell.includes("\n") || cell.includes("\r")) {
+          if (
+            cell.includes(",") ||
+            cell.includes('"') ||
+            cell.includes("\n") ||
+            cell.includes("\r")
+          ) {
             return `"${cell.replace(/"/g, '""')}"`;
           }
           return cell;
@@ -80,7 +83,10 @@ export function buildOutputCSVs(derived: DerivedRow[], selectedPOS?: string): Ou
   const sortedBrands = [...brandSet.values()].sort((a, b) =>
     a.localeCompare(b, undefined, { sensitivity: "base" }),
   );
-  const brandsOutput: string[][] = [["Name"], ...sortedBrands.map((b) => [b])];
+  const brandsOutput: string[][] = [
+    ["Name", "Description", "Website", "ImageUrl"],
+    ...sortedBrands.map((b) => [b, "", "", ""]),
+  ];
 
   // ── 2. Attributes ──────────────────────────────────────────────────────
   const attrSet = new Map<string, string>(); // "name|category" -> category
@@ -320,7 +326,7 @@ export function buildOutputCSVs(derived: DerivedRow[], selectedPOS?: string): Ou
       (i + 2).toString(), // +2: 1-indexed + header row
       d.productName || "(empty)",
       d.skuBarcode || "(empty)",
-      d.category === "__EXCLUDE__" ? "(excluded)" : (d.category || "(none)"),
+      d.category === "__EXCLUDE__" ? "(excluded)" : d.category || "(none)",
       d.excludeReason || "Unknown",
     ]);
   }

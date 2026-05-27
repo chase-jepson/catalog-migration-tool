@@ -157,13 +157,13 @@ function deriveExtractionMethod(productName: string, description: string): strin
 // ── Status ───────────────────────────────────────────────────────────────────
 
 const INACTIVE_STATUS_VALUES = new Set([
-  "yes",          // Dutchie "Is retired"
-  "inactive",     // Generic
-  "disabled",     // Cova "Product Status"
-  "archived",     // Blaze
-  "retired",      // Generic
+  "yes", // Dutchie "Is retired"
+  "inactive", // Generic
+  "disabled", // Cova "Product Status"
+  "archived", // Blaze
+  "retired", // Generic
   "discontinued", // Generic
-  "deleted",      // Soft-deleted products
+  "deleted", // Soft-deleted products
 ]);
 
 function deriveStatus(value: string): string {
@@ -253,7 +253,9 @@ function extractGramsFromName(name: string): number {
     if (!isNaN(val) && val > 0 && val <= 100) return val;
   }
 
-  const standaloneFlowerWeight = name.match(/(?:^|[\s\-–—(])((?:0\.5|1|3\.5|7|14|28))(?:$|[\s\-–—)])(?!\s*mg\b)/i);
+  const standaloneFlowerWeight = name.match(
+    /(?:^|[\s\-–—(])((?:0\.5|1|3\.5|7|14|28))(?:$|[\s\-–—)])(?!\s*mg\b)/i,
+  );
   if (standaloneFlowerWeight) {
     const val = parseFloat(standaloneFlowerWeight[1]);
     if (!isNaN(val) && val > 0) return val;
@@ -337,14 +339,13 @@ function extractMerchSize(productName: string): string {
 
 // ── Price Conversion ─────────────────────────────────────────────────────────
 
-function priceToCents(raw: string): string {
+function priceToDollars(raw: string): string {
   if (!raw) return "0";
   const cleaned = raw.replace(/[$,\s]/g, "");
   const num = parseFloat(cleaned);
-  if (isNaN(num)) return "0";
-  const cents = Math.round(num * 100);
-  if (cents <= 0) return "0";
-  return Math.min(cents, 99999999).toString();
+  if (isNaN(num) || num <= 0) return "0";
+  const capped = Math.min(num, 999999.99);
+  return (Math.round(capped * 100) / 100).toFixed(2);
 }
 
 // ── THC / CBD Parsing ────────────────────────────────────────────────────────
@@ -565,14 +566,15 @@ export function deriveRows(
     // Brand→category fallback: when category resolution is weak (Other/Misc/empty),
     // use production data to infer category from brand name (≥95% confidence)
     if (
-      (!finalResolution.category || finalResolution.category === "Other" || finalResolution.category === "Misc") &&
+      (!finalResolution.category ||
+        finalResolution.category === "Other" ||
+        finalResolution.category === "Misc") &&
       rawBrand
     ) {
       const brandCat = lookupBrandCategory(rawBrand);
       if (brandCat) {
         const brandSub =
-          resolveSubCategoryFromName(brandCat, rawName) ??
-          getDefaultSubCategory(brandCat);
+          resolveSubCategoryFromName(brandCat, rawName) ?? getDefaultSubCategory(brandCat);
         finalResolution = { category: brandCat, subCategory: brandSub };
       }
     }
@@ -583,7 +585,18 @@ export function deriveRows(
     const CANNABIS_HEADERS = ["Is Marijuana", "Is Marijuana?", "is_marijuana"];
     const NON_CANNABIS_VALUES = new Set(["n", "no", "false", "0"]);
     const CANNABIS_VALUES = new Set(["y", "yes", "true", "1"]);
-    const THC_CATEGORIES = new Set(["Flower", "Extract", "Cartridge", "Edible", "Preroll", "Beverage", "Tincture", "Topical", "Pill", "Misc"]);
+    const THC_CATEGORIES = new Set([
+      "Flower",
+      "Extract",
+      "Cartridge",
+      "Edible",
+      "Preroll",
+      "Beverage",
+      "Tincture",
+      "Topical",
+      "Pill",
+      "Misc",
+    ]);
     const NON_THC_CATEGORIES = new Set(["CBD", "Merch", "Non-Inv"]);
 
     let isNonCannabis = false;
@@ -633,8 +646,14 @@ export function deriveRows(
         finalResolution = { category: "CBD", subCategory: "Tincture" };
       } else if (/\b(batter(y|ies)|pen|charger)\b/i.test(rawName) || subLower.includes("batter")) {
         finalResolution = { category: "Merch", subCategory: "Battery" };
-      } else if (/\b(pipe|grinder|paper|cone|tray|lighter|bong|rig|glass)\b/i.test(rawName) || subLower.includes("accessor")) {
-        finalResolution = { category: "Merch", subCategory: resolveSubCategoryFromName("Merch", rawName) ?? "Merch - General" };
+      } else if (
+        /\b(pipe|grinder|paper|cone|tray|lighter|bong|rig|glass)\b/i.test(rawName) ||
+        subLower.includes("accessor")
+      ) {
+        finalResolution = {
+          category: "Merch",
+          subCategory: resolveSubCategoryFromName("Merch", rawName) ?? "Merch - General",
+        };
       } else {
         // Default: CBD - General for non-cannabis products we can't further classify
         finalResolution = { category: "CBD", subCategory: "CBD - General" };
@@ -642,13 +661,7 @@ export function deriveRows(
     }
 
     if (!isValidProductCategory(finalResolution.category)) {
-      const reResolved = enhancedCategoryResolve(
-        "",
-        "",
-        "",
-        rawName,
-        extraContext,
-      );
+      const reResolved = enhancedCategoryResolve("", "", "", rawName, extraContext);
       if (isValidProductCategory(reResolved.category)) {
         finalResolution = reResolved;
       } else {
@@ -660,9 +673,7 @@ export function deriveRows(
 
     // Name-based subcategory refinement, with brand fallback
     const nameSubCat = resolveSubCategoryFromName(category, rawName);
-    const brandSubCat = !nameSubCat && rawBrand
-      ? lookupBrandSubcategory(rawBrand, category)
-      : null;
+    const brandSubCat = !nameSubCat && rawBrand ? lookupBrandSubcategory(rawBrand, category) : null;
     const subCategory = normalizeSubCategory(
       fixSubCategory(category, nameSubCat ?? brandSubCat ?? finalResolution.subCategory),
     );
@@ -696,11 +707,7 @@ export function deriveRows(
         parsed = { value: parsed.value, unit: "g" };
       }
       // For gram-based categories: if plain number > 100, likely mg (e.g., Meadow "Cannabis Content" = 1000)
-      if (
-        parsed.unit === "unknown" &&
-        parsed.value > 100 &&
-        (uom === "grams")
-      ) {
+      if (parsed.unit === "unknown" && parsed.value > 100 && uom === "grams") {
         parsed = { value: parsed.value, unit: "mg" };
       }
     }
@@ -857,7 +864,7 @@ export function deriveRows(
         category === "Preroll" || category === "Beverage" ? extractUnitCount(rawName) || "1" : "",
       merchSize: category === "Merch" ? extractMerchSize(rawName) : "",
       skuBarcode: rawId,
-      basePrice: priceToCents(rawPrice),
+      basePrice: priceToDollars(rawPrice),
       description: rawDescription,
       menuTitle: rawMenuTitle,
       hideFromMenu: deriveHideFromMenu(rawAvailOnline, rawName, rawPrice),

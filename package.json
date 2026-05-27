@@ -2,7 +2,7 @@
   "name": "catalog-migration-tool",
   "description": "Migrate product catalog and inventory data into Treez",
   "private": true,
-  "version": "0.3.4",
+  "version": "0.3.5",
   "type": "module",
   "engines": {
     "node": ">=22"

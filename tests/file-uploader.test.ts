@@ -6,7 +6,7 @@ describe("buildUploadPayload", () => {
   it("produces csvContent and contentLength from string[][] data", () => {
     const data = [["Name"], ["BrandA"], ["BrandB"]];
     const result = buildUploadPayload(data, "brands.csv");
-    expect(result.csvContent).toBe("\uFEFFName\nBrandA\nBrandB");
+    expect(result.csvContent).toBe("Name\nBrandA\nBrandB");
     expect(result.contentLength).toBeGreaterThan(0);
     // contentLength should be byte length of the CSV string
     expect(result.contentLength).toBe(new TextEncoder().encode(result.csvContent).byteLength);
@@ -25,8 +25,8 @@ describe("buildUploadPayload", () => {
   it("handles empty data (header only)", () => {
     const data = [["Name"]];
     const result = buildUploadPayload(data, "empty.csv");
-    expect(result.csvContent).toBe("\uFEFFName");
-    expect(result.contentLength).toBe(new TextEncoder().encode("\uFEFFName").byteLength);
+    expect(result.csvContent).toBe("Name");
+    expect(result.contentLength).toBe(new TextEncoder().encode("Name").byteLength);
   });
 });
 

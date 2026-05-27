@@ -78,7 +78,7 @@ describe("buildOutputCSVs", () => {
 
     const result = buildOutputCSVs(rows);
     // Header row
-    expect(result.brands[0]).toEqual(["Name"]);
+    expect(result.brands[0]).toEqual(["Name", "Description", "Website", "ImageUrl"]);
     // 3 unique brands (data rows)
     const dataRows = result.brands.slice(1);
     expect(dataRows).toHaveLength(3);
@@ -86,6 +86,11 @@ describe("buildOutputCSVs", () => {
     expect(brandNames).toContain("Alpha");
     expect(brandNames).toContain("Beta");
     expect(brandNames).toContain("Gamma");
+    // Each data row has 4 columns with Description/Website/ImageUrl empty
+    for (const row of dataRows) {
+      expect(row).toHaveLength(4);
+      expect(row.slice(1)).toEqual(["", "", ""]);
+    }
   });
 
   it("products CSV has correct headers and one row per unique product", () => {

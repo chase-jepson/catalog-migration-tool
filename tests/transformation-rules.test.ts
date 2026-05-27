@@ -1,9 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  deriveRows,
-  normalizeClassification,
-  parseWeight,
-} from "../lib/transformer";
+import { deriveRows, normalizeClassification, parseWeight } from "../lib/transformer";
 import {
   resolveCategory,
   applyNameOverride,
@@ -813,7 +809,7 @@ describe("price conversion edge cases", () => {
     expect(row.basePrice).toBe("0");
   });
 
-  it("normal price converts to cents", () => {
+  it("normal price formats as dollars and cents", () => {
     const row = derive({
       SKU: "PR-003",
       Product: "Test Product",
@@ -821,7 +817,18 @@ describe("price conversion edge cases", () => {
       Weight: "1g",
       Price: "35.00",
     });
-    expect(row.basePrice).toBe("3500");
+    expect(row.basePrice).toBe("35.00");
+  });
+
+  it("price with cents preserves two decimal places", () => {
+    const row = derive({
+      SKU: "PR-004",
+      Product: "Test Product",
+      Category: "Flower",
+      Weight: "1g",
+      Price: "$6.25",
+    });
+    expect(row.basePrice).toBe("6.25");
   });
 });
 
@@ -1038,13 +1045,7 @@ describe("enhancedCategoryResolve", () => {
   });
 
   it("returns standard resolution when strong", () => {
-    const result = enhancedCategoryResolve(
-      "Flower",
-      "",
-      "",
-      "Blue Dream",
-      "",
-    );
+    const result = enhancedCategoryResolve("Flower", "", "", "Blue Dream", "");
     expect(result.category).toBe("Flower");
   });
 });
@@ -1080,7 +1081,7 @@ describe("status derivation", () => {
     expect(row.status).toBe("inactive");
   });
 
-  it('anything else → active', () => {
+  it("anything else → active", () => {
     const row = derive({
       SKU: "ST-002",
       Product: "Active Item",
@@ -1323,7 +1324,16 @@ describe("Cartridge Diamond subcategory", () => {
 describe("non-cannabis flag from source row", () => {
   it("Is MMJ? = N with battery keyword → Merch/Battery", () => {
     const result = deriveRows(
-      [{ SKU: "NMJ-001", Product: "STIIIZY Battery Starter Kit", Category: "Vaporizers", "Sub-category (L2)": "Batteries", Price: "30", "Is MMJ?": "N" }],
+      [
+        {
+          SKU: "NMJ-001",
+          Product: "STIIIZY Battery Starter Kit",
+          Category: "Vaporizers",
+          "Sub-category (L2)": "Batteries",
+          Price: "30",
+          "Is MMJ?": "N",
+        },
+      ],
       baseMappings,
     );
     const row = result.derivedRows[0];
@@ -1333,7 +1343,15 @@ describe("non-cannabis flag from source row", () => {
 
   it("Is MMJ? = N with edible keyword → CBD", () => {
     const result = deriveRows(
-      [{ SKU: "NMJ-002", Product: "Hemp Gummy Bears 25mg", Category: "Edible", Price: "15", "Is MMJ?": "N" }],
+      [
+        {
+          SKU: "NMJ-002",
+          Product: "Hemp Gummy Bears 25mg",
+          Category: "Edible",
+          Price: "15",
+          "Is MMJ?": "N",
+        },
+      ],
       baseMappings,
     );
     const row = result.derivedRows[0];
@@ -1342,7 +1360,15 @@ describe("non-cannabis flag from source row", () => {
 
   it("Contains THC = N with hemp skincare → CBD", () => {
     const result = deriveRows(
-      [{ SKU: "NMJ-005", Product: "Love Plus Hemp Skincare", Category: "Topical", Price: "20", "Contains THC": "N" }],
+      [
+        {
+          SKU: "NMJ-005",
+          Product: "Love Plus Hemp Skincare",
+          Category: "Topical",
+          Price: "20",
+          "Contains THC": "N",
+        },
+      ],
       baseMappings,
     );
     const row = result.derivedRows[0];
@@ -1351,7 +1377,16 @@ describe("non-cannabis flag from source row", () => {
 
   it("Is MMJ? = Y leaves category unchanged", () => {
     const result = deriveRows(
-      [{ SKU: "NMJ-003", Product: "Blue Dream 3.5g", Category: "Flower", Weight: "3.5g", Price: "35", "Is MMJ?": "Y" }],
+      [
+        {
+          SKU: "NMJ-003",
+          Product: "Blue Dream 3.5g",
+          Category: "Flower",
+          Weight: "3.5g",
+          Price: "35",
+          "Is MMJ?": "Y",
+        },
+      ],
       baseMappings,
     );
     expect(result.derivedRows[0].category).toBe("Flower");
